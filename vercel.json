@@ -5,6 +5,6 @@
     {"source":"/api/quote","destination":"/api/quote"},
     {"source":"/api/candles","destination":"/api/candles"},
     {"source":"/api/app","destination":"/api/app"},
-    {"source":"/(.*)","destination":"/public/index.html"}
+    {"source":"/(.*)","destination":"/api/app"}
   ]
 }
