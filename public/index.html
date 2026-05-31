@@ -1,1 +1,25 @@
-<!DOCTYPE html><html><head><meta charset="UTF-8"><title>DeepFlow</title></head><body><script>fetch('/api/candles?sym=SPY&interval=5m&range=5d').then(r=>r.json()).then(d=>{document.body.innerHTML='<h1 style="color:#26d97f;font-family:sans-serif;background:#0a0c10;min-height:100vh;margin:0;display:flex;align-items:center;justify-content:center">SPY: $'+d.regularMarketPrice?.toFixed(2)+'</h1>'}).catch(e=>document.body.innerHTML=e.message)</script></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>DeepFlow</title>
+<style>
+body{background:#0a0c10;color:#26d97f;font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;flex-direction:column;gap:16px}
+h1{font-size:2rem}
+#p{font-size:3rem;font-weight:700}
+</style>
+</head>
+<body>
+<h1>⚡ DeepFlow</h1>
+<div id="p">جاري...</div>
+<script>
+fetch('/api/quote?symbols=SPY,NVDA,AAPL')
+.then(r=>r.json())
+.then(d=>{
+  const r=d?.quoteResponse?.result||[];
+  document.getElementById('p').innerHTML=r.map(q=>q.symbol+': $'+q.regularMarketPrice?.toFixed(2)).join('<br>');
+})
+.catch(e=>document.getElementById('p').textContent='خطأ: '+e.message);
+</script>
+</body>
+</html>
