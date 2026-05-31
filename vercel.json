@@ -1,0 +1,1 @@
+{"rewrites":[{"source":"/api/uw","destination":"/api/uw"},{"source":"/api/mass","destination":"/api/mass"},{"source":"/(.*)","destination":"/public/index.html"}]}
