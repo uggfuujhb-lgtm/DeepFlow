@@ -1,1 +1,10 @@
-{"rewrites":[{"source":"/api/uw","destination":"/api/uw"},{"source":"/api/mass","destination":"/api/mass"},{"source":"/(.*)","destination":"/public/index.html"}]}
+{
+  "rewrites": [
+    {"source":"/api/uw","destination":"/api/uw"},
+    {"source":"/api/mass","destination":"/api/mass"},
+    {"source":"/api/quote","destination":"/api/quote"},
+    {"source":"/api/candles","destination":"/api/candles"},
+    {"source":"/api/app","destination":"/api/app"},
+    {"source":"/(.*)","destination":"/public/index.html"}
+  ]
+}
