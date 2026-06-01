@@ -1,7 +1,10 @@
 // Candles + quote via Yahoo Finance (free, no API key). Falls back to Finnhub.
+// Map our internal tickers to the real Yahoo symbol (indices use ^ caret symbols).
+const YF={SPX:'^GSPC',NDX:'^NDX',DJX:'^DJI',RUT:'^RUT',VIX:'^VIX',SPY:'SPY',QQQ:'QQQ',DIA:'DIA',IWM:'IWM'};
 export default async function handler(req,res){
   res.setHeader('Access-Control-Allow-Origin','*');
-  const sym=(req.query.sym||'SPY').trim().toUpperCase();
+  const raw=(req.query.sym||'SPY').trim().toUpperCase();
+  const sym=YF[raw]||raw;
   const interval=req.query.interval||'5m';
   // map our intervals -> Yahoo {interval,range}
   const map={
