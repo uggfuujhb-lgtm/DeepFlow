@@ -512,28 +512,40 @@ function compute(opts){
 function aggregate(rows,X){
   if(!rows.length)return null;
   const {spot,toiC,toiP,sumGEX,totGamma,atmIV,atmDist,skew,sumCharm,sumVanna,sumNetDelta,byExp}=X;
-  const pos=rows.filter(x=>x.netGamma>0),neg=rows.filter(x=>x.netGamma<0);
+  const hasOI=(toiC+toiP)>0;
+  // gamma walls: strongest +/- net gamma strikes (prefer those near spot for relevance)
+  const near=rows.filter(x=>!spot||Math.abs(x.K-spot)/spot<=0.15);
+  const scope=near.length>4?near:rows;
+  const pos=scope.filter(x=>x.netGamma>0),neg=scope.filter(x=>x.netGamma<0);
   const callWall=pos.length?pos.reduce((a,b)=>b.netGamma>a.netGamma?b:a):null;
   const putWall=neg.length?neg.reduce((a,b)=>b.netGamma<a.netGamma?b:a):null;
-  const coiRow=rows.reduce((a,b)=>b.cOI>a.cOI?b:a,rows[0]);
-  const poiRow=rows.reduce((a,b)=>b.pOI>a.pOI?b:a,rows[0]);
-  const pain=rows.reduce((a,b)=>(b.cOI+b.pOI)>(a.cOI+a.pOI)?b:a,rows[0]);
+  // OI-based levels (only meaningful when we actually have OI)
+  const coiRow=hasOI?rows.reduce((a,b)=>b.cOI>a.cOI?b:a,rows[0]):null;
+  const poiRow=hasOI?rows.reduce((a,b)=>b.pOI>a.pOI?b:a,rows[0]):null;
+  // proper max pain: strike minimising total in-the-money payout to option holders
+  let pain=null;
+  if(hasOI){let best=Infinity;for(const s of rows){const S=s.K;let v=0;for(const k of rows){v+=k.cOI*Math.max(0,S-k.K)+k.pOI*Math.max(0,k.K-S);}if(v<best){best=v;pain=s;}}}
+  // gamma flip (zero-gamma): cumulative net gamma sign change
   let cum=0,flip=null,prev=null;for(const x of rows){cum+=x.netGamma;if(prev!==null&&((prev<0&&cum>=0)||(prev>0&&cum<0)))flip=x.K;prev=cum;}
-  if(flip===null)flip=rows.reduce((a,b)=>Math.abs(b.netGamma)<Math.abs(a.netGamma)?b:a,rows[0]).K;
+  if(flip===null){const z=scope.reduce((a,b)=>Math.abs(b.netGamma)<Math.abs(a.netGamma)?b:a,scope[0]||rows[0]);flip=z?z.K:null;}
+  // top gamma levels list (for the key-levels panel) – all significant +/- gamma strikes
+  const gPos=rows.filter(x=>x.netGamma>0).sort((a,b)=>b.netGamma-a.netGamma).slice(0,4);
+  const gNeg=rows.filter(x=>x.netGamma<0).sort((a,b)=>a.netGamma-b.netGamma).slice(0,4);
   let cw=0,cwo=0,pw=0,pwo=0;rows.forEach(x=>{cw+=x.K*x.cOI;cwo+=x.cOI;pw+=x.K*x.pOI;pwo+=x.pOI;});
   const cotmc=cwo?cw/cwo:spot,cotmp=pwo?pw/pwo:spot;
   const negT=neg.slice().sort((a,b)=>a.netGamma-b.netGamma)[1]||putWall;
   const posT=pos.slice().sort((a,b)=>b.netGamma-a.netGamma)[1]||callWall;
   const T0=7/365;const em=spot*(atmIV||0.2)*Math.sqrt(T0);
-  return{rows,spot,toiC,toiP,toi:toiC+toiP,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),
-    callWall,putWall,coiRow,poiRow,pain,flip,cotmc,cotmp,negT,posT,em,atmIV,skew,sumCharm,sumVanna,sumNetDelta,
+  return{rows,spot,toiC,toiP,toi:toiC+toiP,hasOI,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),
+    callWall,putWall,coiRow,poiRow,pain,flip,gPos,gNeg,cotmc,cotmp,negT,posT,em,atmIV,skew,sumCharm,sumVanna,sumNetDelta,
     byExp,cond:sumGEX<0?'put':'call'};
 }
-// build metrics directly from Unusual Whales greek-exposure-by-strike data
-function computeFromExposure(arr){
+// build metrics directly from Unusual Whales greek-exposure-by-strike data.
+// oiMap (optional) supplies real open interest per strike: {strike:{cOI,pOI,iv}}
+function computeFromExposure(arr,oiMap){
   const spot=ST.spot||0;
   const num=(o,...k)=>{for(const kk of k){const v=o[kk];if(v!=null&&v!=='')return parseFloat(v);}return 0;};
-  const byStrike={};let toiC=0,toiP=0,sumGEX=0,totGamma=0,sumCharm=0,sumVanna=0,sumNetDelta=0,atmDist=1e9,atmIV=0;
+  const byStrike={};let toiC=0,toiP=0,sumGEX=0,totGamma=0,sumCharm=0,sumVanna=0,sumNetDelta=0,atmDist=1e9,atmIV=0,ivSum=0,ivN=0;
   arr.forEach(o=>{
     const K=num(o,'strike','price','strike_price');if(!K)return;
     const cG=num(o,'call_gamma_exposure','call_gamma_oi','call_gamma','gamma_call');
@@ -544,9 +556,11 @@ function computeFromExposure(arr){
     const pCh=num(o,'put_charm_exposure','put_charm_oi','put_charm');
     const cV=num(o,'call_vanna_exposure','call_vanna_oi','call_vanna');
     const pV=num(o,'put_vanna_exposure','put_vanna_oi','put_vanna');
-    const cOI=num(o,'call_oi','call_open_interest','calls_oi');
-    const pOI=num(o,'put_oi','put_open_interest','puts_oi');
-    const iv=num(o,'iv','implied_volatility');
+    // OI: prefer the merged chain map, then any fields on the exposure row
+    const om=oiMap&&oiMap[K];
+    const cOI=om?om.cOI:num(o,'call_oi','call_open_interest','calls_oi','oi_call');
+    const pOI=om?om.pOI:num(o,'put_oi','put_open_interest','puts_oi','oi_put');
+    const iv=(om&&om.iv)||num(o,'iv','implied_volatility');
     byStrike[K]={K,cOI,pOI,cGamma:cG,pGamma:pG,charm:cCh-pCh,vanna:cV-pV,netDelta:cD-pD};
     toiC+=cOI;toiP+=pOI;sumGEX+=cG-pG;totGamma+=Math.abs(cG)+Math.abs(pG);sumCharm+=cCh-pCh;sumVanna+=cV-pV;sumNetDelta+=cD-pD;
     const dist=Math.abs(K-spot);if(dist<atmDist){atmDist=dist;if(iv)atmIV=iv>5?iv/100:iv;}
@@ -555,21 +569,51 @@ function computeFromExposure(arr){
   if(!rows.length||rows.reduce((a,b)=>a+Math.abs(b.netGamma),0)===0)return null; // no usable gamma
   return aggregate(rows,{spot,toiC,toiP,sumGEX,totGamma,atmIV:atmIV||0.2,atmDist,skew:0,sumCharm,sumVanna,sumNetDelta,byExp:{}});
 }
+// build {strike:{cOI,pOI,iv}} from either a per-contract chain OR a pre-aggregated per-strike feed
+function oiByStrike(rows){
+  const m={};let total=0;
+  rows.forEach(o=>{
+    // case 1: row already aggregated per strike (has call_oi / put_oi)
+    const ca=o.call_oi??o.call_open_interest??o.calls_oi, pa=o.put_oi??o.put_open_interest??o.puts_oi;
+    if(ca!=null||pa!=null){
+      const K=parseFloat(o.strike||o.price||o.strike_price||0);if(!K)return;
+      const cOI=parseFloat(ca||0),pOI=parseFloat(pa||0);let iv=parseFloat(o.iv||o.implied_volatility||0);if(iv>5)iv/=100;
+      m[K]={cOI,pOI,iv};total+=cOI+pOI;return;
+    }
+    // case 2: individual contract
+    const occ=parseOcc(o.option_symbol||o.option_symbol_str||'');
+    const K=occ?occ.strike:parseFloat(o.strike||o.strike_price||0);if(!K)return;
+    const type=occ?occ.type:((o.option_type||o.put_call||o.type||'C').toUpperCase().includes('C')?'C':'P');
+    const oi=parseFloat(o.open_interest||o.oi||0);
+    let iv=parseFloat(o.implied_volatility||o.iv||0);if(iv>5)iv/=100;
+    const s=m[K]||(m[K]={cOI:0,pOI:0,iv:0,ivn:0});
+    if(type==='C')s.cOI+=oi;else s.pOI+=oi;
+    if(iv>0){s.iv=(s.iv*(s.ivn||0)+iv)/((s.ivn||0)+1);s.ivn=(s.ivn||0)+1;}
+    total+=oi;
+  });
+  return total>0?m:null;
+}
 
 /* ===== render HOME ===== */
 function renderHome(){
   const M=ST.M;if(!M)return;
   setT('c-tg',fv(M.totGamma));setT('c-tgs','Net GEX: $'+fv(M.netGEX));
   const gt=$('c-gtag');if(gt){const hi=M.totGamma>5e8;gt.textContent=hi?'عالي':'متوسط';gt.className='tag '+(hi?'tg-h':'tg-m');}
-  setT('c-poi',fv(M.toiP));setT('c-coi',fv(M.toiC));
+  setT('c-poi',M.hasOI?fv(M.toiP):'—');setT('c-coi',M.hasOI?fv(M.toiC):'—');
   const liq=M.toi?(Math.min(M.toiC,M.toiP)/Math.max(M.toiC,M.toiP)*100):0;
-  setT('c-liq',liq.toFixed(2)+'%');setT('c-liqs','توازن السيولة');
-  setT('c-pc',M.pc.toFixed(2));setT('c-pcs',M.pc>1?'هيمنة بوت':'هيمنة كول');
+  setT('c-liq',M.hasOI?liq.toFixed(2)+'%':'—');setT('c-liqs','توازن السيولة');
+  setT('c-pc',M.hasOI?M.pc.toFixed(2):'—');setT('c-pcs',M.hasOI?(M.pc>1?'هيمنة بوت':'هيمنة كول'):'—');
   const cond=$('c-cond');cond.textContent=M.cond==='put'?'▼ هيمنة البوت':'▲ هيمنة الكول';cond.className=M.cond==='put'?'dn':'up';
   setT('c-conds',M.cond==='put'?'Put Dominated':'Call Dominated');
-  // key levels
-  const kl=[['مقاومة الكول',M.callWall?.K,'up'],['دعم البوت',M.putWall?.K,'dn'],['نقطة الانعطاف',M.flip,'nt'],['Max Pain',M.pain?.K,''],['أعلى OI كول',M.coiRow?.K,'up'],['أعلى OI بوت',M.poiRow?.K,'dn']];
-  $('keylv').innerHTML=kl.map(([l,v,c])=>`<div class="ir"><span class="l">${l}</span><span class="v mono ${c}">${v?'$'+fmt(v,0):'--'}</span></div>`).join('');
+  // key levels: gamma walls, flip, OI levels + all significant gamma strikes
+  const px=v=>v?'$'+fmt(v,0):'--';
+  const kl=[['مقاومة الكول (Call Wall)',M.callWall?.K,'up'],['دعم البوت (Put Wall)',M.putWall?.K,'dn'],['نقطة انعطاف القاما',M.flip,'nt'],['Max Pain',M.pain?.K,'']];
+  if(M.hasOI){kl.push(['أعلى OI كول',M.coiRow?.K,'up'],['أعلى OI بوت',M.poiRow?.K,'dn']);}
+  let html=kl.map(([l,v,c])=>`<div class="ir"><span class="l">${l}</span><span class="v mono ${c}">${px(v)}</span></div>`).join('');
+  // all gamma levels (top +/- net gamma strikes)
+  const gl=[...(M.gPos||[]).map(r=>[r,'up']),...(M.gNeg||[]).map(r=>[r,'dn'])].sort((a,b)=>b[0].K-a[0].K);
+  if(gl.length){html+='<div class="sectitle" style="margin:8px 0 4px">مستويات القاما (GEX)</div>'+gl.map(([r,c])=>`<div class="ir"><span class="l mono">$${fmt(r.K,0)}</span><span class="v mono ${c}">${fv(r.netGamma)}</span></div>`).join('');}
+  $('keylv').innerHTML=html;
   // IV / charm / vanna
   setT('iv-atmv',(M.atmIV*100).toFixed(1)+'%');
   const rank=Math.min(100,Math.round(M.atmIV*180));setT('iv-rank',rank+' / 100');
@@ -759,20 +803,17 @@ async function loadOpts(){
   const reqSym=ST.sym;
   const uwSym=({SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'})[ST.sym]||ST.sym;
   try{
-    let M=null;
-    // 1) best: per-strike greek exposure (gamma/delta/charm/vanna) — GammaEdge style
-    for(const p of [`stock/${uwSym}/greek-exposure/strike`,`stock/${uwSym}/spot-exposures/strike`]){
-      const a=await uwGet(p);
-      if(Array.isArray(a)&&a.length){const m=computeFromExposure(a);if(m){M=m;break;}}
-    }
-    // 2) fallback: per-contract chain -> Black-Scholes via compute()
-    if(!M){
-      for(const p of [`stock/${uwSym}/option-contracts?limit=500`,`stock/${uwSym}/option-chains?limit=500`,`stocks/${uwSym}/options-chain?limit=500`]){
-        const a=await uwGet(p);
-        if(Array.isArray(a)&&a.length){const m=compute(a);if(m&&m.rows.length&&m.totGamma>0){M=m;break;}}
-      }
-    }
+    // fetch open interest (per-contract chain OR per-strike feed) + greek-exposure together
+    const chainP=(async()=>{for(const p of [`stock/${uwSym}/oi-per-strike`,`stock/${uwSym}/option-contracts?limit=3000`,`stock/${uwSym}/option-chains?limit=3000`,`stock/${uwSym}/greeks`,`stocks/${uwSym}/options-chain?limit=3000`]){const a=await uwGet(p);if(Array.isArray(a)&&a.length&&oiByStrike(a)){return a;}}return null;})();
+    const exP=(async()=>{for(const p of [`stock/${uwSym}/greek-exposure/strike`,`stock/${uwSym}/spot-exposures/strike`]){const a=await uwGet(p);if(Array.isArray(a)&&a.length)return a;}return null;})();
+    const [chain,ex]=await Promise.all([chainP,exP]);
     if(reqSym!==ST.sym)return; // user switched while loading
+    let M=null;
+    const oim=(chain&&chain.length)?oiByStrike(chain):null;
+    // prefer official greek-exposure greeks, enriched with real OI from the chain
+    if(ex&&ex.length){M=computeFromExposure(ex,oim);}
+    // else compute everything from the raw chain via Black-Scholes
+    if(!M&&chain&&chain.length){const m=compute(chain);if(m&&m.rows.length&&m.totGamma>0)M=m;}
     if(!M)throw 0;
     ST.demo=false;ST.M=M;renderAll();
   }catch(e){
