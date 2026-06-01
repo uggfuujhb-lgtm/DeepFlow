@@ -505,28 +505,55 @@ function compute(opts){
     cOI:s.cOI,pOI:s.pOI,charm:s.charm,vanna:s.vanna,gex:s.cGamma-s.pGamma,
     iv:s.ivn?s.iv/s.ivn:0,pct:spot?((s.K-spot)/spot*100):0
   }));
+  const skew=(p25&&c25)?(p25.iv-c25.iv)*100:0;
+  return aggregate(rows,{spot,toiC,toiP,sumGEX,totGamma,atmIV,atmDist,skew,sumCharm,sumVanna,sumNetDelta,byExp});
+}
+// shared aggregation -> the full metrics object (used by both compute paths)
+function aggregate(rows,X){
   if(!rows.length)return null;
+  const {spot,toiC,toiP,sumGEX,totGamma,atmIV,atmDist,skew,sumCharm,sumVanna,sumNetDelta,byExp}=X;
   const pos=rows.filter(x=>x.netGamma>0),neg=rows.filter(x=>x.netGamma<0);
   const callWall=pos.length?pos.reduce((a,b)=>b.netGamma>a.netGamma?b:a):null;
   const putWall=neg.length?neg.reduce((a,b)=>b.netGamma<a.netGamma?b:a):null;
   const coiRow=rows.reduce((a,b)=>b.cOI>a.cOI?b:a,rows[0]);
   const poiRow=rows.reduce((a,b)=>b.pOI>a.pOI?b:a,rows[0]);
   const pain=rows.reduce((a,b)=>(b.cOI+b.pOI)>(a.cOI+a.pOI)?b:a,rows[0]);
-  // gamma flip (cumulative net gamma sign change)
   let cum=0,flip=null,prev=null;for(const x of rows){cum+=x.netGamma;if(prev!==null&&((prev<0&&cum>=0)||(prev>0&&cum<0)))flip=x.K;prev=cum;}
   if(flip===null)flip=rows.reduce((a,b)=>Math.abs(b.netGamma)<Math.abs(a.netGamma)?b:a,rows[0]).K;
-  // COTM (OI-weighted strike per side)
   let cw=0,cwo=0,pw=0,pwo=0;rows.forEach(x=>{cw+=x.K*x.cOI;cwo+=x.cOI;pw+=x.K*x.pOI;pwo+=x.pOI;});
   const cotmc=cwo?cw/cwo:spot,cotmp=pwo?pw/pwo:spot;
-  // transition gex (largest +/- near flip)
   const negT=neg.slice().sort((a,b)=>a.netGamma-b.netGamma)[1]||putWall;
   const posT=pos.slice().sort((a,b)=>b.netGamma-a.netGamma)[1]||callWall;
-  // expected move
-  const T0=7/365;const em=spot*atmIV*Math.sqrt(Math.max(atmDist?T0:T0,1/365));
-  const skew=(p25&&c25)?(p25.iv-c25.iv)*100:0;
+  const T0=7/365;const em=spot*(atmIV||0.2)*Math.sqrt(T0);
   return{rows,spot,toiC,toiP,toi:toiC+toiP,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),
     callWall,putWall,coiRow,poiRow,pain,flip,cotmc,cotmp,negT,posT,em,atmIV,skew,sumCharm,sumVanna,sumNetDelta,
     byExp,cond:sumGEX<0?'put':'call'};
+}
+// build metrics directly from Unusual Whales greek-exposure-by-strike data
+function computeFromExposure(arr){
+  const spot=ST.spot||0;
+  const num=(o,...k)=>{for(const kk of k){const v=o[kk];if(v!=null&&v!=='')return parseFloat(v);}return 0;};
+  const byStrike={};let toiC=0,toiP=0,sumGEX=0,totGamma=0,sumCharm=0,sumVanna=0,sumNetDelta=0,atmDist=1e9,atmIV=0;
+  arr.forEach(o=>{
+    const K=num(o,'strike','price','strike_price');if(!K)return;
+    const cG=num(o,'call_gamma_exposure','call_gamma_oi','call_gamma','gamma_call');
+    const pG=num(o,'put_gamma_exposure','put_gamma_oi','put_gamma','gamma_put');
+    const cD=num(o,'call_delta_exposure','call_delta_oi','call_delta');
+    const pD=num(o,'put_delta_exposure','put_delta_oi','put_delta');
+    const cCh=num(o,'call_charm_exposure','call_charm_oi','call_charm');
+    const pCh=num(o,'put_charm_exposure','put_charm_oi','put_charm');
+    const cV=num(o,'call_vanna_exposure','call_vanna_oi','call_vanna');
+    const pV=num(o,'put_vanna_exposure','put_vanna_oi','put_vanna');
+    const cOI=num(o,'call_oi','call_open_interest','calls_oi');
+    const pOI=num(o,'put_oi','put_open_interest','puts_oi');
+    const iv=num(o,'iv','implied_volatility');
+    byStrike[K]={K,cOI,pOI,cGamma:cG,pGamma:pG,charm:cCh-pCh,vanna:cV-pV,netDelta:cD-pD};
+    toiC+=cOI;toiP+=pOI;sumGEX+=cG-pG;totGamma+=Math.abs(cG)+Math.abs(pG);sumCharm+=cCh-pCh;sumVanna+=cV-pV;sumNetDelta+=cD-pD;
+    const dist=Math.abs(K-spot);if(dist<atmDist){atmDist=dist;if(iv)atmIV=iv>5?iv/100:iv;}
+  });
+  const rows=Object.values(byStrike).sort((a,b)=>a.K-b.K).map(s=>({K:s.K,netGamma:s.cGamma-s.pGamma,netDelta:s.netDelta,netOI:s.cOI-s.pOI,cOI:s.cOI,pOI:s.pOI,charm:s.charm,vanna:s.vanna,gex:s.cGamma-s.pGamma,iv:0,pct:spot?((s.K-spot)/spot*100):0}));
+  if(!rows.length||rows.reduce((a,b)=>a+Math.abs(b.netGamma),0)===0)return null; // no usable gamma
+  return aggregate(rows,{spot,toiC,toiP,sumGEX,totGamma,atmIV:atmIV||0.2,atmDist,skew:0,sumCharm,sumVanna,sumNetDelta,byExp:{}});
 }
 
 /* ===== render HOME ===== */
@@ -727,27 +754,26 @@ async function loadFlow(){
 }
 
 /* ===== options load ===== */
+async function uwGet(path){try{const d=await fetch('/api/uw?path='+encodeURIComponent(path)).then(r=>r.json());return d?.data||d?.results||d?.chains||d;}catch(_){return null;}}
 async function loadOpts(){
   const reqSym=ST.sym;
   const uwSym=({SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'})[ST.sym]||ST.sym;
-  // try several Unusual Whales endpoint shapes; use the first that returns contracts
-  const paths=[
-    `stock/${uwSym}/option-chains?limit=500`,
-    `stocks/${uwSym}/options-chain?limit=500`,
-    `stock/${uwSym}/option/chain?limit=500`
-  ];
   try{
-    let opts=null;
-    for(const p of paths){
-      try{
-        const d=await fetch('/api/uw?path='+encodeURIComponent(p)).then(r=>r.json());
-        const a=d?.data||d?.results||d?.chains||[];
-        if(Array.isArray(a)&&a.length){opts=a;break;}
-      }catch(_){}
+    let M=null;
+    // 1) best: per-strike greek exposure (gamma/delta/charm/vanna) — GammaEdge style
+    for(const p of [`stock/${uwSym}/greek-exposure/strike`,`stock/${uwSym}/spot-exposures/strike`]){
+      const a=await uwGet(p);
+      if(Array.isArray(a)&&a.length){const m=computeFromExposure(a);if(m){M=m;break;}}
+    }
+    // 2) fallback: per-contract chain -> Black-Scholes via compute()
+    if(!M){
+      for(const p of [`stock/${uwSym}/option-contracts?limit=500`,`stock/${uwSym}/option-chains?limit=500`,`stocks/${uwSym}/options-chain?limit=500`]){
+        const a=await uwGet(p);
+        if(Array.isArray(a)&&a.length){const m=compute(a);if(m&&m.rows.length&&m.totGamma>0){M=m;break;}}
+      }
     }
     if(reqSym!==ST.sym)return; // user switched while loading
-    if(!opts||!opts.length)throw 0;
-    const M=compute(opts);if(!M||!M.rows.length)throw 0;
+    if(!M)throw 0;
     ST.demo=false;ST.M=M;renderAll();
   }catch(e){
     if(reqSym!==ST.sym)return;
