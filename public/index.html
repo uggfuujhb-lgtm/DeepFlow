@@ -1,376 +1,698 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DeepFlow</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0b0d12;color:#e2ecf8;font-family:sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-.top{height:44px;background:#0f1219;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 14px;justify-content:space-between;flex-shrink:0}
-.brand{font-weight:700;color:#26d97f;font-size:.95rem}
-.mst{font-size:.65rem;padding:2px 8px;border-radius:20px;font-family:monospace}
-.open{color:#26d97f;background:rgba(38,217,127,.08);border:1px solid rgba(38,217,127,.2)}
-.closed{color:#ff4d6a;background:rgba(255,77,106,.08);border:1px solid rgba(255,77,106,.2)}
-.tstrip{display:flex;background:#0f1219;border-bottom:1px solid rgba(255,255,255,.06);overflow-x:auto;flex-shrink:0}
-.tc{padding:5px 12px;cursor:pointer;border-bottom:2px solid transparent;min-width:80px;flex-shrink:0}
-.tc.on{border-bottom-color:#26d97f}
-.tsym{font-size:.68rem;color:#718096;font-family:monospace}
-.tprc{font-size:.82rem;font-weight:700;font-family:monospace}
-.tchg{font-size:.6rem;font-family:monospace}
-.up{color:#26d97f}.dn{color:#ff4d6a}.nt{color:#f7c948}
-.body{flex:1;display:flex;overflow:hidden}
-.chart-wrap{flex:1;position:relative;background:#0b0d12}
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a0e17"><title>رصد · DeepFlow</title>
+<style>
+:root{
+  --bg:#0a0e17;--bg2:#0d1320;--panel:#0f1623;--panel2:#121a2b;--card:#111a2c;
+  --line:rgba(255,255,255,.06);--line2:rgba(255,255,255,.1);
+  --tx:#e6eefb;--mut:#7e8da6;--mut2:#4c5b75;
+  --g:#22d39a;--r:#ff5470;--y:#f5c451;--p:#a78bfa;--c:#38bdf8;--o:#f59e0b;
+  --gg:rgba(34,211,154,.14);--rr:rgba(255,84,112,.14);--yy:rgba(245,196,81,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,"Tahoma",sans-serif;height:100vh;overflow:hidden;display:flex;flex-direction:column;font-size:13px}
+.mono{font-family:"SF Mono","Consolas",monospace}
+.up{color:var(--g)}.dn{color:var(--r)}.nt{color:var(--y)}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:8px}::-webkit-scrollbar-track{background:transparent}
+
+/* ===== top bar ===== */
+.top{height:50px;background:linear-gradient(180deg,#0e1626,#0b1119);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:14px;flex-shrink:0;z-index:30}
+.brand{font-weight:800;font-size:1.05rem;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g)}
+.brand b{color:var(--g)}
+.search{flex:1;max-width:280px;position:relative}
+.search input{width:100%;background:#0b1220;border:1px solid var(--line2);color:var(--tx);border-radius:9px;padding:7px 32px 7px 12px;font-size:.8rem;outline:none}
+.search input:focus{border-color:var(--g)}
+.search .ic{position:absolute;top:50%;right:11px;transform:translateY(-50%);color:var(--mut2)}
+.sugg{position:absolute;top:38px;right:0;left:0;background:var(--panel2);border:1px solid var(--line2);border-radius:9px;overflow:hidden;z-index:50;display:none}
+.sugg div{padding:7px 12px;cursor:pointer;font-size:.78rem;display:flex;justify-content:space-between}
+.sugg div:hover{background:rgba(255,255,255,.05)}
+.tspace{flex:1}
+.live{font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--g);display:flex;align-items:center;gap:5px}
+.live .b{width:7px;height:7px;border-radius:50%;background:var(--g);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.mst{font-size:.62rem;padding:3px 9px;border-radius:20px;font-weight:700}
+.mst.open{color:var(--g);background:var(--gg)}.mst.closed{color:var(--r);background:var(--rr)}
+.clock{font-size:.66rem;color:var(--mut)}
+
+/* ===== shell: main + right nav ===== */
+.shell{flex:1;display:flex;overflow:hidden}
+.nav{width:138px;background:linear-gradient(180deg,#0e1626,#0a0f18);border-right:1px solid var(--line);flex-shrink:0;display:flex;flex-direction:column;padding:14px 8px;gap:4px}
+.nav .nh{font-size:.56rem;color:var(--mut2);letter-spacing:.12em;padding:6px 10px 4px;font-weight:700}
+.nav a{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;color:var(--mut);font-size:.78rem;cursor:pointer;font-weight:600;transition:.15s}
+.nav a .em{font-size:.95rem;width:18px;text-align:center}
+.nav a:hover{background:rgba(255,255,255,.04);color:var(--tx)}
+.nav a.on{background:linear-gradient(90deg,rgba(34,211,154,.16),rgba(34,211,154,.03));color:var(--g)}
+.nav .grow{flex:1}
+.main{flex:1;overflow-y:auto;overflow-x:hidden}
+.view{display:none;padding:14px}
+.view.on{display:block}
+
+/* ===== symbol strip ===== */
+.tstrip{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px}
+.tc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 13px;cursor:pointer;min-width:96px;flex-shrink:0;transition:.15s}
+.tc.on{border-color:var(--g);background:linear-gradient(180deg,rgba(34,211,154,.08),transparent)}
+.tc .s{font-size:.62rem;color:var(--mut);font-weight:700}
+.tc .p{font-size:.85rem;font-weight:800}
+.tc .c{font-size:.6rem;font-weight:700}
+
+/* ===== stat cards ===== */
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
+.card{background:linear-gradient(160deg,var(--card),#0c1322);border:1px solid var(--line);border-radius:13px;padding:12px 13px;position:relative;overflow:hidden}
+.card .lab{font-size:.62rem;color:var(--mut);font-weight:600;display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.card .val{font-size:1.18rem;font-weight:800}
+.card .sub{font-size:.6rem;color:var(--mut2);margin-top:3px}
+.card .tag{position:absolute;top:10px;left:10px;font-size:.54rem;padding:2px 7px;border-radius:6px;font-weight:700}
+.tg-h{background:var(--gg);color:var(--g)}.tg-m{background:var(--yy);color:var(--y)}.tg-l{background:var(--rr);color:var(--r)}
+
+/* ===== layout grids ===== */
+.grid2{display:grid;grid-template-columns:1fr 300px;gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.ph{padding:10px 14px;border-bottom:1px solid var(--line);font-size:.72rem;font-weight:700;display:flex;align-items:center;justify-content:space-between;color:var(--tx)}
+.ph .mut{color:var(--mut);font-weight:600;font-size:.64rem}
+.pb{padding:12px 14px}
+
+/* chart */
+.chart-wrap{position:relative;height:440px;background:var(--bg)}
 canvas{position:absolute;inset:0}
-.info{width:260px;background:#0f1219;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;flex-shrink:0}
-.ip{border-bottom:1px solid rgba(255,255,255,.06);padding:9px 11px}
-.ipt{font-size:.6rem;font-weight:600;color:#4a5568;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
-.ir{display:flex;justify-content:space-between;font-size:.69rem;margin-bottom:3px}
-.il{color:#718096}.iv{font-family:monospace;font-weight:600}
-.gtag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:.59rem;font-weight:700}
-.tgg{background:rgba(38,217,127,.12);color:#26d97f;border:1px solid rgba(38,217,127,.25)}
-.tgr{background:rgba(255,77,106,.12);color:#ff4d6a;border:1px solid rgba(255,77,106,.25)}
-.tgy{background:rgba(247,201,72,.12);color:#f7c948;border:1px solid rgba(247,201,72,.25)}
-.ft{width:100%;border-collapse:collapse;font-size:.65rem}
-.ft th{padding:3px 5px;text-align:right;font-size:.56rem;color:#4a5568;border-bottom:1px solid rgba(255,255,255,.06)}
-.ft td{padding:3px 5px;border-bottom:1px solid rgba(255,255,255,.025);font-family:monospace;white-space:nowrap}
-.ct{display:inline-block;padding:1px 4px;border-radius:2px;font-size:.56rem;font-weight:700;background:rgba(38,217,127,.12);color:#26d97f}
-.pt{display:inline-block;padding:1px 4px;border-radius:2px;font-size:.56rem;font-weight:700;background:rgba(255,77,106,.12);color:#ff4d6a}
-#ld{position:absolute;inset:0;background:rgba(11,13,18,.9);display:flex;align-items:center;justify-content:center;color:#4a5568;font-size:.8rem;z-index:9}
-.ctbar{height:38px;background:#0f1219;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 10px;gap:6px;flex-shrink:0}
-select{background:#141820;border:1px solid rgba(255,255,255,.1);color:#e2ecf8;font-family:monospace;font-size:.73rem;padding:3px 7px;border-radius:5px;outline:none}
-.tfb{background:none;border:1px solid transparent;color:#718096;font-family:monospace;font-size:.67rem;padding:3px 7px;border-radius:4px;cursor:pointer}
-.tfb.on{background:rgba(38,217,127,.1);color:#26d97f;border-color:rgba(38,217,127,.2)}
+.tfbar{display:flex;gap:3px;padding:8px 12px;border-bottom:1px solid var(--line);align-items:center}
+.tfb{background:none;border:1px solid transparent;color:var(--mut);border-radius:7px;padding:4px 10px;font-size:.7rem;cursor:pointer;font-weight:700}
+.tfb.on{background:var(--gg);color:var(--g)}
+.proflab{position:absolute;top:6px;font-size:.56rem;color:var(--mut2);font-weight:700;z-index:3}
+#tip{position:absolute;display:none;background:rgba(8,12,20,.97);border:1px solid var(--line2);border-radius:9px;padding:9px 12px;font-size:.66rem;pointer-events:none;z-index:20;min-width:150px}
+#ld{position:absolute;inset:0;background:rgba(10,14,23,.85);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:.82rem;z-index:9}
+
+/* info rows */
+.ir{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.ir:last-child{border:0}
+.ir .l{color:var(--mut)}.ir .v{font-weight:700}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.kvc{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+.kvc .l{font-size:.58rem;color:var(--mut);margin-bottom:3px}
+.kvc .v{font-size:.92rem;font-weight:800}
+
+.badge{padding:8px 12px;border-radius:10px;font-weight:800;font-size:.9rem;text-align:center}
+.b-put{background:linear-gradient(135deg,rgba(255,84,112,.22),rgba(255,84,112,.06));color:var(--r);border:1px solid rgba(255,84,112,.3)}
+.b-call{background:linear-gradient(135deg,rgba(34,211,154,.22),rgba(34,211,154,.06));color:var(--g);border:1px solid rgba(34,211,154,.3)}
+
+/* expected move bar */
+.embar{position:relative;height:8px;border-radius:6px;background:linear-gradient(90deg,var(--r),var(--y),var(--g));margin:10px 0 4px}
+.embar .pin{position:absolute;top:-3px;width:3px;height:14px;background:#fff;border-radius:3px}
+.emrow{display:flex;justify-content:space-between;font-size:.62rem;color:var(--mut)}
+
+/* options chain table */
+.chain{width:100%;border-collapse:collapse;font-size:.68rem}
+.chain th{position:sticky;top:0;background:var(--panel2);padding:7px 8px;text-align:center;font-size:.58rem;color:var(--mut);font-weight:700;border-bottom:1px solid var(--line2);white-space:nowrap;cursor:pointer}
+.chain td{padding:5px 8px;text-align:center;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap}
+.chain tr:hover td{background:rgba(255,255,255,.025)}
+.chain td.strike{font-weight:800;background:rgba(255,255,255,.02)}
+.chain tr.spot td{background:linear-gradient(90deg,rgba(245,196,81,.16),rgba(245,196,81,.04));border-top:1px solid var(--y);border-bottom:1px solid var(--y)}
+.chain tr.spot td.strike{color:var(--y)}
+.bar{position:relative}
+.bar i{position:absolute;top:2px;bottom:2px;border-radius:3px;opacity:.5}
+.mk{display:inline-block;width:7px;height:7px;border-radius:50%;margin-left:4px;vertical-align:middle}
+.tablewrap{max-height:560px;overflow:auto}
+
+/* flow / contracts table */
+.ft{width:100%;border-collapse:collapse;font-size:.7rem}
+.ft th{padding:6px 8px;text-align:right;font-size:.58rem;color:var(--mut);border-bottom:1px solid var(--line)}
+.ft td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.03)}
+.pill{display:inline-block;padding:1px 6px;border-radius:5px;font-size:.58rem;font-weight:800}
+.pill.c{background:var(--gg);color:var(--g)}.pill.p{background:var(--rr);color:var(--r)}
+
+/* expiry bars */
+.expbar{display:flex;align-items:center;gap:8px;font-size:.66rem;margin-bottom:7px}
+.expbar .nm{width:62px;color:var(--mut)}
+.expbar .tr{flex:1;height:9px;background:rgba(255,255,255,.04);border-radius:5px;overflow:hidden;position:relative}
+.expbar .tr i{position:absolute;top:0;bottom:0;border-radius:5px}
+.expbar .vl{width:54px;text-align:left;font-weight:700}
+
+/* calculator */
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.calc label{font-size:.64rem;color:var(--mut);display:block;margin-bottom:4px}
+.calc input,.calc select{width:100%;background:#0b1220;border:1px solid var(--line2);color:var(--tx);border-radius:8px;padding:8px 10px;font-size:.8rem;outline:none}
+.calc .field{margin-bottom:10px}
+.greekgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:6px}
+
+select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-size:.74rem;padding:5px 9px;border-radius:7px;outline:none}
+.muted{color:var(--mut)}
+.sectitle{font-size:.62rem;color:var(--mut2);letter-spacing:.1em;font-weight:700;margin:14px 0 8px}
+@media(max-width:1100px){.cards{grid-template-columns:repeat(3,1fr)}.grid2{grid-template-columns:1fr}}
 </style></head><body>
 
 <div class="top">
-  <div class="brand">⚡ DeepFlow</div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <span style="font-family:monospace;font-size:.65rem;color:#718096" id="dayt">--</span>
-    <div class="mst closed" id="mst">--</div>
+  <div class="brand"><span class="dot"></span>رصد <b>DeepFlow</b></div>
+  <div class="search">
+    <span class="ic">🔍</span>
+    <input id="q" placeholder="ابحث عن رمز..." autocomplete="off">
+    <div class="sugg" id="sugg"></div>
   </div>
+  <div class="tspace"></div>
+  <div class="live"><span class="b"></span>LIVE</div>
+  <div class="mst closed" id="mst">--</div>
+  <div class="clock mono" id="clock">--</div>
 </div>
 
-<div class="tstrip" id="ts">
-  <div class="tc on" data-s="SPY" data-l="SPX/SPY" onclick="sel(this)"><div class="tsym">SPX</div><div class="tprc" id="tp-SPY">--</div><div class="tchg" id="tc-SPY">--</div></div>
-  <div class="tc" data-s="QQQ" data-l="QQQ" onclick="sel(this)"><div class="tsym">QQQ</div><div class="tprc" id="tp-QQQ">--</div><div class="tchg" id="tc-QQQ">--</div></div>
-  <div class="tc" data-s="NVDA" data-l="NVDA" onclick="sel(this)"><div class="tsym">NVDA</div><div class="tprc" id="tp-NVDA">--</div><div class="tchg" id="tc-NVDA">--</div></div>
-  <div class="tc" data-s="AAPL" data-l="AAPL" onclick="sel(this)"><div class="tsym">AAPL</div><div class="tprc" id="tp-AAPL">--</div><div class="tchg" id="tc-AAPL">--</div></div>
-  <div class="tc" data-s="TSLA" data-l="TSLA" onclick="sel(this)"><div class="tsym">TSLA</div><div class="tprc" id="tp-TSLA">--</div><div class="tchg" id="tc-TSLA">--</div></div>
-  <div class="tc" data-s="META" data-l="META" onclick="sel(this)"><div class="tsym">META</div><div class="tprc" id="tp-META">--</div><div class="tchg" id="tc-META">--</div></div>
-  <div class="tc" data-s="MSFT" data-l="MSFT" onclick="sel(this)"><div class="tsym">MSFT</div><div class="tprc" id="tp-MSFT">--</div><div class="tchg" id="tc-MSFT">--</div></div>
-  <div class="tc" data-s="AMD" data-l="AMD" onclick="sel(this)"><div class="tsym">AMD</div><div class="tprc" id="tp-AMD">--</div><div class="tchg" id="tc-AMD">--</div></div>
-</div>
+<div class="shell">
+  <nav class="nav">
+    <div class="nh">القوائم</div>
+    <a class="on" data-v="home"><span class="em">⚡</span>رصد الرئيسية</a>
+    <a data-v="chain"><span class="em">⛓️</span>راصد العقود</a>
+    <a data-v="analytics"><span class="em">📊</span>التحليلات المالية</a>
+    <a data-v="calc"><span class="em">🧮</span>حاسبة العقود</a>
+    <div class="grow"></div>
+    <div class="nh">الرمز الحالي</div>
+    <a style="cursor:default"><span class="em">📈</span><span id="navsym" class="mono">SPX</span></a>
+  </nav>
 
-<div class="ctbar">
-  <select id="sym" onchange="onSym()">
-    <optgroup label="مؤشرات"><option value="SPY" data-l="SPX/SPY">SPX</option><option value="QQQ" data-l="QQQ">NDX</option><option value="DIA" data-l="DJX">DJX</option><option value="IWM" data-l="RUT">RUT</option></optgroup>
-    <optgroup label="ETF"><option value="TLT" data-l="TLT">TLT</option><option value="GLD" data-l="GLD">GLD</option></optgroup>
-    <optgroup label="شركات"><option value="NVDA" data-l="NVDA">NVDA</option><option value="AAPL" data-l="AAPL">AAPL</option><option value="TSLA" data-l="TSLA">TSLA</option><option value="META" data-l="META">META</option><option value="MSFT" data-l="MSFT">MSFT</option><option value="AMZN" data-l="AMZN">AMZN</option><option value="GOOGL" data-l="GOOGL">GOOGL</option><option value="AMD" data-l="AMD">AMD</option><option value="PLTR" data-l="PLTR">PLTR</option></optgroup>
-  </select>
-  <div style="display:flex;gap:2px">
-    <button class="tfb" data-i="1m">1د</button>
-    <button class="tfb on" data-i="5m">5د</button>
-    <button class="tfb" data-i="15m">15د</button>
-    <button class="tfb" data-i="60m">1س</button>
-    <button class="tfb" data-i="1d">يومي</button>
-    <button class="tfb" data-i="1wk">أسبوعي</button>
-  </div>
-  <div style="display:flex;align-items:baseline;gap:5px;margin-right:auto">
-    <span style="font-family:monospace;font-size:.88rem;font-weight:700" id="cp">--</span>
-    <span style="font-family:monospace;font-size:.72rem" id="cc">--</span>
-    <span style="font-family:monospace;font-size:.6rem;color:#718096" id="clbl">SPX</span>
-    <span style="font-family:monospace;font-size:.6rem;color:#4a5568" id="cnt">15s</span>
-  </div>
-</div>
+  <div class="main">
 
-<div class="body">
-  <div class="chart-wrap" id="cwrap">
-    <canvas id="mc"></canvas>
-    <canvas id="gc" style="width:85px;height:100%;right:0;left:auto;border-right:1px solid rgba(255,255,255,.06)"></canvas>
-    <div style="position:absolute;top:4px;right:90px;font-size:.56rem;color:#4a5568;font-family:monospace;z-index:2">غاما</div>
-    <div id="tip" style="position:absolute;display:none;background:rgba(11,13,18,.97);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:8px 11px;font-size:.65rem;font-family:monospace;pointer-events:none;z-index:20;min-width:140px"></div>
-    <div id="ld">جاري تحميل الشارت...</div>
-  </div>
-  <div class="info">
-    <div class="ip"><div class="ipt">مستويات الغاما</div>
-      <div class="ir"><span class="il">مقاومة الغاما</span><span class="gtag tgr" id="gr">--</span></div>
-      <div class="ir"><span class="il">دعم الغاما</span><span class="gtag tgg" id="gs">--</span></div>
-      <div class="ir"><span class="il">نقطة الدوران</span><span class="gtag tgy" id="gf">--</span></div>
-      <div class="ir"><span class="il">Max Pain</span><span class="iv" style="color:#a78bfa" id="gp">--</span></div>
-      <div class="ir"><span class="il">GEX إجمالي</span><span class="iv up" id="gt">--</span></div>
-    </div>
-    <div class="ip"><div class="ipt">Open Interest</div>
-      <div class="ir"><span class="il">Call OI</span><span class="iv up" id="oic">--</span></div>
-      <div class="ir"><span class="il">Put OI</span><span class="iv dn" id="oip">--</span></div>
-      <div class="ir"><span class="il">P/C Ratio</span><span class="iv nt" id="oipc">--</span></div>
-      <div class="ir"><span class="il">الإشارة</span><span class="iv" id="oisig">--</span></div>
-    </div>
-    <div class="ip"><div class="ipt">التضخم · IV</div>
-      <div class="ir"><span class="il">IV المتوقع</span><span class="iv nt" id="ivv">--</span></div>
-      <div class="ir"><span class="il">IV Rank</span><span class="iv" id="ivr">--</span></div>
-      <div class="ir"><span class="il">الإشارة</span><span class="iv" id="ivsig">--</span></div>
-    </div>
-    <div class="ip"><div class="ipt">دمج المشتقات</div>
-      <div style="font-size:.8rem;font-weight:700;margin-bottom:3px" id="flsig">--</div>
-      <div style="font-size:.66rem;color:#718096;line-height:1.5" id="fldesc">--</div>
-    </div>
-    <div class="ip" style="padding-bottom:0"><div class="ipt" style="display:flex;justify-content:space-between"><span>Options Flow</span><span style="font-family:monospace;font-size:.6rem;padding:1px 5px;border-radius:3px" id="flb">--</span></div></div>
-    <div id="flw" style="font-size:.7rem;color:#4a5568;text-align:center;padding:12px">جاري التحميل...</div>
+    <!-- ============ HOME ============ -->
+    <section class="view on" id="v-home">
+      <div class="tstrip" id="ts"></div>
+
+      <div class="cards">
+        <div class="card"><span class="tag tg-h" id="c-gtag">--</span><div class="lab">⚡ إجمالي القاما</div><div class="val mono" id="c-tg">--</div><div class="sub" id="c-tgs">Net GEX</div></div>
+        <div class="card"><div class="lab">🔻 عقود البوت المفتوحة</div><div class="val mono dn" id="c-poi">--</div><div class="sub">Put Open Interest</div></div>
+        <div class="card"><div class="lab">🔺 عقود الكول المفتوحة</div><div class="val mono up" id="c-coi">--</div><div class="sub">Call Open Interest</div></div>
+        <div class="card"><div class="lab">💧 ضغط السيولة</div><div class="val mono" id="c-liq">--</div><div class="sub" id="c-liqs">Liquidity Pressure</div></div>
+        <div class="card"><div class="lab">⚖️ نسبة P/C</div><div class="val mono nt" id="c-pc">--</div><div class="sub" id="c-pcs">Put / Call</div></div>
+        <div class="card"><div class="lab">🎯 حالة القاما</div><div class="val" id="c-cond" style="font-size:.92rem">--</div><div class="sub" id="c-conds">Gamma Regime</div></div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="tfbar">
+            <span style="font-size:.7rem;font-weight:800;margin-left:6px" id="ch-sym">SPX</span>
+            <span class="mono" id="ch-px" style="font-weight:800">--</span>
+            <span class="mono" id="ch-chg" style="font-size:.7rem">--</span>
+            <div style="flex:1"></div>
+            <button class="tfb" data-i="1m">1د</button>
+            <button class="tfb on" data-i="5m">5د</button>
+            <button class="tfb" data-i="15m">15د</button>
+            <button class="tfb" data-i="60m">1س</button>
+            <button class="tfb" data-i="1d">يومي</button>
+          </div>
+          <div class="chart-wrap" id="cwrap">
+            <canvas id="mc"></canvas>
+            <canvas id="gc"></canvas>
+            <canvas id="dc"></canvas>
+            <div class="proflab" id="lab-g">قاما</div>
+            <div class="proflab" id="lab-d">دلتا</div>
+            <div id="tip"></div>
+            <div id="ld">جاري تحميل الشارت...</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="panel"><div class="ph">المستويات الرئيسية <span class="mut">Key Levels</span></div>
+            <div class="pb" id="keylv"></div>
+          </div>
+          <div class="panel"><div class="ph">التضخم · فانا · تشارم <span class="mut" id="iv-time">--</span></div>
+            <div class="pb">
+              <div class="badge b-call" id="iv-atm" style="margin-bottom:10px">IV ATM <span id="iv-atmv">--</span></div>
+              <div class="ir"><span class="l">IV Rank</span><span class="v mono" id="iv-rank">--</span></div>
+              <div class="ir"><span class="l">حالة التضخم</span><span class="v" id="iv-sig">--</span></div>
+              <div class="ir"><span class="l">انحراف 25Δ (SKEW)</span><span class="v mono" id="iv-skew">--</span></div>
+              <div class="ir"><span class="l">صافي تشارم</span><span class="v mono" id="iv-charm">--</span></div>
+              <div class="ir"><span class="l">صافي فانا</span><span class="v mono" id="iv-vanna">--</span></div>
+              <div class="badge" id="iv-push" style="margin-top:10px">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div class="panel"><div class="ph">العقود النشطة · التدفقات <span class="mut" id="flow-b">--</span></div>
+          <div class="pb" id="flw" style="color:var(--mut);text-align:center;padding:18px">جاري التحميل...</div>
+        </div>
+        <div class="panel"><div class="ph">القاما حسب تاريخ الاستحقاق <span class="mut">GEX by Expiry</span></div>
+          <div class="pb" id="exphome"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CHAIN (GammaEdge) ============ -->
+    <section class="view" id="v-chain">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:12px;align-items:start">
+        <div class="panel">
+          <div class="ph">سلسلة العقود · جميع البيانات <span class="mut" id="chain-sub">--</span></div>
+          <div class="tablewrap">
+            <table class="chain" id="chaintbl">
+              <thead><tr>
+                <th>Strike</th><th>Net Gamma</th><th>Net Delta</th><th>Net OI</th>
+                <th>Call OI</th><th>Put OI</th><th>% From Spot</th><th>Net Charm</th><th>Net Vanna</th>
+              </tr></thead>
+              <tbody id="chainbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="panel"><div class="ph">القاما · المراكز المفتوحة <span class="mut">Gamma · OI</span></div>
+            <div class="pb">
+              <div class="kv" style="margin-bottom:9px">
+                <div class="kvc"><div class="l">Net GEX</div><div class="v mono" id="gx-net">--</div></div>
+                <div class="kvc"><div class="l">Total OI</div><div class="v mono" id="gx-toi">--</div></div>
+                <div class="kvc"><div class="l">COTMP</div><div class="v mono" id="gx-cotmp">--</div></div>
+                <div class="kvc"><div class="l">COTMC</div><div class="v mono" id="gx-cotmc">--</div></div>
+              </div>
+              <div class="sectitle">الحركة المتوقعة · Expected Move</div>
+              <div id="gx-emv" style="font-weight:800;font-size:.9rem">--</div>
+              <div class="embar"><div class="pin" id="gx-empin" style="right:50%"></div></div>
+              <div class="emrow"><span id="gx-ebot">--</span><span id="gx-espot">--</span><span id="gx-etop">--</span></div>
+              <div class="badge b-put" id="gx-cond" style="margin-top:12px">--</div>
+            </div>
+          </div>
+          <div class="panel"><div class="ph">المستويات المفتاحية <span class="mut">Key Levels</span></div>
+            <div class="pb"><div class="kv" id="gx-keylv"></div></div>
+          </div>
+          <div class="panel"><div class="ph">إجمالي القاما حسب الاستحقاق</div>
+            <div class="pb" id="gx-exp"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ANALYTICS ============ -->
+    <section class="view" id="v-analytics">
+      <div class="cards" style="grid-template-columns:repeat(4,1fr)">
+        <div class="card"><div class="lab">Net GEX</div><div class="val mono" id="a-gex">--</div><div class="sub" id="a-gexs">--</div></div>
+        <div class="card"><div class="lab">Max Pain</div><div class="val mono" id="a-pain" style="color:var(--p)">--</div><div class="sub">أقصى ألم</div></div>
+        <div class="card"><div class="lab">جدار الكول</div><div class="val mono up" id="a-cw">--</div><div class="sub">Call Wall</div></div>
+        <div class="card"><div class="lab">جدار البوت</div><div class="val mono dn" id="a-pw">--</div><div class="sub">Put Wall</div></div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><div class="ph">توزيع القاما عبر الأسعار <span class="mut">Gamma Distribution</span></div>
+          <div class="pb"><canvas id="a-dist" style="position:relative;width:100%;height:300px"></canvas></div>
+        </div>
+        <div class="panel"><div class="ph">ملخص السوق</div>
+          <div class="pb" id="a-summary"></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:12px"><div class="ph">القاما حسب تاريخ الاستحقاق <span class="mut">GEX by Expiration</span></div>
+        <div class="pb" id="a-exp"></div>
+      </div>
+    </section>
+
+    <!-- ============ CALCULATOR ============ -->
+    <section class="view" id="v-calc">
+      <div class="grid2">
+        <div class="panel"><div class="ph">حاسبة العقود · بلاك-شولز</div>
+          <div class="pb">
+            <div class="calc">
+              <div class="field"><label>سعر السهم (Spot)</label><input id="k-s" type="number" value="100" oninput="calc()"></div>
+              <div class="field"><label>سعر التنفيذ (Strike)</label><input id="k-k" type="number" value="100" oninput="calc()"></div>
+              <div class="field"><label>التذبذب IV %</label><input id="k-iv" type="number" value="20" oninput="calc()"></div>
+              <div class="field"><label>أيام للاستحقاق</label><input id="k-d" type="number" value="30" oninput="calc()"></div>
+              <div class="field"><label>سعر الفائدة %</label><input id="k-r" type="number" value="4.5" oninput="calc()"></div>
+              <div class="field"><label>النوع</label><select id="k-t" onchange="calc()"><option value="C">Call (كول)</option><option value="P">Put (بوت)</option></select></div>
+            </div>
+            <button class="tfb on" style="width:100%;padding:9px;margin-top:4px" onclick="loadCalcFromMarket()">↻ تعبئة من السوق الحالي</button>
+          </div>
+        </div>
+        <div class="panel"><div class="ph">النتائج · الإغريق</div>
+          <div class="pb">
+            <div class="badge b-call" id="k-price" style="margin-bottom:12px;font-size:1.1rem">--</div>
+            <div class="greekgrid">
+              <div class="kvc"><div class="l">Delta</div><div class="v mono" id="k-delta">--</div></div>
+              <div class="kvc"><div class="l">Gamma</div><div class="v mono" id="k-gamma">--</div></div>
+              <div class="kvc"><div class="l">Theta</div><div class="v mono" id="k-theta">--</div></div>
+              <div class="kvc"><div class="l">Vega</div><div class="v mono" id="k-vega">--</div></div>
+              <div class="kvc"><div class="l">Vanna</div><div class="v mono" id="k-vanna">--</div></div>
+              <div class="kvc"><div class="l">Charm</div><div class="v mono" id="k-charm">--</div></div>
+            </div>
+            <div class="sectitle">الاحتمالات</div>
+            <div class="ir"><span class="l">احتمال انتهاء داخل المال (ITM)</span><span class="v mono" id="k-itm">--</span></div>
+            <div class="ir"><span class="l">القيمة الزمنية / يوم</span><span class="v mono" id="k-tdecay">--</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </div>
 
 <script>
-const FH='d0rh1ohr01qgssk0pr80d0rh1ohr01qgssk0pr8g';
-const UW='e82a2e15-8f40-4985-973a-4eeb9b7f7021';
-const fmt=n=>n==null||isNaN(n)?'--':Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fv=n=>{if(!n&&n!==0)return'--';const a=Math.abs(n);if(a>=1e9)return(n/1e9).toFixed(1)+'B';if(a>=1e6)return(n/1e6).toFixed(1)+'M';if(a>=1e3)return(n/1e3).toFixed(0)+'K';return String(Math.round(n))};
-const $=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
-const cls=v=>v>=0?'up':'dn';const sgn=v=>v>=0?'▲ +':'▼ ';
-let ST={sym:'SPY',lbl:'SPX/SPY',iv:'5m',candles:[],gex:{},hov:-1,pMin:0,pMax:0,vs:0,ve:0,drag:false,dragX:0,dragVS:0,prices:{},cd:15};
+/* ================= helpers ================= */
+const $=(id)=>document.getElementById(id);
+const setT=(id,v)=>{const e=$(id);if(e)e.textContent=v};
+const fmt=(n,d=2)=>n==null||isNaN(n)?'--':Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fv=n=>{if(n==null||isNaN(n))return'--';const a=Math.abs(n),s=n<0?'-':'';if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+Math.round(a)};
+const sgn=v=>v>=0?'▲ ':'▼ ';const cls=v=>v>=0?'up':'dn';
 const SYMS=['SPY','QQQ','NVDA','AAPL','TSLA','META','MSFT','AMD'];
+const LABELS={SPY:'SPX',QQQ:'NDX',DIA:'DJX',IWM:'RUT'};
+const ALL=[['SPY','SPX'],['QQQ','NDX'],['DIA','DJX'],['IWM','RUT'],['TLT','TLT'],['GLD','GLD'],['NVDA','NVDA'],['AAPL','AAPL'],['TSLA','TSLA'],['META','META'],['MSFT','MSFT'],['AMZN','AMZN'],['GOOGL','GOOGL'],['AMD','AMD'],['PLTR','PLTR'],['SPX','SPX'],['QQQ','QQQ']];
+let ST={sym:'SPY',lbl:'SPX',iv:'5m',view:'home',candles:[],M:null,spot:0,prevClose:0,hov:-1,pMin:0,pMax:0,vs:0,ve:0,drag:false,dragX:0,dragVS:0};
 
-// Clock
+/* ===== Black-Scholes greeks ===== */
+const ncdf=x=>{const a=0.2316419,k=1/(1+a*Math.abs(x));const t=k*(0.319381530+k*(-0.356563782+k*(1.781477937+k*(-1.821255978+k*1.330274429))));const w=1-(1/Math.sqrt(2*Math.PI))*Math.exp(-x*x/2)*t;return x>=0?w:1-w};
+const npdf=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+function bs(S,K,T,sig,r,type){
+  if(S<=0||K<=0||T<=0||sig<=0)return{price:0,delta:0,gamma:0,theta:0,vega:0,vanna:0,charm:0,d1:0,d2:0};
+  const sq=Math.sqrt(T),d1=(Math.log(S/K)+(r+sig*sig/2)*T)/(sig*sq),d2=d1-sig*sq;
+  const nd1=npdf(d1),Nd1=ncdf(d1),Nd2=ncdf(d2);
+  const isC=type==='C';
+  const price=isC?S*Nd1-K*Math.exp(-r*T)*Nd2:K*Math.exp(-r*T)*ncdf(-d2)-S*ncdf(-d1);
+  const delta=isC?Nd1:Nd1-1;
+  const gamma=nd1/(S*sig*sq);
+  const vega=S*nd1*sq/100;
+  const theta=(-(S*nd1*sig)/(2*sq)-(isC?1:-1)*r*K*Math.exp(-r*T)*(isC?Nd2:ncdf(-d2)))/365;
+  const vanna=-nd1*d2/sig;
+  const charm=(-nd1*(2*r*T-d2*sig*sq)/(2*T*sig*sq))/365;
+  return{price,delta,gamma,theta,vega,vanna,charm,d1,d2};
+}
+
+/* ===== clock ===== */
 function tick(){
   const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
   const h=et.getHours(),m=et.getMinutes(),wd=et.getDay();
   const open=wd>=1&&wd<=5&&(h>9||(h===9&&m>=30))&&h<16;
-  $('mst',open?'السوق مفتوح':'السوق مغلق');
-  document.getElementById('mst').className='mst '+(open?'open':'closed');
-  const dy=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-  const mn=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-  $('dayt',`${dy[et.getDay()]} ${et.getDate()} ${mn[et.getMonth()]}`);
+  setT('mst',open?'السوق مفتوح':'السوق مغلق');$('mst').className='mst '+(open?'open':'closed');
+  setT('clock',et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+' ET');
 }
 setInterval(tick,1000);tick();
 
-// Live prices
+/* ===== symbol strip ===== */
+function buildStrip(){
+  $('ts').innerHTML=SYMS.map(s=>`<div class="tc${s===ST.sym?' on':''}" data-s="${s}" onclick="pick('${s}')"><div class="s">${LABELS[s]||s}</div><div class="p mono" id="tp-${s}">--</div><div class="c mono" id="tcg-${s}">--</div></div>`).join('');
+}
 async function fetchPrices(){
   try{
-    const r=await fetch('/api/quote?symbols='+SYMS.join(','));
-    const d=await r.json();
-    const res=d?.quoteResponse?.result||[];
-    res.forEach(q=>{
-      if(!q.symbol)return;
-      ST.prices[q.symbol]=q;
-      const p=q.regularMarketPrice,cp=q.regularMarketChangePercent;
-      const tp=document.getElementById('tp-'+q.symbol);
-      const tc=document.getElementById('tc-'+q.symbol);
-      if(tp){tp.textContent='$'+fmt(p);tp.className='tprc '+(cp>=0?'up':'dn');}
-      if(tc){tc.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';tc.className='tchg '+(cp>=0?'up':'dn');}
-      if(q.symbol===ST.sym){
-        $('cp','$'+fmt(p));
-        const ce=document.getElementById('cc');if(ce){ce.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';ce.className=cls(cp);}
-        if(ST.candles.length&&p>0){ST.candles[ST.candles.length-1].c=p;render();}
-      }
+    const d=await fetch('/api/quote?symbols='+SYMS.join(',')).then(r=>r.json());
+    (d?.quoteResponse?.result||[]).forEach(q=>{
+      if(!q.symbol)return;const p=q.regularMarketPrice,cp=q.regularMarketChangePercent;
+      const tp=$('tp-'+q.symbol),tg=$('tcg-'+q.symbol);
+      if(tp){tp.textContent='$'+fmt(p);}
+      if(tg){tg.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';tg.className='c mono '+cls(cp);}
+      if(q.symbol===ST.sym){ST.spot=p;ST.prevClose=q.regularMarketPreviousClose;updPx();}
     });
   }catch(e){}
 }
-function startCD(){
-  clearInterval(ST._ct);ST.cd=15;$('cnt','15s');
-  ST._ct=setInterval(()=>{ST.cd--;$('cnt',ST.cd+'s');if(ST.cd<=0){ST.cd=15;fetchPrices();}},1000);
+function updPx(){
+  const cp=ST.prevClose?((ST.spot-ST.prevClose)/ST.prevClose*100):0;
+  setT('ch-px','$'+fmt(ST.spot));const e=$('ch-chg');if(e){e.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';e.className='mono '+cls(cp);}
 }
 
-// Gamma calc
-function calcGamma(opts){
-  const st={};
+/* ===== options chain compute ===== */
+function parseOcc(sym){const m=(sym||'').match(/[A-Z]+\.?[A-Z]*?(\d{6})([CP])(\d{8})/);if(!m)return null;const y=+('20'+m[1].slice(0,2)),mo=+m[1].slice(2,4),da=+m[1].slice(4,6);return{exp:new Date(Date.UTC(y,mo-1,da)),type:m[2],strike:(+m[3])/1000};}
+function compute(opts){
+  const spot=ST.spot||0;const now=Date.now();const r=0.045;
+  const byStrike={},byExp={};let toiC=0,toiP=0,sumGEX=0,totGamma=0,sumCharm=0,sumVanna=0,sumNetDelta=0;
+  let atmIV=0,atmDist=1e9,c25=null,p25=null;
   opts.forEach(o=>{
-    const sk=parseFloat(o.strike||o.strike_price||0);if(!sk)return;
-    const oi=parseFloat(o.open_interest||0);
-    const gm=parseFloat(o.gamma||o.greeks?.gamma||0.012);
-    const dl=Math.abs(parseFloat(o.delta||o.greeks?.delta||0.5));
-    const isC=(o.option_type||o.put_call||'C').toUpperCase().includes('C');
-    if(!st[sk])st[sk]={call:0,put:0,cd:0,pd:0,price:sk,coi:0,poi:0};
-    const gex=oi*gm*100;
-    if(isC){st[sk].call+=gex;st[sk].cd+=oi*dl;st[sk].coi+=oi;}
-    else{st[sk].put+=gex;st[sk].pd+=oi*dl;st[sk].poi+=oi;}
+    const occ=parseOcc(o.option_symbol||o.option_symbol_str||'');
+    let K=occ?occ.strike:parseFloat(o.strike||o.strike_price||0);
+    let type=occ?occ.type:((o.option_type||o.put_call||'C').toUpperCase().includes('C')?'C':'P');
+    if(!K)return;
+    const oi=parseFloat(o.open_interest||o.oi||0);
+    const vol=parseFloat(o.volume||0);
+    let iv=parseFloat(o.implied_volatility||o.iv||0);if(!iv||iv<=0)iv=0.2;if(iv>5)iv/=100;
+    let exp=occ?occ.exp:(o.expiry?new Date(o.expiry):null);
+    let T=exp?Math.max((exp.getTime()-now)/(365*864e5),0.5/365):7/365;
+    let g=parseFloat(o.gamma||o.greeks?.gamma||0),d=parseFloat(o.delta||o.greeks?.delta||0);
+    let charm,vanna;
+    if(spot>0){const bsv=bs(spot,K,T,iv,r,type);if(!g)g=bsv.gamma;if(!d)d=bsv.delta;charm=bsv.charm;vanna=bsv.vanna;}
+    else{charm=0;vanna=0;}
+    const s=byStrike[K]||(byStrike[K]={K,cOI:0,pOI:0,cGamma:0,pGamma:0,cDelta:0,pDelta:0,charm:0,vanna:0,iv:0,ivn:0});
+    const gex=g*oi*100*spot;const del=d*oi*100;
+    if(type==='C'){s.cOI+=oi;s.cGamma+=gex;s.cDelta+=del;toiC+=oi;}
+    else{s.pOI+=oi;s.pGamma+=gex;s.pDelta+=del;toiP+=oi;}
+    s.charm+=charm*oi*100*spot;s.vanna+=vanna*oi*100;s.iv+=iv;s.ivn++;
+    sumGEX+=(type==='C'?gex:-gex);totGamma+=gex;sumCharm+=charm*oi*100*spot;sumVanna+=vanna*oi*100;sumNetDelta+=(type==='C'?del:del);
+    // by expiry
+    if(exp){const key=exp.toISOString().slice(0,10);(byExp[key]=byExp[key]||{net:0,oi:0})&&(byExp[key].net+=(type==='C'?gex:-gex),byExp[key].oi+=oi);}
+    // atm iv + 25 delta skew
+    const dist=Math.abs(K-spot);if(dist<atmDist){atmDist=dist;atmIV=iv;}
+    if(type==='C'&&Math.abs(Math.abs(d)-0.25)<0.12){if(!c25||Math.abs(Math.abs(d)-0.25)<c25.e)c25={iv,e:Math.abs(Math.abs(d)-0.25)};}
+    if(type==='P'&&Math.abs(Math.abs(d)-0.25)<0.12){if(!p25||Math.abs(Math.abs(d)-0.25)<p25.e)p25={iv,e:Math.abs(Math.abs(d)-0.25)};}
   });
-  const arr=Object.values(st).sort((a,b)=>a.price-b.price).map(s=>({...s,gex:s.call-s.put,delta:s.cd-s.pd}));
-  if(!arr.length)return{arr:[],callWall:null,putWall:null,zeroGamma:null,maxPain:null,total:0};
-  const cw=arr.filter(s=>s.gex>0).sort((a,b)=>b.gex-a.gex)[0];
-  const pw=arr.filter(s=>s.gex<0).sort((a,b)=>a.gex-b.gex)[0];
-  const zero=arr.reduce((b,s)=>Math.abs(s.gex)<Math.abs(b?.gex??Infinity)?s:b,arr[0]);
-  const pain=arr.reduce((b,s)=>(s.coi+s.poi)>(b.coi+b.poi)?s:b,arr[0]);
-  return{callWall:cw?.price,putWall:pw?.price,zeroGamma:zero?.price,maxPain:pain?.price,arr,total:arr.reduce((a,s)=>a+s.gex,0)};
+  const rows=Object.values(byStrike).sort((a,b)=>a.K-b.K).map(s=>({
+    K:s.K,netGamma:s.cGamma-s.pGamma,netDelta:s.cDelta-s.pDelta,netOI:s.cOI-s.pOI,
+    cOI:s.cOI,pOI:s.pOI,charm:s.charm,vanna:s.vanna,gex:s.cGamma-s.pGamma,
+    iv:s.ivn?s.iv/s.ivn:0,pct:spot?((s.K-spot)/spot*100):0
+  }));
+  if(!rows.length)return null;
+  const pos=rows.filter(x=>x.netGamma>0),neg=rows.filter(x=>x.netGamma<0);
+  const callWall=pos.length?pos.reduce((a,b)=>b.netGamma>a.netGamma?b:a):null;
+  const putWall=neg.length?neg.reduce((a,b)=>b.netGamma<a.netGamma?b:a):null;
+  const coiRow=rows.reduce((a,b)=>b.cOI>a.cOI?b:a,rows[0]);
+  const poiRow=rows.reduce((a,b)=>b.pOI>a.pOI?b:a,rows[0]);
+  const pain=rows.reduce((a,b)=>(b.cOI+b.pOI)>(a.cOI+a.pOI)?b:a,rows[0]);
+  // gamma flip (cumulative net gamma sign change)
+  let cum=0,flip=null,prev=null;for(const x of rows){cum+=x.netGamma;if(prev!==null&&((prev<0&&cum>=0)||(prev>0&&cum<0)))flip=x.K;prev=cum;}
+  if(flip===null)flip=rows.reduce((a,b)=>Math.abs(b.netGamma)<Math.abs(a.netGamma)?b:a,rows[0]).K;
+  // COTM (OI-weighted strike per side)
+  let cw=0,cwo=0,pw=0,pwo=0;rows.forEach(x=>{cw+=x.K*x.cOI;cwo+=x.cOI;pw+=x.K*x.pOI;pwo+=x.pOI;});
+  const cotmc=cwo?cw/cwo:spot,cotmp=pwo?pw/pwo:spot;
+  // transition gex (largest +/- near flip)
+  const negT=neg.slice().sort((a,b)=>a.netGamma-b.netGamma)[1]||putWall;
+  const posT=pos.slice().sort((a,b)=>b.netGamma-a.netGamma)[1]||callWall;
+  // expected move
+  const T0=7/365;const em=spot*atmIV*Math.sqrt(Math.max(atmDist?T0:T0,1/365));
+  const skew=(p25&&c25)?(p25.iv-c25.iv)*100:0;
+  return{rows,spot,toiC,toiP,toi:toiC+toiP,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),
+    callWall,putWall,coiRow,poiRow,pain,flip,cotmc,cotmp,negT,posT,em,atmIV,skew,sumCharm,sumVanna,sumNetDelta,
+    byExp,cond:sumGEX<0?'put':'call'};
 }
 
-// Load options
-async function loadOpts(){
-  try{
-    const d=await fetch('/api/uw?path='+encodeURIComponent(`stocks/${ST.sym}/options-chain?limit=200`)).then(r=>r.json());
-    const opts=d?.data||d?.results||[];
-    if(!opts.length)throw new Error('no opts');
-    const lv=calcGamma(opts);ST.gex=lv;
-    const fp=p=>p?'$'+p.toFixed(0):'--';
-    $('gr',fp(lv.callWall));$('gs',fp(lv.putWall));$('gf',fp(lv.zeroGamma));$('gp',fp(lv.maxPain));$('gt','$'+fv(lv.total));
-    let tc=0,tp=0,sivS=0,sivN=0;
-    opts.forEach(o=>{
-      const isC=(o.option_type||o.put_call||'C').toUpperCase().includes('C');
-      const oi=parseFloat(o.open_interest||0);if(isC)tc+=oi;else tp+=oi;
-      const iv=parseFloat(o.implied_volatility||0);if(iv>0){sivS+=iv;sivN++;}
-    });
-    $('oic',fv(tc));$('oip',fv(tp));
-    const pc=tc?tp/tc:0;$('oipc',pc.toFixed(2));
-    $('oisig',pc<0.7?'🟢 صاعد قوي':pc<0.9?'🟡 صاعد':pc<1.1?'⚪ محايد':pc<1.3?'🟠 هابط':'🔴 هابط قوي');
-    const avgIV=sivN?sivS/sivN:0;
-    if(avgIV>0){$('ivv',(avgIV*100).toFixed(1)+'%');const rk=Math.min(100,Math.round(avgIV*180));$('ivr',rk+'%');const e=document.getElementById('ivsig');if(e){e.textContent=rk>75?'تجنب الشراء':rk<25?'مناسب للشراء':'IV متوسط';e.style.color=rk>75?'#ff4d6a':rk<25?'#26d97f':'#f7c948';}}
-    const bull=tc>tp;$('flsig',bull?'دافع للكول':'دافع للبوت');const fse=document.getElementById('flsig');if(fse)fse.style.color=bull?'#26d97f':'#ff4d6a';
-    $('fldesc',bull?`Call OI: ${fv(tc)} · Put OI: ${fv(tp)}\nالغاما متوافق مع التشارم`:`Put OI: ${fv(tp)} · Call OI: ${fv(tc)}\nضغط بوت سلبي`);
-    if(ST.candles.length){drawGamma(lv);}
-  }catch(e){}
+/* ===== render HOME ===== */
+function renderHome(){
+  const M=ST.M;if(!M)return;
+  setT('c-tg',fv(M.totGamma));setT('c-tgs','Net GEX: $'+fv(M.netGEX));
+  const gt=$('c-gtag');if(gt){const hi=M.totGamma>5e8;gt.textContent=hi?'عالي':'متوسط';gt.className='tag '+(hi?'tg-h':'tg-m');}
+  setT('c-poi',fv(M.toiP));setT('c-coi',fv(M.toiC));
+  const liq=M.toi?(Math.min(M.toiC,M.toiP)/Math.max(M.toiC,M.toiP)*100):0;
+  setT('c-liq',liq.toFixed(2)+'%');setT('c-liqs','توازن السيولة');
+  setT('c-pc',M.pc.toFixed(2));setT('c-pcs',M.pc>1?'هيمنة بوت':'هيمنة كول');
+  const cond=$('c-cond');cond.textContent=M.cond==='put'?'▼ هيمنة البوت':'▲ هيمنة الكول';cond.className=M.cond==='put'?'dn':'up';
+  setT('c-conds',M.cond==='put'?'Put Dominated':'Call Dominated');
+  // key levels
+  const kl=[['مقاومة الكول',M.callWall?.K,'up'],['دعم البوت',M.putWall?.K,'dn'],['نقطة الانعطاف',M.flip,'nt'],['Max Pain',M.pain?.K,''],['أعلى OI كول',M.coiRow?.K,'up'],['أعلى OI بوت',M.poiRow?.K,'dn']];
+  $('keylv').innerHTML=kl.map(([l,v,c])=>`<div class="ir"><span class="l">${l}</span><span class="v mono ${c}">${v?'$'+fmt(v,0):'--'}</span></div>`).join('');
+  // IV / charm / vanna
+  setT('iv-atmv',(M.atmIV*100).toFixed(1)+'%');
+  const rank=Math.min(100,Math.round(M.atmIV*180));setT('iv-rank',rank+' / 100');
+  const sig=$('iv-sig');sig.textContent=rank>75?'مرتفع — تجنب الشراء':rank<30?'منخفض — مناسب للشراء':'متوسط';sig.style.color=rank>75?'var(--r)':rank<30?'var(--g)':'var(--y)';
+  setT('iv-skew',(M.skew>=0?'+':'')+M.skew.toFixed(1)+'%');
+  setT('iv-charm',fv(M.sumCharm));setT('iv-vanna',fv(M.sumVanna));
+  const push=$('iv-push');const pc=M.sumVanna>=0;push.textContent=pc?'▲▲ دافع للكول':'▼▼ دافع للبوت';push.className='badge '+(pc?'b-call':'b-put');
+  setT('iv-time',new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}));
+  renderExp('exphome',M);
+  if(ST.candles.length){drawGamma();drawDelta();}
 }
 
-// Load flow
-async function loadFlow(){
-  try{
-    const d=await fetch('/api/uw?path='+encodeURIComponent('option-trades/flow-alerts?limit=20&order=desc')).then(r=>r.json());
-    const rows=d?.data||d?.results||[];if(!rows.length)throw new Error();
-    let cv=0,pv=0;
-    const trs=rows.slice(0,15).map(r=>{const isC=(r.put_call||'C').toUpperCase().includes('C');const val=parseFloat(r.total_premium||0);if(isC)cv+=val;else pv+=val;return`<tr><td style="color:#4a5568">${(r.time||'').slice(0,5)||'--'}</td><td style="font-weight:700">${r.ticker||'--'}</td><td><span class="${isC?'ct':'pt'}">${isC?'C':'P'}</span></td><td>$${r.strike||'--'}</td><td class="${isC?'up':'dn'}" style="font-weight:700">$${fv(val)}</td></tr>`;}).join('');
-    document.getElementById('flw').innerHTML=`<table class="ft"><thead><tr><th>وقت</th><th>رمز</th><th>نوع</th><th>Strike</th><th>قيمة</th></tr></thead><tbody>${trs}</tbody></table>`;
-    const tot=cv+pv,bull=tot?Math.round(cv/tot*100):50;
-    const fb=document.getElementById('flb');if(fb){fb.textContent=bull+'% Bull';fb.style.background=bull>50?'rgba(38,217,127,.12)':'rgba(255,77,106,.12)';fb.style.color=bull>50?'#26d97f':'#ff4d6a';}
-  }catch(e){document.getElementById('flw').innerHTML='<div style="font-size:.7rem;color:#4a5568;text-align:center;padding:12px">البيانات أثناء التداول</div>';}
+/* ===== render CHAIN ===== */
+function renderChain(){
+  const M=ST.M;if(!M)return;
+  setT('chain-sub',ST.lbl+' · '+M.rows.length+' مستوى');
+  const maxG=Math.max(...M.rows.map(r=>Math.abs(r.netGamma)),1);
+  const maxC=Math.max(...M.rows.map(r=>r.cOI),1),maxP=Math.max(...M.rows.map(r=>r.pOI),1);
+  // mark COTM / POI / COI rows
+  const near=(a,b)=>Math.abs(a-b)<1e-6;
+  let html='';const rev=M.rows.slice().reverse();
+  let spotPlaced=false;
+  rev.forEach((r,i)=>{
+    const isSpot=!spotPlaced&&i>0&&rev[i-1].K>=M.spot&&r.K<M.spot;
+    if(isSpot){spotPlaced=true;html+=`<tr class="spot"><td class="strike">SPOT $${fmt(M.spot,0)}</td><td colspan="8" style="color:var(--y);font-weight:700">— السعر الحالي —</td></tr>`;}
+    const gw=Math.abs(r.netGamma)/maxG*46,gpos=r.netGamma>=0;
+    const cw=r.cOI/maxC*40,pw=r.pOI/maxP*40;
+    let mk='';
+    if(near(r.K,M.coiRow?.K))mk+='<span class="mk" style="background:var(--g)" title="COI"></span>';
+    if(near(r.K,M.poiRow?.K))mk+='<span class="mk" style="background:var(--r)" title="POI"></span>';
+    if(near(r.K,M.cotmc))mk+='<span class="mk" style="background:var(--c)" title="COTMC"></span>';
+    html+=`<tr>
+      <td class="strike">${fmt(r.K,2)}${mk}</td>
+      <td class="bar"><i style="background:${gpos?'var(--g)':'var(--r)'};${gpos?'left':'right'}:50%;width:${gw}%"></i><span class="${gpos?'up':'dn'}">${fv(r.netGamma)}</span></td>
+      <td class="${r.netDelta>=0?'up':'dn'}">${fv(r.netDelta)}</td>
+      <td class="${r.netOI>=0?'up':'dn'}">${fv(r.netOI)}</td>
+      <td class="bar"><i style="background:var(--g);right:0;width:${cw}%"></i><span>${fv(r.cOI)}</span></td>
+      <td class="bar"><i style="background:var(--r);right:0;width:${pw}%"></i><span>${fv(r.pOI)}</span></td>
+      <td class="${r.pct>=0?'up':'dn'}">${r.pct>=0?'+':''}${r.pct.toFixed(2)}%</td>
+      <td class="${r.charm>=0?'up':'dn'}">${fv(r.charm)}</td>
+      <td class="${r.vanna>=0?'up':'dn'}">${fv(r.vanna)}</td>
+    </tr>`;
+  });
+  $('chainbody').innerHTML=html;
+  // side panel
+  setT('gx-net','$'+fv(M.netGEX));setT('gx-toi',fv(M.toi));
+  setT('gx-cotmp',fmt(M.cotmp,1));setT('gx-cotmc',fmt(M.cotmc,1));
+  const bot=M.spot-M.em,top=M.spot+M.em;
+  setT('gx-emv','±$'+fmt(M.em,2)+'  ('+(M.spot?(M.em/M.spot*100).toFixed(2):'--')+'%)');
+  setT('gx-ebot','$'+fmt(bot,0));setT('gx-espot','$'+fmt(M.spot,0));setT('gx-etop','$'+fmt(top,0));
+  const cond=$('gx-cond');cond.textContent=M.cond==='put'?'Put Dominated · هيمنة البوت':'Call Dominated · هيمنة الكول';cond.className='badge '+(M.cond==='put'?'b-put':'b-call');
+  const klv=[['POI',M.poiRow?.K,'dn'],['COI',M.coiRow?.K,'up'],['-GEX',M.putWall?.K,'dn'],['+GEX',M.callWall?.K,'up'],['-Trans',M.negT?.K,'dn'],['+Trans',M.posT?.K,'up']];
+  $('gx-keylv').innerHTML=klv.map(([l,v,c])=>`<div class="kvc"><div class="l">${l}</div><div class="v mono ${c}">${v?fmt(v,1):'--'}</div></div>`).join('');
+  renderExp('gx-exp',M);
+}
+function renderExp(id,M){
+  const el=$(id);if(!el)return;
+  const ex=Object.entries(M.byExp).sort((a,b)=>a[0]<b[0]?-1:1).slice(0,8);
+  if(!ex.length){el.innerHTML='<div class="muted" style="text-align:center;padding:10px">لا توجد بيانات</div>';return;}
+  const mx=Math.max(...ex.map(([,v])=>Math.abs(v.net)),1);
+  el.innerHTML=ex.map(([k,v])=>{const w=Math.abs(v.net)/mx*100,pos=v.net>=0;const dd=k.slice(5);return `<div class="expbar"><span class="nm mono">${dd}</span><div class="tr"><i style="width:${w}%;background:${pos?'var(--g)':'var(--r)'};${pos?'right':'left'}:0"></i></div><span class="vl mono ${pos?'up':'dn'}">$${fv(v.net)}</span></div>`;}).join('');
 }
 
-// Load chart
+/* ===== render ANALYTICS ===== */
+function renderAnalytics(){
+  const M=ST.M;if(!M)return;
+  setT('a-gex','$'+fv(M.netGEX));setT('a-gexs',M.cond==='put'?'هيمنة البوت':'هيمنة الكول');
+  setT('a-pain','$'+fmt(M.pain?.K,0));setT('a-cw','$'+fmt(M.callWall?.K,0));setT('a-pw','$'+fmt(M.putWall?.K,0));
+  $('a-summary').innerHTML=[
+    ['إجمالي القاما','$'+fv(M.totGamma),''],['نسبة P/C',M.pc.toFixed(2),M.pc>1?'dn':'up'],
+    ['Call OI',fv(M.toiC),'up'],['Put OI',fv(M.toiP),'dn'],['IV ATM',(M.atmIV*100).toFixed(1)+'%','nt'],
+    ['Skew 25Δ',(M.skew>=0?'+':'')+M.skew.toFixed(1)+'%',M.skew>=0?'dn':'up'],
+    ['الحركة المتوقعة','±$'+fmt(M.em,2),''],['نقطة الانعطاف','$'+fmt(M.flip,0),'nt']
+  ].map(([l,v,c])=>`<div class="ir"><span class="l">${l}</span><span class="v mono ${c}">${v}</span></div>`).join('');
+  renderExp('a-exp',M);drawDist();
+}
+function drawDist(){
+  const cv=$('a-dist'),M=ST.M;if(!cv||!M)return;
+  const W=cv.clientWidth,H=300;cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;cv.style.height=H+'px';
+  const ctx=cv.getContext('2d');ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ctx.clearRect(0,0,W,H);
+  const rows=M.rows.filter(r=>Math.abs(r.pct)<12);if(!rows.length)return;
+  const mx=Math.max(...rows.map(r=>Math.abs(r.netGamma)),1);const n=rows.length;const bw=W/n;
+  rows.forEach((r,i)=>{const h=Math.abs(r.netGamma)/mx*(H/2-20);const x=i*bw;const pos=r.netGamma>=0;
+    ctx.fillStyle=pos?'rgba(34,211,154,.7)':'rgba(255,84,112,.7)';
+    if(pos)ctx.fillRect(x+1,H/2-h,bw-2,h);else ctx.fillRect(x+1,H/2,bw-2,h);});
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+  // spot line
+  const si=rows.findIndex(r=>r.K>=M.spot);if(si>=0){ctx.strokeStyle='var(--y)';ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(si*bw,0);ctx.lineTo(si*bw,H);ctx.stroke();ctx.setLineDash([]);}
+}
+
+/* ===== chart ===== */
 async function loadChart(){
-  document.getElementById('ld').style.display='flex';
+  $('ld').style.display='flex';
   try{
     const d=await fetch(`/api/candles?sym=${ST.sym}&interval=${ST.iv}`).then(r=>r.json());
-    if(!d.candles?.length)throw new Error();
+    if(!d.candles?.length)throw 0;
     ST.candles=d.candles;ST.vs=0;ST.ve=d.candles.length-1;
-    const p=d.regularMarketPrice,pc=d.previousClose;
-    const cp=(pc&&p)?((p-pc)/pc*100):0;
-    $('cp','$'+fmt(p));const ce=document.getElementById('cc');if(ce){ce.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';ce.className=cls(cp);}
+    if(d.regularMarketPrice){ST.spot=d.regularMarketPrice;ST.prevClose=d.previousClose;updPx();}
     render();
   }catch(e){drawDemo();}
-  document.getElementById('ld').style.display='none';
+  $('ld').style.display='none';
 }
-
-function render(){if(!ST.candles.length)return;drawChart();if(ST.gex.arr?.length)drawGamma(ST.gex);}
-
-// Draw chart
+function render(){if(!ST.candles.length)return;drawChart();drawGamma();drawDelta();}
+const PROF={g:64,d:64};
 function drawChart(){
-  const cv=document.getElementById('mc');
-  const wrap=document.getElementById('cwrap');
-  const GW=85;// gamma panel width
-  const W=wrap.clientWidth-GW,H=wrap.clientHeight;
-  if(!W||!H)return;
-  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;
-  cv.style.width=W+'px';cv.style.height=H+'px';cv.style.left='0';
-  const ctx=cv.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  const C=ST.candles,vs=Math.max(0,ST.vs),ve=Math.min(C.length-1,ST.ve);
-  const vis=C.slice(vs,ve+1);if(!vis.length)return;
-  const P={t:18,r:68,b:26,l:4};
-  const cW=W-P.l-P.r,cH=H-P.t-P.b;
+  const cv=$('mc'),wrap=$('cwrap');const W=wrap.clientWidth-PROF.g-PROF.d,H=wrap.clientHeight;if(W<=0||!H)return;
+  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;cv.style.width=W+'px';cv.style.height=H+'px';cv.style.left='0';
+  const ctx=cv.getContext('2d');ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  const C=ST.candles,vs=Math.max(0,ST.vs),ve=Math.min(C.length-1,ST.ve),vis=C.slice(vs,ve+1);if(!vis.length)return;
+  const P={t:14,r:62,b:22,l:6},cW=W-P.l-P.r,cH=H-P.t-P.b;
   const prices=vis.flatMap(c=>[c.h,c.l]).filter(p=>p>0);if(!prices.length)return;
-  const rawMin=Math.min(...prices),rawMax=Math.max(...prices);
-  const pad=(rawMax-rawMin)*0.06||rawMax*0.005;
-  const mn=rawMin-pad,mx=rawMax+pad,pr=mx-mn;
-  ST.pMin=mn;ST.pMax=mx;
-  const py=p=>P.t+cH-((p-mn)/pr)*cH;
-  const cx=i=>P.l+(i/Math.max(vis.length-1,1))*cW;
-  const bW=Math.max(1.2,(cW/vis.length)*0.72);
-  ctx.fillStyle='#0b0d12';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
-  for(let i=0;i<=6;i++){const y=P.t+(cH/6)*i;ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();}
-  const ts=Math.max(1,Math.floor(vis.length/8));
-  ctx.strokeStyle='rgba(255,255,255,.03)';
-  vis.forEach((_,i)=>{if(i%ts===0){const x=cx(i);ctx.beginPath();ctx.moveTo(x,P.t);ctx.lineTo(x,P.t+cH);ctx.stroke();}});
-  // Gamma zones
-  const lv=ST.gex;
-  const zone=(price,r,g,b)=>{if(!price||price<mn||price>mx)return;const y=py(price);const gr=ctx.createLinearGradient(0,y-55,0,y+55);gr.addColorStop(0,`rgba(${r},${g},${b},0)`);gr.addColorStop(.5,`rgba(${r},${g},${b},.08)`);gr.addColorStop(1,`rgba(${r},${g},${b},0)`);ctx.fillStyle=gr;ctx.fillRect(P.l,y-55,cW,110);};
-  const gline=(price,color,lbl)=>{
-    if(!price||price<mn||price>mx)return;const y=py(price);
-    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.setLineDash([6,3]);
-    ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();ctx.setLineDash([]);
-    ctx.fillStyle=color+'12';ctx.fillRect(P.l+3,y-9,cW-6,18);
-    ctx.fillStyle=color;ctx.font='bold 9px monospace';ctx.textAlign='left';
-    ctx.fillText(lbl+' $'+price.toFixed(0),P.l+7,y+3.5);
-    ctx.fillStyle=color;ctx.fillRect(W-P.r+1,y-9,P.r-2,18);
-    ctx.fillStyle='#0b0d12';ctx.font='bold 8px monospace';ctx.textAlign='center';
-    ctx.fillText('$'+price.toFixed(0),W-P.r+(P.r-2)/2,y+3);ctx.restore();
-  };
-  zone(lv?.callWall,38,217,127);zone(lv?.putWall,255,77,106);zone(lv?.zeroGamma,247,201,72);zone(lv?.maxPain,167,139,250);
-  gline(lv?.callWall,'#26d97f','مقاومة');gline(lv?.putWall,'#ff4d6a','دعم');gline(lv?.zeroGamma,'#f7c948','دوران');gline(lv?.maxPain,'#a78bfa','Pain');
-  // Volume
+  let mn=Math.min(...prices),mx=Math.max(...prices);const pad=(mx-mn)*0.07||mx*0.005;mn-=pad;mx+=pad;
+  // include key levels in range
+  const M=ST.M;if(M){[M.callWall?.K,M.putWall?.K,M.flip].forEach(v=>{if(v){mn=Math.min(mn,v);mx=Math.max(mx,v);}});}
+  const pr=mx-mn;ST.pMin=mn;ST.pMax=mx;
+  const py=p=>P.t+cH-((p-mn)/pr)*cH,cx=i=>P.l+(i/Math.max(vis.length-1,1))*cW,bW=Math.max(1.2,(cW/vis.length)*0.7);
+  ctx.fillStyle='#0a0e17';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.035)';ctx.lineWidth=1;
+  for(let i=0;i<=6;i++){const y=P.t+cH/6*i;ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();}
+  // key level lines
+  if(M){const gline=(v,col,lbl)=>{if(!v||v<mn||v>mx)return;const y=py(v);ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.3;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=col;ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText(lbl+' '+fmt(v,0),P.l+6,y-3);ctx.fillStyle=col;ctx.fillRect(W-P.r+1,y-8,P.r-2,16);ctx.fillStyle='#0a0e17';ctx.textAlign='center';ctx.fillText(fmt(v,0),W-P.r+(P.r-2)/2,y+3);ctx.restore();};
+    gline(M.callWall?.K,'#22d39a','مقاومة كول');gline(M.putWall?.K,'#ff5470','دعم بوت');gline(M.flip,'#f5c451','انعطاف');gline(M.pain?.K,'#a78bfa','Pain');}
+  // volume
   const maxV=Math.max(...vis.map(c=>c.v||0))||1;
-  vis.forEach((c,i)=>{if(!c.v)return;const x=cx(i),bh=(c.v/maxV)*20;ctx.fillStyle=c.c>=c.o?'rgba(38,217,127,.11)':'rgba(255,77,106,.11)';ctx.fillRect(x-bW/2,P.t+cH-bh,bW,bh);});
-  // Candles
-  vis.forEach((c,i)=>{
-    if(!c.o||!c.c)return;
-    const x=cx(i),isG=c.c>=c.o,col=isG?'#26d97f':'#ff4d6a';
-    ctx.strokeStyle=col;ctx.lineWidth=1;
-    if(c.h&&c.l){ctx.beginPath();ctx.moveTo(x,py(c.h));ctx.lineTo(x,py(c.l));ctx.stroke();}
-    const bT=py(Math.max(c.o,c.c)),bBot=py(Math.min(c.o,c.c)),bH=Math.max(1,bBot-bT);
-    ctx.fillStyle=isG?'rgba(38,217,127,.83)':'rgba(255,77,106,.83)';
-    if(bW>=2){ctx.fillRect(x-bW/2,bT,bW,bH);}else{ctx.beginPath();ctx.moveTo(x,bT);ctx.lineTo(x,bBot);ctx.stroke();}
-    if(i===ST.hov-vs){ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1;ctx.strokeRect(x-bW/2-1,bT-1,bW+2,bH+2);}
-  });
-  // Current price
-  const last=vis[vis.length-1];
-  if(last?.c){const y=py(last.c),col=last.c>=(last.o||last.c)?'#26d97f':'#ff4d6a';ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=col;ctx.fillRect(W-P.r+1,y-9,P.r-2,18);ctx.fillStyle='#0b0d12';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText('$'+fmt(last.c),W-P.r+(P.r-2)/2,y+3.5);}
-  // Price axis
-  ctx.fillStyle='rgba(74,85,104,.7)';ctx.font='9px monospace';ctx.textAlign='left';
-  for(let i=0;i<=6;i++){ctx.fillText('$'+fmt(mx-(pr/6)*i),W-P.r+2,P.t+(cH/6)*i+3);}
-  // Time axis
-  ctx.textAlign='center';
-  vis.forEach((c,i)=>{if(i%ts===0&&c.t){const d=new Date(c.t);const lbl=ST.iv==='1d'||ST.iv==='1wk'?(d.getMonth()+1)+'/'+d.getDate():d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');ctx.fillStyle='rgba(74,85,104,.6)';ctx.fillText(lbl,cx(i),P.t+cH+10);}});
-  // Interaction
-  cv.onmousemove=e=>{
-    const rect=cv.getBoundingClientRect(),mx2=e.clientX-rect.left,my=e.clientY-rect.top;
-    const idx=Math.round((mx2-P.l)/cW*(vis.length-1));
-    if(idx>=0&&idx<vis.length){
-      ST.hov=idx+vs;const c=vis[idx];if(!c.o)return;
-      const isG=c.c>=c.o,chg=c.o?((c.c-c.o)/c.o*100).toFixed(2):0;
-      const tt=document.getElementById('tip');tt.style.display='block';
-      const tx=(idx/(vis.length-1))*cW+P.l;tt.style.left=(tx>W*.62?tx-150:tx+8)+'px';tt.style.top='8px';
-      tt.innerHTML=`<div style="font-weight:700;margin-bottom:4px;color:${isG?'#26d97f':'#ff4d6a'}">${ST.lbl}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:.63rem"><span style="color:#718096">فتح</span><span>$${fmt(c.o)}</span><span style="color:#718096">أعلى</span><span style="color:#26d97f">$${fmt(c.h)}</span><span style="color:#718096">أدنى</span><span style="color:#ff4d6a">$${fmt(c.l)}</span><span style="color:#718096">إغلاق</span><span style="font-weight:700">$${fmt(c.c)}</span><span style="color:#718096">تغير</span><span style="color:${isG?'#26d97f':'#ff4d6a'}">${isG?'+':''}${chg}%</span></div>`;
-      drawChart();
-    }
-    if(ST.drag){const dx=e.clientX-ST.dragX,cw2=cW/Math.max(vis.length-1,1),shift=Math.round(-dx/cw2),range=ST.ve-ST.vs,ns=Math.max(0,Math.min(ST.candles.length-1-range,ST.dragVS+shift));ST.vs=ns;ST.ve=Math.min(ST.candles.length-1,ns+range);render();}
-  };
+  vis.forEach((c,i)=>{if(!c.v)return;const x=cx(i),bh=(c.v/maxV)*18;ctx.fillStyle=c.c>=c.o?'rgba(34,211,154,.1)':'rgba(255,84,112,.1)';ctx.fillRect(x-bW/2,P.t+cH-bh,bW,bh);});
+  // candles
+  vis.forEach((c,i)=>{if(!c.o||!c.c)return;const x=cx(i),g=c.c>=c.o,col=g?'#22d39a':'#ff5470';ctx.strokeStyle=col;ctx.lineWidth=1;if(c.h&&c.l){ctx.beginPath();ctx.moveTo(x,py(c.h));ctx.lineTo(x,py(c.l));ctx.stroke();}const t=py(Math.max(c.o,c.c)),b=py(Math.min(c.o,c.c)),bh=Math.max(1,b-t);ctx.fillStyle=col;if(bW>=2)ctx.fillRect(x-bW/2,t,bW,bh);else{ctx.beginPath();ctx.moveTo(x,t);ctx.lineTo(x,b);ctx.stroke();}if(i===ST.hov-vs){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.strokeRect(x-bW/2-1,t-1,bW+2,bh+2);}});
+  // current price
+  const last=vis[vis.length-1];if(last?.c){const y=py(ST.spot||last.c),col=(ST.spot||last.c)>=(ST.prevClose||last.o||last.c)?'#22d39a':'#ff5470';ctx.strokeStyle='rgba(255,255,255,.2)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=col;ctx.fillRect(W-P.r+1,y-8,P.r-2,16);ctx.fillStyle='#0a0e17';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText(fmt(ST.spot||last.c),W-P.r+(P.r-2)/2,y+3);}
+  ctx.fillStyle='rgba(126,141,166,.7)';ctx.font='9px monospace';ctx.textAlign='left';
+  for(let i=0;i<=6;i++)ctx.fillText(fmt(mx-pr/6*i),W-P.r+3,P.t+cH/6*i+3);
+  const ts=Math.max(1,Math.floor(vis.length/8));ctx.textAlign='center';
+  vis.forEach((c,i)=>{if(i%ts===0&&c.t){const d=new Date(c.t);const lbl=ST.iv==='1d'?(d.getMonth()+1)+'/'+d.getDate():String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');ctx.fillStyle='rgba(126,141,166,.55)';ctx.fillText(lbl,cx(i),P.t+cH+10);}});
+  // interaction
+  cv.onmousemove=e=>{const rc=cv.getBoundingClientRect(),mx2=e.clientX-rc.left;const idx=Math.round((mx2-P.l)/cW*(vis.length-1));if(idx>=0&&idx<vis.length){ST.hov=idx+vs;const c=vis[idx];if(c.o){const g=c.c>=c.o,chg=c.o?((c.c-c.o)/c.o*100).toFixed(2):0;const tt=$('tip');tt.style.display='block';const tx=cx(idx);tt.style.left=(tx>W*.6?tx-160:tx+10)+'px';tt.style.top='10px';tt.innerHTML=`<div style="font-weight:800;color:${g?'#22d39a':'#ff5470'};margin-bottom:5px">${ST.lbl}</div><div style="display:grid;grid-template-columns:auto auto;gap:2px 10px;font-size:.62rem"><span class="muted">فتح</span><span class="mono">${fmt(c.o)}</span><span class="muted">أعلى</span><span class="mono up">${fmt(c.h)}</span><span class="muted">أدنى</span><span class="mono dn">${fmt(c.l)}</span><span class="muted">إغلاق</span><span class="mono" style="font-weight:800">${fmt(c.c)}</span><span class="muted">تغير</span><span class="mono ${g?'up':'dn'}">${g?'+':''}${chg}%</span></div>`;drawChart();}}if(ST.drag){const dx=e.clientX-ST.dragX,cw2=cW/Math.max(vis.length-1,1),sh=Math.round(-dx/cw2),rg=ST.ve-ST.vs,ns=Math.max(0,Math.min(ST.candles.length-1-rg,ST.dragVS+sh));ST.vs=ns;ST.ve=Math.min(ST.candles.length-1,ns+rg);render();}};
   cv.onmousedown=e=>{ST.drag=true;ST.dragX=e.clientX;ST.dragVS=ST.vs;cv.style.cursor='grabbing';};
   cv.onmouseup=()=>{ST.drag=false;cv.style.cursor='crosshair';};
-  cv.onmouseleave=()=>{ST.hov=-1;ST.drag=false;document.getElementById('tip').style.display='none';cv.style.cursor='crosshair';drawChart();};
-  cv.onwheel=e=>{e.preventDefault();const delta=e.deltaY>0?1:-1;const range=ST.ve-ST.vs;const nr=Math.max(20,Math.min(ST.candles.length,range+delta*Math.max(1,Math.round(range*.1))));const center=Math.round((ST.vs+ST.ve)/2);ST.vs=Math.max(0,center-Math.floor(nr/2));ST.ve=Math.min(ST.candles.length-1,ST.vs+nr);render();};
+  cv.onmouseleave=()=>{ST.hov=-1;ST.drag=false;$('tip').style.display='none';cv.style.cursor='crosshair';drawChart();};
+  cv.onwheel=e=>{e.preventDefault();const dl=e.deltaY>0?1:-1,rg=ST.ve-ST.vs,nr=Math.max(20,Math.min(ST.candles.length,rg+dl*Math.max(1,Math.round(rg*.1)))),ctr=Math.round((ST.vs+ST.ve)/2);ST.vs=Math.max(0,ctr-Math.floor(nr/2));ST.ve=Math.min(ST.candles.length-1,ST.vs+nr);render();};
   cv.style.cursor='crosshair';
 }
-
-// Gamma profile
-function drawGamma(lv){
-  const cv=document.getElementById('gc');
-  const W=85,H=document.getElementById('cwrap').clientHeight;
-  if(!W||!H||!lv.arr?.length)return;
-  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;
-  cv.style.width=W+'px';cv.style.height=H+'px';cv.style.left=(document.getElementById('cwrap').clientWidth-85)+'px';cv.style.top='0';
-  const ctx=cv.getContext('2d');ctx.scale(devicePixelRatio,devicePixelRatio);
-  ctx.fillStyle='#0f1219';ctx.fillRect(0,0,W,H);
-  const arr=lv.arr,mn=ST.pMin||Math.min(...arr.map(s=>s.price)),mx=ST.pMax||Math.max(...arr.map(s=>s.price));
-  const pr=mx-mn||1,PAD={t:18,b:8},cH=H-PAD.t-PAD.b;
-  const py=p=>PAD.t+cH-((p-mn)/pr)*cH;
-  const maxG=Math.max(...arr.map(s=>Math.abs(s.gex||0)))||1;
-  ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(W/2,PAD.t);ctx.lineTo(W/2,PAD.t+cH);ctx.stroke();
-  const bH=Math.max(1.5,cH/arr.length*.9);
-  arr.forEach(s=>{
-    if(s.price<mn||s.price>mx)return;
-    const y=py(s.price),w=Math.abs(s.gex)/maxG*(W/2-2),pos=s.gex>=0;
-    const gr=ctx.createLinearGradient(pos?W/2:W/2-w,0,pos?W/2+w:W/2,0);
-    gr.addColorStop(0,pos?'rgba(38,217,127,.15)':'rgba(255,77,106,.7)');
-    gr.addColorStop(1,pos?'rgba(38,217,127,.7)':'rgba(255,77,106,.15)');
-    ctx.fillStyle=gr;if(pos)ctx.fillRect(W/2,y-bH/2,w,bH);else ctx.fillRect(W/2-w,y-bH/2,w,bH);
-  });
-  [[lv.callWall,'#26d97f'],[lv.putWall,'#ff4d6a'],[lv.zeroGamma,'#f7c948']].forEach(([p,c])=>{
-    if(!p||p<mn||p>mx)return;const y=py(p);ctx.strokeStyle=c;ctx.lineWidth=1.2;ctx.setLineDash([3,2]);ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();ctx.setLineDash([]);
-  });
+function profileCanvas(id,key,colPos,colNeg){
+  const cv=$(id),wrap=$('cwrap');const W=key==='g'?PROF.g:PROF.d,H=wrap.clientHeight;if(!H||!ST.M)return;
+  const left=key==='g'?(wrap.clientWidth-PROF.g-PROF.d):(wrap.clientWidth-PROF.d);
+  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;cv.style.width=W+'px';cv.style.height=H+'px';cv.style.left=left+'px';cv.style.top='0';
+  const ctx=cv.getContext('2d');ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  ctx.fillStyle='#0c1322';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,H);ctx.stroke();
+  const rows=ST.M.rows,mn=ST.pMin,mx=ST.pMax,pr=mx-mn||1,P={t:14,b:22},cH=H-P.t-P.b;
+  const py=p=>P.t+cH-((p-mn)/pr)*cH;
+  const vals=rows.map(r=>key==='g'?r.netGamma:r.netDelta);const maxV=Math.max(...vals.map(Math.abs),1);
+  const bh=Math.max(1.5,cH/rows.length*.85);
+  rows.forEach((r,i)=>{if(r.K<mn||r.K>mx)return;const v=vals[i],y=py(r.K),w=Math.abs(v)/maxV*(W-6),pos=v>=0;ctx.fillStyle=pos?colPos:colNeg;ctx.fillRect(0,y-bh/2,w,bh);});
+  // position labels for biggest
+  $('lab-g').style.left=(wrap.clientWidth-PROF.g-PROF.d+4)+'px';
+  $('lab-d').style.left=(wrap.clientWidth-PROF.d+4)+'px';
 }
+function drawGamma(){profileCanvas('gc','g','rgba(34,211,154,.75)','rgba(255,84,112,.75)');}
+function drawDelta(){profileCanvas('dc','d','rgba(56,189,248,.75)','rgba(245,158,11,.7)');}
 
 function drawDemo(){
   let p=540;const now=Date.now();
-  const c=Array.from({length:100},(_,i)=>{const chg=(Math.random()-.48)*3;const o=p;p=Math.max(510,Math.min(575,p+chg));return{t:now-(99-i)*300000,o,h:Math.max(o,p)+Math.random()*1.5,l:Math.min(o,p)-Math.random()*1.5,c:p,v:Math.floor(Math.random()*5e7+1e7)};});
-  ST.candles=c;ST.vs=0;ST.ve=c.length-1;
-  ST.gex={callWall:555,putWall:525,zeroGamma:540,maxPain:542,arr:Array.from({length:40},(_,i)=>({price:510+i*2,gex:(Math.random()-.44)*1e6,delta:(Math.random()-.4)*5e5}))};
-  $('gr','$555');$('gs','$525');$('gf','$540');$('gp','$542');render();
+  ST.candles=Array.from({length:120},(_,i)=>{const ch=(Math.random()-.48)*3,o=p;p=Math.max(510,Math.min(575,p+ch));return{t:now-(119-i)*3e5,o,h:Math.max(o,p)+Math.random()*1.5,l:Math.min(o,p)-Math.random()*1.5,c:p,v:Math.floor(Math.random()*5e7+1e7)};});
+  ST.vs=0;ST.ve=ST.candles.length-1;if(!ST.spot)ST.spot=p;
+  // demo chain
+  const opts=[];for(let k=500;k<=580;k+=2.5){['C','P'].forEach(t=>{opts.push({option_symbol:`SPY261218${t}${String(Math.round(k*1000)).padStart(8,'0')}`,open_interest:Math.floor(Math.random()*9000+200),implied_volatility:0.13+Math.random()*0.06,volume:Math.floor(Math.random()*3000)});});}
+  ST.M=compute(opts);renderAll();render();
 }
 
-function sel(el){ST.sym=el.dataset.s;ST.lbl=el.dataset.l;$('clbl',ST.lbl);document.querySelectorAll('.tc').forEach(t=>t.classList.toggle('on',t===el));const sel2=document.getElementById('sym');for(let i=0;i<sel2.options.length;i++){if(sel2.options[i].value===ST.sym){sel2.selectedIndex=i;break;}}loadChart();loadOpts();}
-function onSym(){const sel=document.getElementById('sym');const opt=sel.options[sel.selectedIndex];ST.sym=sel.value;ST.lbl=opt.dataset.l||sel.value;$('clbl',ST.lbl);document.querySelectorAll('.tc').forEach(t=>t.classList.toggle('on',t.dataset.s===ST.sym));loadChart();loadOpts();}
-document.querySelectorAll('.tfb').forEach(b=>{b.addEventListener('click',()=>{document.querySelectorAll('.tfb').forEach(x=>x.classList.remove('on'));b.classList.add('on');ST.iv=b.dataset.i;loadChart();});});
-window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(()=>{if(ST.candles.length)render();},120);});
+/* ===== flow ===== */
+async function loadFlow(){
+  try{
+    const d=await fetch('/api/uw?path='+encodeURIComponent('option-trades/flow-alerts?limit=20&order=desc')).then(r=>r.json());
+    const rows=d?.data||d?.results||[];if(!rows.length)throw 0;
+    let cv=0,pv=0;
+    const trs=rows.slice(0,14).map(r=>{const isC=(r.put_call||r.type||'C').toUpperCase().includes('C');const val=parseFloat(r.total_premium||r.premium||0);if(isC)cv+=val;else pv+=val;return`<tr><td class="muted mono">${(r.created_at||r.time||'').slice(11,16)||'--'}</td><td style="font-weight:800">${r.ticker||r.underlying_symbol||'--'}</td><td><span class="pill ${isC?'c':'p'}">${isC?'C':'P'}</span></td><td class="mono">$${fmt(r.strike,0)}</td><td class="mono ${isC?'up':'dn'}" style="font-weight:700">$${fv(val)}</td></tr>`;}).join('');
+    $('flw').innerHTML=`<table class="ft"><thead><tr><th>الوقت</th><th>الرمز</th><th>نوع</th><th>Strike</th><th>القيمة</th></tr></thead><tbody>${trs}</tbody></table>`;
+    const tot=cv+pv,bull=tot?Math.round(cv/tot*100):50;const fb=$('flow-b');if(fb){fb.textContent=bull+'% كول';fb.style.color=bull>50?'var(--g)':'var(--r)';}
+  }catch(e){$('flw').innerHTML='<div class="muted" style="text-align:center;padding:18px">التدفقات متاحة أثناء جلسة التداول</div>';}
+}
 
-async function init(){await fetchPrices();startCD();await Promise.all([loadChart(),loadOpts(),loadFlow()]);setInterval(loadChart,5*60*1000);setInterval(loadOpts,3*60*1000);setInterval(loadFlow,90*1000);}
+/* ===== options load ===== */
+async function loadOpts(){
+  try{
+    const d=await fetch('/api/uw?path='+encodeURIComponent(`stocks/${ST.sym}/options-chain?limit=400`)).then(r=>r.json());
+    const opts=d?.data||d?.results||[];if(!opts.length)throw 0;
+    ST.M=compute(opts);if(!ST.M)throw 0;renderAll();
+  }catch(e){if(!ST.M)drawDemo();}
+}
+function renderAll(){renderHome();renderChain();renderAnalytics();}
+
+/* ===== calculator ===== */
+function calc(){
+  const S=+$('k-s').value,K=+$('k-k').value,iv=+$('k-iv').value/100,d=+$('k-d').value,r=+$('k-r').value/100,t=$('k-t').value;
+  const T=Math.max(d/365,1/365);const g=bs(S,K,T,iv,r,t);
+  const pe=$('k-price');pe.textContent='القيمة: $'+fmt(g.price);pe.className='badge '+(t==='C'?'b-call':'b-put');
+  setT('k-delta',fmt(g.delta,4));setT('k-gamma',fmt(g.gamma,5));setT('k-theta',fmt(g.theta,4));
+  setT('k-vega',fmt(g.vega,4));setT('k-vanna',fmt(g.vanna,4));setT('k-charm',fmt(g.charm,5));
+  const itm=t==='C'?ncdf(g.d2):ncdf(-g.d2);setT('k-itm',(itm*100).toFixed(1)+'%');
+  setT('k-tdecay','$'+fmt(g.theta,3));
+}
+function loadCalcFromMarket(){if(ST.spot){$('k-s').value=ST.spot.toFixed(2);$('k-k').value=Math.round(ST.spot);}if(ST.M){$('k-iv').value=(ST.M.atmIV*100).toFixed(1);}calc();}
+
+/* ===== nav + symbol ===== */
+function setView(v){ST.view=v;document.querySelectorAll('.nav a[data-v]').forEach(a=>a.classList.toggle('on',a.dataset.v===v));document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));if(v==='home'&&ST.candles.length)setTimeout(render,30);if(v==='analytics')setTimeout(drawDist,30);}
+document.querySelectorAll('.nav a[data-v]').forEach(a=>a.addEventListener('click',()=>setView(a.dataset.v)));
+function pick(s){ST.sym=s;ST.lbl=LABELS[s]||s;setT('ch-sym',ST.lbl);setT('navsym',ST.lbl);document.querySelectorAll('.tc').forEach(t=>t.classList.toggle('on',t.dataset.s===s));loadChart();loadOpts();}
+document.querySelectorAll('.tfb[data-i]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tfb[data-i]').forEach(x=>x.classList.remove('on'));b.classList.add('on');ST.iv=b.dataset.i;loadChart();}));
+
+/* search */
+const qi=$('q'),sg=$('sugg');
+qi.addEventListener('input',()=>{const v=qi.value.trim().toUpperCase();if(!v){sg.style.display='none';return;}const m=ALL.filter(([s,l])=>s.includes(v)||l.includes(v)).slice(0,7);sg.innerHTML=m.map(([s,l])=>`<div onmousedown="chooseSym('${s}','${l}')"><span>${l}</span><span class="muted">${s}</span></div>`).join('');sg.style.display=m.length?'block':'none';});
+qi.addEventListener('blur',()=>setTimeout(()=>sg.style.display='none',150));
+function chooseSym(s,l){qi.value='';sg.style.display='none';if(!SYMS.includes(s)){SYMS.unshift(s);LABELS[s]=l;if(SYMS.length>8)SYMS.pop();buildStrip();fetchPrices();}pick(s);}
+
+window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(()=>{if(ST.candles.length)render();if(ST.view==='analytics')drawDist();},120);});
+
+/* ===== init ===== */
+async function init(){
+  buildStrip();setT('ch-sym',ST.lbl);setT('navsym',ST.lbl);calc();
+  await fetchPrices();
+  await Promise.all([loadChart(),loadOpts(),loadFlow()]);
+  setInterval(fetchPrices,15000);
+  setInterval(loadChart,5*60*1000);
+  setInterval(loadOpts,3*60*1000);
+  setInterval(loadFlow,90*1000);
+}
 init();
 </script></body></html>
