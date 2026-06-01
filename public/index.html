@@ -53,6 +53,8 @@ body{background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,"Taho
 .tc .s{font-size:.62rem;color:var(--mut);font-weight:700}
 .tc .p{font-size:.85rem;font-weight:800}
 .tc .c{font-size:.6rem;font-weight:700}
+.flash{animation:flash .25s ease-out}
+@keyframes flash{0%{background:rgba(56,189,248,.25);border-radius:4px}100%{background:transparent}}
 
 /* ===== stat cards ===== */
 .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:12px}
@@ -340,7 +342,8 @@ const sgn=v=>v>=0?'▲ ':'▼ ';const cls=v=>v>=0?'up':'dn';
 const SYMS=['SPY','QQQ','NVDA','AAPL','TSLA','META','MSFT','AMD'];
 const LABELS={SPY:'SPX',QQQ:'NDX',DIA:'DJX',IWM:'RUT'};
 const ALL=[['SPY','SPX'],['QQQ','NDX'],['DIA','DJX'],['IWM','RUT'],['TLT','TLT'],['GLD','GLD'],['NVDA','NVDA'],['AAPL','AAPL'],['TSLA','TSLA'],['META','META'],['MSFT','MSFT'],['AMZN','AMZN'],['GOOGL','GOOGL'],['AMD','AMD'],['PLTR','PLTR'],['SPX','SPX'],['QQQ','QQQ']];
-let ST={sym:'SPY',lbl:'SPX',iv:'5m',view:'home',candles:[],M:null,spot:0,prevClose:0,hov:-1,pMin:0,pMax:0,vs:0,ve:0,drag:false,dragX:0,dragVS:0};
+let ST={sym:'SPY',lbl:'SPX',iv:'5m',view:'home',candles:[],M:null,spot:0,prevClose:0,pcMap:{},hov:-1,pMin:0,pMax:0,vs:0,ve:0,drag:false,dragX:0,dragVS:0};
+const FH='d0rh1ohr01qgssk0pr80d0rh1ohr01qgssk0pr8g';
 
 /* ===== Black-Scholes greeks ===== */
 const ncdf=x=>{const a=0.2316419,k=1/(1+a*Math.abs(x));const t=k*(0.319381530+k*(-0.356563782+k*(1.781477937+k*(-1.821255978+k*1.330274429))));const w=1-(1/Math.sqrt(2*Math.PI))*Math.exp(-x*x/2)*t;return x>=0?w:1-w};
@@ -378,18 +381,64 @@ async function fetchPrices(){
   try{
     const d=await fetch('/api/quote?symbols='+SYMS.join(',')).then(r=>r.json());
     (d?.quoteResponse?.result||[]).forEach(q=>{
-      if(!q.symbol)return;const p=q.regularMarketPrice,cp=q.regularMarketChangePercent;
-      const tp=$('tp-'+q.symbol),tg=$('tcg-'+q.symbol);
-      if(tp){tp.textContent='$'+fmt(p);}
-      if(tg){tg.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';tg.className='c mono '+cls(cp);}
-      if(q.symbol===ST.sym){ST.spot=p;ST.prevClose=q.regularMarketPreviousClose;updPx();}
+      if(!q.symbol)return;
+      if(q.regularMarketPreviousClose)ST.pcMap[q.symbol]=q.regularMarketPreviousClose;
+      paintTile(q.symbol,q.regularMarketPrice);
+      if(q.symbol===ST.sym){ST.spot=q.regularMarketPrice;ST.prevClose=q.regularMarketPreviousClose;updPx();}
     });
+    wsSubscribe();
   }catch(e){}
+}
+// paint a symbol tile from a live price (uses cached prev close for %)
+function paintTile(sym,p){
+  if(!p||!isFinite(p))return;
+  const pc=ST.pcMap[sym],cp=pc?((p-pc)/pc*100):0;
+  const tp=$('tp-'+sym),tg=$('tcg-'+sym);
+  if(tp){tp.textContent='$'+fmt(p);tp.className='p mono flash';setTimeout(()=>tp.classList.remove('flash'),250);}
+  if(tg&&pc){tg.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';tg.className='c mono '+cls(cp);}
 }
 function updPx(){
   const cp=ST.prevClose?((ST.spot-ST.prevClose)/ST.prevClose*100):0;
-  setT('ch-px','$'+fmt(ST.spot));const e=$('ch-chg');if(e){e.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';e.className='mono '+cls(cp);}
+  setT('ch-px','$'+fmt(ST.spot));const e=$('ch-chg');if(e&&ST.prevClose){e.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';e.className='mono '+cls(cp);}
 }
+
+/* ===== live WebSocket (Finnhub trades) ===== */
+let WS=null,wsReady=false,wsSub=new Set(),wsBuf={},wsTimer=null,wsRetry=0;
+function wsConnect(){
+  try{
+    WS=new WebSocket('wss://ws.finnhub.io?token='+FH);
+    WS.onopen=()=>{wsReady=true;wsRetry=0;setLive(true);wsSub.clear();wsSubscribe();};
+    WS.onmessage=ev=>{
+      let m;try{m=JSON.parse(ev.data);}catch(_){return;}
+      if(m.type!=='trade'||!m.data)return;
+      // keep last price per symbol; flush on rAF to avoid thrash
+      m.data.forEach(t=>{wsBuf[t.s]=t.p;});
+      if(!wsTimer)wsTimer=requestAnimationFrame(wsFlush);
+    };
+    WS.onclose=()=>{wsReady=false;setLive(false);scheduleReconnect();};
+    WS.onerror=()=>{try{WS.close();}catch(_){}};
+  }catch(e){scheduleReconnect();}
+}
+function scheduleReconnect(){wsRetry=Math.min(wsRetry+1,6);setTimeout(wsConnect,Math.min(1000*2**wsRetry,30000));}
+function wsSubscribe(){
+  if(!wsReady||!WS)return;
+  SYMS.forEach(s=>{if(!wsSub.has(s)){WS.send(JSON.stringify({type:'subscribe',symbol:s}));wsSub.add(s);}});
+  // drop tiles no longer shown
+  [...wsSub].forEach(s=>{if(!SYMS.includes(s)){WS.send(JSON.stringify({type:'unsubscribe',symbol:s}));wsSub.delete(s);}});
+}
+function wsFlush(){
+  wsTimer=null;
+  for(const sym in wsBuf){
+    const p=wsBuf[sym];
+    paintTile(sym,p);
+    if(sym===ST.sym){
+      ST.spot=p;updPx();
+      if(ST.candles.length){const last=ST.candles[ST.candles.length-1];last.c=p;if(p>last.h)last.h=p;if(p<last.l)last.l=p;if(ST.view==='home')drawChart();}
+    }
+  }
+  wsBuf={};
+}
+function setLive(on){const b=document.querySelector('.live');if(b)b.style.opacity=on?'1':'.4';}
 
 /* ===== options chain compute ===== */
 function parseOcc(sym){const m=(sym||'').match(/[A-Z]+\.?[A-Z]*?(\d{6})([CP])(\d{8})/);if(!m)return null;const y=+('20'+m[1].slice(0,2)),mo=+m[1].slice(2,4),da=+m[1].slice(4,6);return{exp:new Date(Date.UTC(y,mo-1,da)),type:m[2],strike:(+m[3])/1000};}
@@ -688,8 +737,9 @@ window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTim
 async function init(){
   buildStrip();setT('ch-sym',ST.lbl);setT('navsym',ST.lbl);calc();
   await fetchPrices();
+  wsConnect();
   await Promise.all([loadChart(),loadOpts(),loadFlow()]);
-  setInterval(fetchPrices,15000);
+  setInterval(fetchPrices,30000);// fallback + refresh prev-close / off-hours
   setInterval(loadChart,5*60*1000);
   setInterval(loadOpts,3*60*1000);
   setInterval(loadFlow,90*1000);
