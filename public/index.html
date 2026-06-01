@@ -150,6 +150,7 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
   <div class="tspace"></div>
   <div class="live"><span class="b"></span>LIVE</div>
   <div class="mst closed" id="mst">--</div>
+  <div class="mst" id="dsrc" style="display:none;color:var(--y);background:var(--yy)">بيانات تقديرية</div>
   <div class="clock mono" id="clock">--</div>
 </div>
 
@@ -728,31 +729,56 @@ async function loadFlow(){
 /* ===== options load ===== */
 async function loadOpts(){
   const reqSym=ST.sym;
+  const uwSym=({SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'})[ST.sym]||ST.sym;
+  // try several Unusual Whales endpoint shapes; use the first that returns contracts
+  const paths=[
+    `stock/${uwSym}/option-chains?limit=500`,
+    `stocks/${uwSym}/options-chain?limit=500`,
+    `stock/${uwSym}/option/chain?limit=500`
+  ];
   try{
-    // indices: query options on the underlying index symbol used by the data vendor
-    const uwSym=({SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'})[ST.sym]||ST.sym;
-    const d=await fetch('/api/uw?path='+encodeURIComponent(`stocks/${uwSym}/options-chain?limit=400`)).then(r=>r.json());
-    const opts=d?.data||d?.results||[];if(!opts.length)throw 0;
+    let opts=null;
+    for(const p of paths){
+      try{
+        const d=await fetch('/api/uw?path='+encodeURIComponent(p)).then(r=>r.json());
+        const a=d?.data||d?.results||d?.chains||[];
+        if(Array.isArray(a)&&a.length){opts=a;break;}
+      }catch(_){}
+    }
     if(reqSym!==ST.sym)return; // user switched while loading
-    const M=compute(opts);if(!M)throw 0;ST.M=M;renderAll();
+    if(!opts||!opts.length)throw 0;
+    const M=compute(opts);if(!M||!M.rows.length)throw 0;
+    ST.demo=false;ST.M=M;renderAll();
   }catch(e){
     if(reqSym!==ST.sym)return;
-    demoChain(); // always rebuild around the current symbol's real spot
+    demoChain(); // deterministic, spot-centred fallback
   }
 }
-// build a demo options chain centred on the current spot so each symbol differs
+// deterministic seeded RNG so the same symbol always produces the same chain
+function seedRand(str){let s=2166136261>>>0;for(let i=0;i<str.length;i++){s^=str.charCodeAt(i);s=Math.imul(s,16777619);}return ()=>{s^=s<<13;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
+// realistic demo chain: call wall just above spot, put wall just below, stable per symbol
 function demoChain(){
-  const spot=ST.spot||100;const step=spot>1000?25:(spot>200?5:(spot>50?2.5:1));
-  const opts=[];const lo=spot*0.88,hi=spot*1.12;
-  for(let k=Math.round(lo/step)*step;k<=hi;k+=step){
-    ['C','P'].forEach(t=>{
-      const dist=Math.abs(k-spot)/spot;const oi=Math.floor((Math.random()*8000+300)*Math.max(.1,1-dist*4));
-      opts.push({option_symbol:`X261218${t}${String(Math.round(k*1000)).padStart(8,'0')}`,open_interest:oi,implied_volatility:0.12+dist+Math.random()*0.05,volume:Math.floor(Math.random()*2000)});
-    });
+  ST.demo=true;
+  const spot=ST.spot||100;const rnd=seedRand(ST.sym);
+  const step=spot>3000?25:(spot>1000?10:(spot>200?5:(spot>50?2.5:1)));
+  const rnd2=()=>(rnd()+rnd()+rnd())/3; // bell-ish
+  const roundTo=(x,m)=>Math.round(x/m)*m;
+  const callWall=roundTo(spot*(1.008+rnd()*0.014),step);  // ~0.8-2.2% above
+  const putWall =roundTo(spot*(0.992-rnd()*0.014),step);  // ~0.8-2.2% below
+  const wC=spot*0.05,wP=spot*0.05;
+  const opts=[],lo=roundTo(spot*0.85,step),hi=spot*1.15;
+  for(let k=lo;k<=hi;k+=step){
+    const gC=Math.exp(-((k-callWall)**2)/(2*wC*wC));      // calls peak at call wall
+    const gP=Math.exp(-((k-putWall)**2)/(2*wP*wP));        // puts peak at put wall
+    const baseC=(0.15+gC)*(0.6+rnd2()*0.8), baseP=(0.15+gP)*(0.6+rnd2()*0.8);
+    const cOI=Math.floor(baseC*9000)+50, pOI=Math.floor(baseP*9500)+50;
+    const ivK=0.12+Math.abs(k-spot)/spot*0.6+(k<spot?0.03:0); // put skew
+    opts.push({option_symbol:`X261218C${String(Math.round(k*1000)).padStart(8,'0')}`,open_interest:cOI,implied_volatility:ivK,volume:Math.floor(rnd()*2000)});
+    opts.push({option_symbol:`X261218P${String(Math.round(k*1000)).padStart(8,'0')}`,open_interest:pOI,implied_volatility:ivK+0.01,volume:Math.floor(rnd()*2000)});
   }
   ST.M=compute(opts);renderAll();if(ST.candles.length)render();
 }
-function renderAll(){renderHome();renderChain();renderAnalytics();}
+function renderAll(){renderHome();renderChain();renderAnalytics();const ds=$('dsrc');if(ds)ds.style.display=ST.demo?'block':'none';}
 
 /* ===== calculator ===== */
 function calc(){
