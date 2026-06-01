@@ -363,11 +363,15 @@ function bs(S,K,T,sig,r,type){
   return{price,delta,gamma,theta,vega,vanna,charm,d1,d2};
 }
 
-/* ===== clock ===== */
-function tick(){
+/* ===== clock + market hours ===== */
+function marketOpen(){
   const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
   const h=et.getHours(),m=et.getMinutes(),wd=et.getDay();
-  const open=wd>=1&&wd<=5&&(h>9||(h===9&&m>=30))&&h<16;
+  return wd>=1&&wd<=5&&(h>9||(h===9&&m>=30))&&h<16;
+}
+function tick(){
+  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+  const open=marketOpen();
   setT('mst',open?'السوق مفتوح':'السوق مغلق');$('mst').className='mst '+(open?'open':'closed');
   setT('clock',et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+' ET');
 }
@@ -740,9 +744,11 @@ async function init(){
   wsConnect();
   await Promise.all([loadChart(),loadOpts(),loadFlow()]);
   setInterval(fetchPrices,30000);// fallback + refresh prev-close / off-hours
-  setInterval(loadChart,5*60*1000);
-  setInterval(loadOpts,3*60*1000);
-  setInterval(loadFlow,90*1000);
+  // Adaptive refresh: faster while market is open, slower when closed.
+  const loop=(fn,openMs,closedMs)=>{const run=async()=>{try{await fn();}catch(_){}setTimeout(run,marketOpen()?openMs:closedMs);};setTimeout(run,marketOpen()?openMs:closedMs);};
+  loop(loadChart, 60*1000, 5*60*1000);   // candles: 1m open / 5m closed
+  loop(loadOpts,  30*1000, 5*60*1000);   // options chain: 30s open / 5m closed
+  loop(loadFlow,  20*1000, 3*60*1000);   // flow alerts: 20s open / 3m closed
 }
 init();
 </script></body></html>
