@@ -803,17 +803,30 @@ async function loadOpts(){
   const reqSym=ST.sym;
   const uwSym=({SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'})[ST.sym]||ST.sym;
   try{
-    // fetch open interest (per-contract chain OR per-strike feed) + greek-exposure together
-    const chainP=(async()=>{for(const p of [`stock/${uwSym}/oi-per-strike`,`stock/${uwSym}/option-contracts?limit=3000`,`stock/${uwSym}/option-chains?limit=3000`,`stock/${uwSym}/greeks`,`stocks/${uwSym}/options-chain?limit=3000`]){const a=await uwGet(p);if(Array.isArray(a)&&a.length&&oiByStrike(a)){return a;}}return null;})();
-    const exP=(async()=>{for(const p of [`stock/${uwSym}/greek-exposure/strike`,`stock/${uwSym}/spot-exposures/strike`]){const a=await uwGet(p);if(Array.isArray(a)&&a.length)return a;}return null;})();
-    const [chain,ex]=await Promise.all([chainP,exP]);
-    if(reqSym!==ST.sym)return; // user switched while loading
+    // 1) greek-exposure FIRST, on its own (reliable) — real gamma/delta/charm/vanna
+    let ex=null;
+    for(const p of [`stock/${uwSym}/greek-exposure/strike`,`stock/${uwSym}/spot-exposures/strike`]){
+      const a=await uwGet(p);if(Array.isArray(a)&&a.length){ex=a;break;}
+    }
+    if(reqSym!==ST.sym)return;
+    if(ex){
+      let M=computeFromExposure(ex,null);
+      if(M){ST.demo=false;ST.M=M;renderAll();}      // show real gamma immediately
+      // 2) then enrich with real open interest, fetched one endpoint at a time
+      let oim=null;
+      for(const p of [`stock/${uwSym}/oi-per-strike`,`stock/${uwSym}/option-contracts?limit=3000`,`stock/${uwSym}/option-chains?limit=3000`]){
+        const a=await uwGet(p);if(Array.isArray(a)&&a.length){const o=oiByStrike(a);if(o){oim=o;break;}}
+      }
+      if(reqSym!==ST.sym)return;
+      if(M&&oim){const M2=computeFromExposure(ex,oim);if(M2){ST.M=M2;renderAll();}}
+      if(M)return;
+    }
+    // 3) no exposure feed -> build everything from the raw chain (OI + Black-Scholes)
     let M=null;
-    const oim=(chain&&chain.length)?oiByStrike(chain):null;
-    // prefer official greek-exposure greeks, enriched with real OI from the chain
-    if(ex&&ex.length){M=computeFromExposure(ex,oim);}
-    // else compute everything from the raw chain via Black-Scholes
-    if(!M&&chain&&chain.length){const m=compute(chain);if(m&&m.rows.length&&m.totGamma>0)M=m;}
+    for(const p of [`stock/${uwSym}/option-contracts?limit=3000`,`stock/${uwSym}/option-chains?limit=3000`,`stocks/${uwSym}/options-chain?limit=3000`]){
+      const a=await uwGet(p);if(Array.isArray(a)&&a.length){const m=compute(a);if(m&&m.rows.length&&m.totGamma>0){M=m;break;}}
+    }
+    if(reqSym!==ST.sym)return;
     if(!M)throw 0;
     ST.demo=false;ST.M=M;renderAll();
   }catch(e){
