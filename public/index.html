@@ -387,21 +387,24 @@ async function fetchPrices(){
     (d?.quoteResponse?.result||[]).forEach(q=>{
       if(!q.symbol)return;
       if(q.regularMarketPreviousClose)ST.pcMap[q.symbol]=q.regularMarketPreviousClose;
-      paintTile(q.symbol,q.regularMarketPrice);
-      if(q.symbol===ST.sym){ST.spot=q.regularMarketPrice;ST.prevClose=q.regularMarketPreviousClose;updPx();}
+      // when market is closed the live quote can be 0 -> fall back to last close
+      const px=(q.regularMarketPrice&&q.regularMarketPrice>0)?q.regularMarketPrice:(q.regularMarketPreviousClose||ST.lastPx?.[q.symbol]||0);
+      if(px>0){(ST.lastPx=ST.lastPx||{})[q.symbol]=px;paintTile(q.symbol,px,!q.regularMarketPrice);}
+      if(q.symbol===ST.sym&&px>0){ST.spot=px;ST.prevClose=q.regularMarketPreviousClose;updPx();}
     });
     wsSubscribe();
   }catch(e){}
 }
-// paint a symbol tile from a live price (uses cached prev close for %)
-function paintTile(sym,p){
+// paint a symbol tile from a price (uses cached prev close for %); stale=closed snapshot
+function paintTile(sym,p,stale){
   if(!p||!isFinite(p))return;
   const pc=ST.pcMap[sym],cp=pc?((p-pc)/pc*100):0;
   const tp=$('tp-'+sym),tg=$('tcg-'+sym);
-  if(tp){tp.textContent='$'+fmt(p);tp.className='p mono flash';setTimeout(()=>tp.classList.remove('flash'),250);}
+  if(tp){tp.textContent='$'+fmt(p);if(!stale){tp.className='p mono flash';setTimeout(()=>tp.classList.remove('flash'),250);}else{tp.className='p mono';}}
   if(tg&&pc){tg.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';tg.className='c mono '+cls(cp);}
 }
 function updPx(){
+  if(!ST.spot||ST.spot<=0)return;
   const cp=ST.prevClose?((ST.spot-ST.prevClose)/ST.prevClose*100):0;
   setT('ch-px','$'+fmt(ST.spot));const e=$('ch-chg');if(e&&ST.prevClose){e.textContent=sgn(cp)+Math.abs(cp).toFixed(2)+'%';e.className='mono '+cls(cp);}
 }
@@ -617,7 +620,10 @@ async function loadChart(){
     const d=await fetch(`/api/candles?sym=${ST.sym}&interval=${ST.iv}`).then(r=>r.json());
     if(!d.candles?.length)throw 0;
     ST.candles=d.candles;ST.vs=0;ST.ve=d.candles.length-1;
-    if(d.regularMarketPrice){ST.spot=d.regularMarketPrice;ST.prevClose=d.previousClose;updPx();}
+    // prefer live quote; otherwise fall back to last candle close so we never show $0.00
+    const lastClose=d.candles[d.candles.length-1]?.c;
+    const px=(d.regularMarketPrice&&d.regularMarketPrice>0)?d.regularMarketPrice:lastClose;
+    if(px>0){ST.spot=px;if(d.previousClose)ST.prevClose=d.previousClose;updPx();}
     render();
   }catch(e){drawDemo();}
   $('ld').style.display='none';
