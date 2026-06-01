@@ -212,7 +212,7 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
           <div class="panel"><div class="ph">التضخم · فانا · تشارم <span class="mut" id="iv-time">--</span></div>
             <div class="pb">
               <div class="badge b-call" id="iv-atm" style="margin-bottom:10px">IV ATM <span id="iv-atmv">--</span></div>
-              <div class="ir"><span class="l">IV Rank</span><span class="v mono" id="iv-rank">--</span></div>
+              <div class="ir"><span class="l">IV Rank <span style="font-size:.85em;opacity:.6">(تاريخي)</span></span><span class="v mono" id="iv-rank">--</span></div>
               <div class="ir"><span class="l">حالة التضخم</span><span class="v" id="iv-sig">--</span></div>
               <div class="ir"><span class="l">انحراف 25Δ (SKEW)</span><span class="v mono" id="iv-skew">--</span></div>
               <div class="ir"><span class="l">صافي تشارم</span><span class="v mono" id="iv-charm">--</span></div>
@@ -567,7 +567,13 @@ function computeFromExposure(arr,oiMap){
   });
   const rows=Object.values(byStrike).sort((a,b)=>a.K-b.K).map(s=>({K:s.K,netGamma:s.cGamma-s.pGamma,netDelta:s.netDelta,netOI:s.cOI-s.pOI,cOI:s.cOI,pOI:s.pOI,charm:s.charm,vanna:s.vanna,gex:s.cGamma-s.pGamma,iv:0,pct:spot?((s.K-spot)/spot*100):0}));
   if(!rows.length||rows.reduce((a,b)=>a+Math.abs(b.netGamma),0)===0)return null; // no usable gamma
-  return aggregate(rows,{spot,toiC,toiP,sumGEX,totGamma,atmIV:atmIV||0.2,atmDist,skew:0,sumCharm,sumVanna,sumNetDelta,byExp:{}});
+  return aggregate(rows,{spot,toiC,toiP,sumGEX,totGamma,atmIV:atmIV||0.2,atmDist,skew:skewFromIV(oiMap,spot),sumCharm,sumVanna,sumNetDelta,byExp:{}});
+}
+// real 25-delta-ish skew = OTM put IV - OTM call IV, from per-strike IV
+function skewFromIV(oiMap,spot){
+  if(!oiMap||!spot)return 0;
+  const ivAt=f=>{const t=spot*f;let best=null,bd=1e9;for(const k in oiMap){const v=oiMap[k];if(v&&v.iv>0){const d=Math.abs((+k)-t);if(d<bd){bd=d;best=v.iv;}}}return best;};
+  const p=ivAt(0.95),c=ivAt(1.05);return (p&&c)?(p-c)*100:0;
 }
 // build {strike:{cOI,pOI,iv}} from either a per-contract chain OR a pre-aggregated per-strike feed
 function oiByStrike(rows){
@@ -614,10 +620,11 @@ function renderHome(){
   const gl=[...(M.gPos||[]).map(r=>[r,'up']),...(M.gNeg||[]).map(r=>[r,'dn'])].sort((a,b)=>b[0].K-a[0].K);
   if(gl.length){html+='<div class="sectitle" style="margin:8px 0 4px">مستويات القاما (GEX)</div>'+gl.map(([r,c])=>`<div class="ir"><span class="l mono">$${fmt(r.K,0)}</span><span class="v mono ${c}">${fv(r.netGamma)}</span></div>`).join('');}
   $('keylv').innerHTML=html;
-  // IV / charm / vanna
+  // IV / charm / vanna  (ATM IV is real; rank requires historical IV which the feed doesn't provide)
   setT('iv-atmv',(M.atmIV*100).toFixed(1)+'%');
-  const rank=Math.min(100,Math.round(M.atmIV*180));setT('iv-rank',rank+' / 100');
-  const sig=$('iv-sig');sig.textContent=rank>75?'مرتفع — تجنب الشراء':rank<30?'منخفض — مناسب للشراء':'متوسط';sig.style.color=rank>75?'var(--r)':rank<30?'var(--g)':'var(--y)';
+  setT('iv-rank',M.ivRank!=null?Math.round(M.ivRank)+'%':'—');
+  // skew-based read (real): positive = put skew (downside fear), negative = call skew
+  const sig=$('iv-sig');const sk=M.skew;sig.textContent=Math.abs(sk)<0.5?'متوازن':sk>0?'انحراف بوت (تحوّط هابط)':'انحراف كول (طمع صاعد)';sig.style.color=Math.abs(sk)<0.5?'var(--y)':sk>0?'var(--r)':'var(--g)';
   setT('iv-skew',(M.skew>=0?'+':'')+M.skew.toFixed(1)+'%');
   setT('iv-charm',fv(M.sumCharm));setT('iv-vanna',fv(M.sumVanna));
   const push=$('iv-push');const pc=M.sumVanna>=0;push.textContent=pc?'▲▲ دافع للكول':'▼▼ دافع للبوت';push.className='badge '+(pc?'b-call':'b-put');
@@ -787,9 +794,18 @@ function drawDemo(){
 
 /* ===== flow ===== */
 async function loadFlow(){
+  const reqSym=ST.sym;
+  const uwSym=({SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'})[ST.sym]||ST.sym;
   try{
-    const d=await fetch('/api/uw?path='+encodeURIComponent('option-trades/flow-alerts?limit=20&order=desc')).then(r=>r.json());
-    const rows=d?.data||d?.results||[];if(!rows.length)throw 0;
+    // prefer flow for the selected symbol; else filter the market-wide feed by ticker
+    let rows=await uwGet(`stock/${uwSym}/flow-alerts?limit=30`);
+    if(!Array.isArray(rows)||!rows.length){
+      const all=await uwGet('option-trades/flow-alerts?limit=60&order=desc');
+      const wanted=[uwSym,ST.sym,...(WSPROXY[ST.sym]?[WSPROXY[ST.sym]]:[])].map(s=>s.toUpperCase());
+      rows=(Array.isArray(all)?all:[]).filter(r=>wanted.some(w=>(r.ticker||r.underlying_symbol||'').toUpperCase().startsWith(w)));
+    }
+    if(reqSym!==ST.sym)return;
+    if(!Array.isArray(rows)||!rows.length)throw 0;
     let cv=0,pv=0;
     const trs=rows.slice(0,14).map(r=>{const isC=(r.put_call||r.type||'C').toUpperCase().includes('C');const val=parseFloat(r.total_premium||r.premium||0);if(isC)cv+=val;else pv+=val;return`<tr><td class="muted mono">${(r.created_at||r.time||'').slice(11,16)||'--'}</td><td style="font-weight:800">${r.ticker||r.underlying_symbol||'--'}</td><td><span class="pill ${isC?'c':'p'}">${isC?'C':'P'}</span></td><td class="mono">$${fmt(r.strike,0)}</td><td class="mono ${isC?'up':'dn'}" style="font-weight:700">$${fv(val)}</td></tr>`;}).join('');
     $('flw').innerHTML=`<table class="ft"><thead><tr><th>الوقت</th><th>الرمز</th><th>نوع</th><th>Strike</th><th>القيمة</th></tr></thead><tbody>${trs}</tbody></table>`;
