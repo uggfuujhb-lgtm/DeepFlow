@@ -1,8 +1,6 @@
 // Live quotes via Yahoo Finance (free, no key).
-// Indices: cash index during regular hours (= TradingView); outside RTH use futures shifted to cash scale.
-const IDX={SPX:['^GSPC','ES=F'],NDX:['^NDX','NQ=F'],DJX:['^DJI','YM=F'],RUT:['^RUT','RTY=F']};
-const PLAIN={VIX:'^VIX'};
-function isRTH(){const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));const wd=et.getDay(),t=et.getHours()*60+et.getMinutes();return wd>=1&&wd<=5&&t>=570&&t<960;}
+// Indices -> front-month futures (= TradingView SPX500/NAS100 level, trades ~24h).
+const YF={SPX:'ES=F',NDX:'NQ=F',DJX:'YM=F',RUT:'RTY=F',VIX:'^VIX',SPY:'SPY',QQQ:'QQQ',DIA:'DIA',IWM:'IWM'};
 async function px(sym,i,r,pp){
   try{
     const u=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${i}&range=${r}&includePrePost=${pp?'true':'false'}`;
@@ -15,21 +13,8 @@ async function px(sym,i,r,pp){
 }
 const mk=(k,p,pc)=>({symbol:k,regularMarketPrice:p||0,regularMarketChange:(p||0)-(pc||0),regularMarketChangePercent:pc?(((p||0)-pc)/pc*100):0,regularMarketDayHigh:0,regularMarketDayLow:0,regularMarketPreviousClose:pc||0});
 async function quoteOne(key){
-  try{
-    if(IDX[key]){
-      const [cashSym,futSym]=IDX[key];
-      // continuous 24h "SPX500": futures price shifted onto the cash scale via prev-close basis
-      const [f,c]=await Promise.all([px(futSym,'5m','1d',true),px(cashSym,'1d','5d',false)]);
-      if(f.price){
-        const basis=(f.prev&&c.prev)?(f.prev-c.prev):0;
-        return mk(key,f.price-basis,c.prev||f.prev||0);
-      }
-      const cc=await px(cashSym,'5m','1d',false); // fallback: cash
-      return mk(key,cc.price,cc.prev);
-    }
-    const c=await px(PLAIN[key]||key,'5m','1d',true);
-    return mk(key,c.price,c.prev);
-  }catch(_){return mk(key,0,0);}
+  const c=await px(YF[key]||key,'5m','1d',true);
+  return mk(key,c.price,c.prev);
 }
 export default async function handler(req,res){
   res.setHeader('Access-Control-Allow-Origin','*');
