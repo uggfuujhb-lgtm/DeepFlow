@@ -105,7 +105,32 @@ canvas{position:absolute;inset:0}
 .wallrow .wn{font-size:.56rem;color:var(--mut2);font-weight:700}
 .wallrow .wk{font-size:.84rem;font-weight:800}
 .wallrow .wv{font-size:.72rem;font-weight:700}
-.v.p{color:var(--p)}.b-put{background:linear-gradient(135deg,rgba(255,84,112,.22),rgba(255,84,112,.06));color:var(--r);border:1px solid rgba(255,84,112,.3)}
+.v.p{color:var(--p)}
+/* hot strikes heatmap */
+#heatmap{display:flex;flex-direction:column;gap:4px}
+.hmrow{display:flex;align-items:center;gap:8px}
+.hmlab{width:42px;font-size:.6rem;font-weight:800;flex-shrink:0}
+.hmcells{display:flex;gap:2px;flex:1}
+.hmc{flex:1;height:22px;border-radius:3px;position:relative;cursor:default;transition:.1s}
+.hmc:hover{outline:1px solid rgba(255,255,255,.4)}
+.hmaxis{display:flex;gap:2px;margin:4px 0 0 0;padding-right:50px}
+.hmaxis span{flex:1;text-align:center;font-size:.52rem;color:var(--mut2);font-family:monospace}
+.hmspot{position:relative;height:0}
+.hmspot i{position:absolute;top:-2px;width:2px;height:54px;background:#fff;box-shadow:0 0 6px #fff}
+.hmspot b{position:absolute;top:-16px;transform:translateX(50%);font-size:.56rem;background:#fff;color:#000;padding:1px 5px;border-radius:4px;font-weight:800;white-space:nowrap}
+.hslg{display:flex;gap:14px;margin-top:10px;justify-content:center;font-size:.6rem;color:var(--mut)}
+.hslg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:4px;vertical-align:middle}
+/* setup gauge */
+.gauge{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+.gring{width:74px;height:74px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.gring .gv{font-size:1.3rem;font-weight:800}.gring .gs{position:absolute;bottom:12px;font-size:.5rem;color:var(--mut)}
+.gmeta{flex:1}
+.gmeta .gt{font-size:.92rem;font-weight:800}
+.gmeta .gd{font-size:.66rem;color:var(--mut);margin-top:3px;line-height:1.5}
+.sbar{margin-bottom:7px}
+.sbar .sl{display:flex;justify-content:space-between;font-size:.64rem;margin-bottom:3px}
+.sbar .st{height:7px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden}
+.sbar .st i{display:block;height:100%;border-radius:5px}.b-put{background:linear-gradient(135deg,rgba(255,84,112,.22),rgba(255,84,112,.06));color:var(--r);border:1px solid rgba(255,84,112,.3)}
 .b-call{background:linear-gradient(135deg,rgba(34,211,154,.22),rgba(34,211,154,.06));color:var(--g);border:1px solid rgba(34,211,154,.3)}
 
 /* expected move bar */
@@ -192,6 +217,23 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
         <div class="card"><div class="lab">💧 ضغط السيولة</div><div class="val mono" id="c-liq">--</div><div class="sub" id="c-liqs">Liquidity Pressure</div></div>
         <div class="card"><div class="lab">⚖️ نسبة P/C</div><div class="val mono nt" id="c-pc">--</div><div class="sub" id="c-pcs">Put / Call</div></div>
         <div class="card"><div class="lab">🎯 حالة القاما</div><div class="val" id="c-cond" style="font-size:.92rem">--</div><div class="sub" id="c-conds">Gamma Regime</div></div>
+      </div>
+
+      <!-- 🐋 Hot strikes heatmap + setup score (Rasad-style, above the chart) -->
+      <div class="panel" style="margin-bottom:12px">
+        <div class="ph">🐋 خريطة السترايكات الحارة <span class="mut" id="hm-spot">--</span></div>
+        <div class="pb">
+          <div id="heatmap"></div>
+          <div class="hslg"><span><i style="background:var(--y)"></i>ضعيف</span><span><i style="background:var(--o)"></i>متوسط</span><span><i style="background:var(--r)"></i>قوي</span><span><i style="background:var(--g)"></i>قوي جداً</span></div>
+        </div>
+      </div>
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="panel"><div class="ph">⚡ تقييم الإعداد · الثقة <span class="mut" id="setup-side">--</span></div>
+          <div class="pb" id="setup"></div>
+        </div>
+        <div class="panel"><div class="ph">🐳 الصفقات الكبيرة · آخر 15د <span class="mut" id="bigflow-b">--</span></div>
+          <div class="pb" id="bigflow" style="color:var(--mut);text-align:center;padding:16px;font-size:.72rem">جاري التحميل...</div>
+        </div>
       </div>
 
       <div class="grid2">
@@ -659,6 +701,60 @@ function renderHome(){
   setT('iv-time',new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}));
   renderExp('exphome',M);
   setLevels();
+  renderHeatmap();renderSetup();
+}
+
+/* ===== hot strikes heatmap (Rasad-style) ===== */
+function renderHeatmap(){
+  const M=ST.M,el=$('heatmap');if(!M||!el)return;const spot=ST.spot||M.spot;
+  // strikes within ~2.5% of spot, sorted ascending (price left->right)
+  const win=spot*0.025;
+  let rows=M.rows.filter(r=>Math.abs(r.K-spot)<=win).sort((a,b)=>a.K-b.K);
+  if(rows.length<5)rows=M.rows.slice().sort((a,b)=>a.K-b.K).slice(0,40);
+  if(!rows.length)return;
+  const maxC=Math.max(...rows.map(r=>r.cGamma||r.cOI||0),1);
+  const maxP=Math.max(...rows.map(r=>r.pGamma||r.pOI||0),1);
+  const col=(v,mx)=>{const r=v/mx;if(r<0.001)return'rgba(255,255,255,.03)';if(r<0.25)return'rgba(245,196,81,'+(0.25+r)+')';if(r<0.5)return'rgba(245,158,11,'+(0.3+r)+')';if(r<0.8)return'rgba(255,84,112,'+(0.4+r*.5)+')';return'rgba(34,211,154,'+(0.55+r*.4)+')';};
+  const cell=(v,mx,lbl)=>`<div class="hmc" title="${lbl}: ${fv(v)}" style="background:${col(v,mx)}"></div>`;
+  const calls=rows.map(r=>cell(r.cGamma||r.cOI||0,maxC,'كول '+fmt(r.K,0))).join('');
+  const puts=rows.map(r=>cell(r.pGamma||r.pOI||0,maxP,'بوت '+fmt(r.K,0))).join('');
+  // spot marker position (% across)
+  const lo=rows[0].K,hi=rows[rows.length-1].K,pos=hi>lo?((spot-lo)/(hi-lo))*100:50;
+  const ax=rows.filter((_,i)=>i%Math.ceil(rows.length/7)===0).map(r=>`<span>${fmt(r.K,0)}</span>`).join('');
+  el.innerHTML=`<div class="hmspot"><i style="right:calc(${100-pos}% + 50px)"></i><b style="right:calc(${100-pos}% + 50px)">${fmt(spot,0)}</b></div>
+    <div class="hmrow"><span class="hmlab dn">PUTS</span><div class="hmcells">${puts}</div></div>
+    <div class="hmrow"><span class="hmlab up">CALLS</span><div class="hmcells">${calls}</div></div>
+    <div class="hmaxis">${ax}</div>`;
+  const sp=$('hm-spot');if(sp){const above=spot>(M.flip||spot);sp.textContent='Spot '+fmt(spot,2)+' · '+(above?'فوق الانعطاف':'تحت الانعطاف');}
+}
+
+/* ===== setup / confidence score (Rasad-style) ===== */
+function renderSetup(){
+  const M=ST.M,el=$('setup');if(!M||!el)return;const spot=ST.spot||M.spot;
+  const walls=[M.callWall,M.putWall,...(M.gPos||[]),...(M.gNeg||[])].filter(Boolean).map(w=>w.K);
+  // 1) proximity to a GEX wall (0-40): full score within 0.1%, zero beyond ~0.6%
+  const dWall=walls.length?Math.min(...walls.map(k=>Math.abs(k-spot)))/spot:1;
+  const sWall=Math.max(0,Math.min(40,40*(1-dWall/0.006)));
+  // 2) large-trade flow (0-30): from biggest premium near spot in last flow batch
+  const sFlow=Math.max(0,Math.min(30,(ST.bigFlowScore||0)));
+  // 3) adhesion to a key level / zero gamma (0-20)
+  const dLvl=M.flip?Math.abs(M.flip-spot)/spot:1;
+  const sLvl=Math.max(0,Math.min(20,20*(1-dLvl/0.004)));
+  // 4) momentum (0-10): recent candle drive
+  let sMom=0;if(ST.candles.length>6){const c=ST.candles.slice(-6);const ch=(c[c.length-1].c-c[0].o)/c[0].o;sMom=Math.max(0,Math.min(10,Math.abs(ch)/0.004*10));}
+  const total=Math.round(sWall+sFlow+sLvl+sMom);
+  const side=M.cond==='put'?'بوت':'كول',sideC=M.cond==='put'?'dn':'up';
+  const col=total>=70?'var(--g)':total>=45?'var(--y)':'var(--mut)';
+  const tag=total>=70?'إعداد قوي':total>=45?'إعداد جيد':'إعداد ضعيف';
+  const nearWall=walls.length?walls.reduce((a,b)=>Math.abs(b-spot)<Math.abs(a-spot)?b:a):spot;
+  setT('setup-side',(M.cond==='put'?'▼ ':'▲ ')+side);
+  const bar=(l,v,mx,c)=>`<div class="sbar"><div class="sl"><span class="l">${l}</span><span class="v mono">${Math.round(v)}/${mx}</span></div><div class="st"><i style="width:${v/mx*100}%;background:${c}"></i></div></div>`;
+  el.innerHTML=`<div class="gauge"><div class="gring" style="background:conic-gradient(${col} ${total*3.6}deg,rgba(255,255,255,.06) 0)"><div style="position:absolute;inset:6px;border-radius:50%;background:var(--panel);display:flex;align-items:center;justify-content:center;flex-direction:column"><span class="gv" style="color:${col}">${total}</span><span class="gs">/100</span></div></div>
+    <div class="gmeta"><div class="gt" style="color:${col}">${tag}</div><div class="gd">أقرب جدار رئيسي <b class="mono ${sideC}">${fmt(nearWall,0)}</b> · بُعد ${(dWall*100).toFixed(2)}%<br>${total>=70?'موقع ممتاز قرب جدار — التزم بإدارة المخاطر':total>=45?'إعداد معقول — راقب التأكيد':'بعيد عن الجدران — انتظر إعداد أفضل'}</div></div></div>
+    ${bar('قرب من جدران GEX',sWall,40,'var(--g)')}
+    ${bar('تدفق الصفقات الكبيرة',sFlow,30,'var(--c)')}
+    ${bar('ملاصقة لمستوى رئيسي (Zero γ)',sLvl,20,'var(--p)')}
+    ${bar('تسارع الزخم',sMom,10,'var(--y)')}`;
 }
 
 /* ===== render CHAIN ===== */
@@ -830,7 +926,27 @@ async function loadFlow(){
     const trs=rows.slice(0,14).map(r=>{const isC=(r.put_call||r.type||'C').toUpperCase().includes('C');const val=parseFloat(r.total_premium||r.premium||0);if(isC)cv+=val;else pv+=val;return`<tr><td class="muted mono">${(r.created_at||r.time||'').slice(11,16)||'--'}</td><td style="font-weight:800">${r.ticker||r.underlying_symbol||'--'}</td><td><span class="pill ${isC?'c':'p'}">${isC?'C':'P'}</span></td><td class="mono">$${fmt(r.strike,0)}</td><td class="mono ${isC?'up':'dn'}" style="font-weight:700">$${fv(val)}</td></tr>`;}).join('');
     $('flw').innerHTML=`<table class="ft"><thead><tr><th>الوقت</th><th>الرمز</th><th>نوع</th><th>Strike</th><th>القيمة</th></tr></thead><tbody>${trs}</tbody></table>`;
     const tot=cv+pv,bull=tot?Math.round(cv/tot*100):50;const fb=$('flow-b');if(fb){fb.textContent=bull+'% كول';fb.style.color=bull>50?'var(--g)':'var(--r)';}
-  }catch(e){$('flw').innerHTML='<div class="muted" style="text-align:center;padding:18px">التدفقات متاحة أثناء جلسة التداول</div>';}
+    renderBigFlow(rows);
+  }catch(e){$('flw').innerHTML='<div class="muted" style="text-align:center;padding:18px">التدفقات متاحة أثناء جلسة التداول</div>';renderBigFlow([]);}
+}
+// large trades in the last 15 minutes + feed the setup flow score
+function renderBigFlow(rows){
+  const el=$('bigflow');if(!el)return;
+  const now=Date.now(),cut=now-15*60*1000;
+  const big=(rows||[]).map(r=>{
+    const t=Date.parse(r.created_at||r.executed_at||r.time||'')||now;
+    const val=parseFloat(r.total_premium||r.premium||0);
+    const isC=(r.put_call||r.type||'C').toUpperCase().includes('C');
+    return{t,val,isC,strike:r.strike,sym:r.ticker||r.underlying_symbol||ST.lbl};
+  }).filter(x=>x.t>=cut&&x.val>=250000).sort((a,b)=>b.val-a.val);
+  let cv=0,pv=0;big.forEach(x=>x.isC?cv+=x.val:pv+=x.val);
+  // setup flow score (0-30): scaled by biggest premium, biased by call/put balance
+  ST.bigFlowScore=Math.min(30,big.length?(Math.log10(Math.max(big[0].val,1))-5)*12:0);
+  const fb=$('bigflow-b');if(fb){const tot=cv+pv;fb.textContent=tot?(Math.round(cv/tot*100)+'% كول'):'هادئ';fb.style.color=cv>=pv?'var(--g)':'var(--r)';}
+  if(!big.length){el.innerHTML='<div class="muted" style="text-align:center;padding:16px">لا توجد صفقات كبيرة آخر 15 دقيقة</div>';return;}
+  el.style.cssText='';
+  el.innerHTML=`<table class="ft"><thead><tr><th>الوقت</th><th>الرمز</th><th>نوع</th><th>Strike</th><th>القيمة</th></tr></thead><tbody>`+
+    big.slice(0,8).map(x=>`<tr><td class="muted mono">${new Date(x.t).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}</td><td style="font-weight:800">${x.sym}</td><td><span class="pill ${x.isC?'c':'p'}">${x.isC?'C':'P'}</span></td><td class="mono">$${fmt(x.strike,0)}</td><td class="mono ${x.isC?'up':'dn'}" style="font-weight:800">$${fv(x.val)}</td></tr>`).join('')+`</tbody></table>`;
 }
 
 /* ===== options load ===== */
