@@ -1,4 +1,6 @@
 <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a0e17"><title>رصد · DeepFlow</title>
+<script src="https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>window.addEventListener('error',function(e){if(e.target&&e.target.tagName==='SCRIPT'&&!window.LightweightCharts){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';document.head.appendChild(s);}},true);</script>
 <style>
 :root{
   --bg:#0a0e17;--bg2:#0d1320;--panel:#0f1623;--panel2:#121a2b;--card:#111a2c;
@@ -195,12 +197,7 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
             <button class="tfb" data-i="1d">يومي</button>
           </div>
           <div class="chart-wrap" id="cwrap">
-            <canvas id="mc"></canvas>
-            <canvas id="gc"></canvas>
-            <canvas id="dc"></canvas>
-            <div class="proflab" id="lab-g">قاما</div>
-            <div class="proflab" id="lab-d">دلتا</div>
-            <div id="tip"></div>
+            <div id="tvchart" style="position:absolute;inset:0"></div>
             <div id="ld">جاري تحميل الشارت...</div>
           </div>
         </div>
@@ -457,7 +454,7 @@ function wsFlush(){
       paintTile(tile,price);
       if(tile===ST.sym){
         ST.spot=price;updPx();
-        if(ST.candles.length){const last=ST.candles[ST.candles.length-1];last.c=price;if(price>last.h)last.h=price;if(price<last.l)last.l=price;if(ST.view==='home')drawChart();}
+        if(ST.candles.length){const last=ST.candles[ST.candles.length-1];last.c=price;if(price>last.h)last.h=price;if(price<last.l)last.l=price;tvUpdateLast();}
       }
     });
   }
@@ -639,7 +636,7 @@ function renderHome(){
   const push=$('iv-push');const pc=M.sumVanna>=0;push.textContent=pc?'▲▲ دافع للكول':'▼▼ دافع للبوت';push.className='badge '+(pc?'b-call':'b-put');
   setT('iv-time',new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}));
   renderExp('exphome',M);
-  if(ST.candles.length){drawGamma();drawDelta();}
+  setLevels();
 }
 
 /* ===== render CHAIN ===== */
@@ -731,67 +728,59 @@ async function loadChart(){
     const lastClose=d.candles[d.candles.length-1]?.c;
     const px=(d.regularMarketPrice&&d.regularMarketPrice>0)?d.regularMarketPrice:lastClose;
     if(px>0){ST.spot=px;if(d.previousClose)ST.prevClose=d.previousClose;updPx();}
-    render();
+    ST._fit=true;render();
   }catch(e){drawDemo();}
   $('ld').style.display='none';
 }
-function render(){if(!ST.candles.length)return;drawChart();drawGamma();drawDelta();}
-const PROF={g:64,d:64};
-function drawChart(){
-  const cv=$('mc'),wrap=$('cwrap');const W=wrap.clientWidth-PROF.g-PROF.d,H=wrap.clientHeight;if(W<=0||!H)return;
-  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;cv.style.width=W+'px';cv.style.height=H+'px';cv.style.left='0';
-  const ctx=cv.getContext('2d');ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-  const C=ST.candles,vs=Math.max(0,ST.vs),ve=Math.min(C.length-1,ST.ve),vis=C.slice(vs,ve+1);if(!vis.length)return;
-  const P={t:14,r:62,b:22,l:6},cW=W-P.l-P.r,cH=H-P.t-P.b;
-  const prices=vis.flatMap(c=>[c.h,c.l]).filter(p=>p>0);if(!prices.length)return;
-  let mn=Math.min(...prices),mx=Math.max(...prices);const pad=(mx-mn)*0.07||mx*0.005;mn-=pad;mx+=pad;
-  // include key levels in range
-  const M=ST.M;if(M){[M.callWall?.K,M.putWall?.K,M.flip].forEach(v=>{if(v){mn=Math.min(mn,v);mx=Math.max(mx,v);}});}
-  const pr=mx-mn;ST.pMin=mn;ST.pMax=mx;
-  const py=p=>P.t+cH-((p-mn)/pr)*cH,cx=i=>P.l+(i/Math.max(vis.length-1,1))*cW,bW=Math.max(1.2,(cW/vis.length)*0.7);
-  ctx.fillStyle='#0a0e17';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.035)';ctx.lineWidth=1;
-  for(let i=0;i<=6;i++){const y=P.t+cH/6*i;ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();}
-  // key level lines
-  if(M){const gline=(v,col,lbl)=>{if(!v||v<mn||v>mx)return;const y=py(v);ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.3;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=col;ctx.font='bold 9px monospace';ctx.textAlign='left';ctx.fillText(lbl+' '+fmt(v,0),P.l+6,y-3);ctx.fillStyle=col;ctx.fillRect(W-P.r+1,y-8,P.r-2,16);ctx.fillStyle='#0a0e17';ctx.textAlign='center';ctx.fillText(fmt(v,0),W-P.r+(P.r-2)/2,y+3);ctx.restore();};
-    gline(M.callWall?.K,'#22d39a','مقاومة كول');gline(M.putWall?.K,'#ff5470','دعم بوت');gline(M.flip,'#f5c451','انعطاف');gline(M.pain?.K,'#a78bfa','Pain');}
-  // volume
-  const maxV=Math.max(...vis.map(c=>c.v||0))||1;
-  vis.forEach((c,i)=>{if(!c.v)return;const x=cx(i),bh=(c.v/maxV)*18;ctx.fillStyle=c.c>=c.o?'rgba(34,211,154,.1)':'rgba(255,84,112,.1)';ctx.fillRect(x-bW/2,P.t+cH-bh,bW,bh);});
-  // candles
-  vis.forEach((c,i)=>{if(!c.o||!c.c)return;const x=cx(i),g=c.c>=c.o,col=g?'#22d39a':'#ff5470';ctx.strokeStyle=col;ctx.lineWidth=1;if(c.h&&c.l){ctx.beginPath();ctx.moveTo(x,py(c.h));ctx.lineTo(x,py(c.l));ctx.stroke();}const t=py(Math.max(c.o,c.c)),b=py(Math.min(c.o,c.c)),bh=Math.max(1,b-t);ctx.fillStyle=col;if(bW>=2)ctx.fillRect(x-bW/2,t,bW,bh);else{ctx.beginPath();ctx.moveTo(x,t);ctx.lineTo(x,b);ctx.stroke();}if(i===ST.hov-vs){ctx.strokeStyle='rgba(255,255,255,.35)';ctx.strokeRect(x-bW/2-1,t-1,bW+2,bh+2);}});
-  // current price
-  const last=vis[vis.length-1];if(last?.c){const y=py(ST.spot||last.c),col=(ST.spot||last.c)>=(ST.prevClose||last.o||last.c)?'#22d39a':'#ff5470';ctx.strokeStyle='rgba(255,255,255,.2)';ctx.setLineDash([2,4]);ctx.beginPath();ctx.moveTo(P.l,y);ctx.lineTo(W-P.r,y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=col;ctx.fillRect(W-P.r+1,y-8,P.r-2,16);ctx.fillStyle='#0a0e17';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText(fmt(ST.spot||last.c),W-P.r+(P.r-2)/2,y+3);}
-  ctx.fillStyle='rgba(126,141,166,.7)';ctx.font='9px monospace';ctx.textAlign='left';
-  for(let i=0;i<=6;i++)ctx.fillText(fmt(mx-pr/6*i),W-P.r+3,P.t+cH/6*i+3);
-  const ts=Math.max(1,Math.floor(vis.length/8));ctx.textAlign='center';
-  vis.forEach((c,i)=>{if(i%ts===0&&c.t){const d=new Date(c.t);const lbl=ST.iv==='1d'?(d.getMonth()+1)+'/'+d.getDate():String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');ctx.fillStyle='rgba(126,141,166,.55)';ctx.fillText(lbl,cx(i),P.t+cH+10);}});
-  // interaction
-  cv.onmousemove=e=>{const rc=cv.getBoundingClientRect(),mx2=e.clientX-rc.left;const idx=Math.round((mx2-P.l)/cW*(vis.length-1));if(idx>=0&&idx<vis.length){ST.hov=idx+vs;const c=vis[idx];if(c.o){const g=c.c>=c.o,chg=c.o?((c.c-c.o)/c.o*100).toFixed(2):0;const tt=$('tip');tt.style.display='block';const tx=cx(idx);tt.style.left=(tx>W*.6?tx-160:tx+10)+'px';tt.style.top='10px';tt.innerHTML=`<div style="font-weight:800;color:${g?'#22d39a':'#ff5470'};margin-bottom:5px">${ST.lbl}</div><div style="display:grid;grid-template-columns:auto auto;gap:2px 10px;font-size:.62rem"><span class="muted">فتح</span><span class="mono">${fmt(c.o)}</span><span class="muted">أعلى</span><span class="mono up">${fmt(c.h)}</span><span class="muted">أدنى</span><span class="mono dn">${fmt(c.l)}</span><span class="muted">إغلاق</span><span class="mono" style="font-weight:800">${fmt(c.c)}</span><span class="muted">تغير</span><span class="mono ${g?'up':'dn'}">${g?'+':''}${chg}%</span></div>`;drawChart();}}if(ST.drag){const dx=e.clientX-ST.dragX,cw2=cW/Math.max(vis.length-1,1),sh=Math.round(-dx/cw2),rg=ST.ve-ST.vs,ns=Math.max(0,Math.min(ST.candles.length-1-rg,ST.dragVS+sh));ST.vs=ns;ST.ve=Math.min(ST.candles.length-1,ns+rg);render();}};
-  cv.onmousedown=e=>{ST.drag=true;ST.dragX=e.clientX;ST.dragVS=ST.vs;cv.style.cursor='grabbing';};
-  cv.onmouseup=()=>{ST.drag=false;cv.style.cursor='crosshair';};
-  cv.onmouseleave=()=>{ST.hov=-1;ST.drag=false;$('tip').style.display='none';cv.style.cursor='crosshair';drawChart();};
-  cv.onwheel=e=>{e.preventDefault();const dl=e.deltaY>0?1:-1,rg=ST.ve-ST.vs,nr=Math.max(20,Math.min(ST.candles.length,rg+dl*Math.max(1,Math.round(rg*.1)))),ctr=Math.round((ST.vs+ST.ve)/2);ST.vs=Math.max(0,ctr-Math.floor(nr/2));ST.ve=Math.min(ST.candles.length-1,ST.vs+nr);render();};
-  cv.style.cursor='crosshair';
+// ===== TradingView Lightweight Charts =====
+let TVchart=null,TVcandle=null,TVvol=null,TVlines=[];
+function initTV(){
+  if(TVchart||!window.LightweightCharts)return;
+  const el=$('tvchart');
+  TVchart=LightweightCharts.createChart(el,{
+    autoSize:true,
+    layout:{background:{type:'solid',color:'#0a0e17'},textColor:'#8aa3c5',fontFamily:'inherit'},
+    grid:{vertLines:{color:'rgba(255,255,255,.035)'},horzLines:{color:'rgba(255,255,255,.035)'}},
+    rightPriceScale:{borderColor:'rgba(255,255,255,.08)',scaleMargins:{top:0.08,bottom:0.06}},
+    timeScale:{borderColor:'rgba(255,255,255,.08)',timeVisible:true,secondsVisible:false,rightOffset:6},
+    crosshair:{mode:LightweightCharts.CrosshairMode.Normal,vertLine:{labelBackgroundColor:'#1b2538'},horzLine:{labelBackgroundColor:'#1b2538'}},
+    localization:{priceFormatter:p=>p.toFixed(2)}
+  });
+  TVcandle=TVchart.addCandlestickSeries({upColor:'#22d39a',downColor:'#ff5470',borderUpColor:'#22d39a',borderDownColor:'#ff5470',wickUpColor:'#26c281',wickDownColor:'#ff6b82',priceLineVisible:true,priceLineColor:'rgba(255,255,255,.35)',priceLineStyle:2});
+  TVvol=TVchart.addHistogramSeries({priceScaleId:'vol',priceFormat:{type:'volume'},color:'rgba(56,189,248,.25)'});
+  TVchart.priceScale('vol').applyOptions({scaleMargins:{top:0.86,bottom:0}});
 }
-function profileCanvas(id,key,colPos,colNeg){
-  const cv=$(id),wrap=$('cwrap');const W=key==='g'?PROF.g:PROF.d,H=wrap.clientHeight;if(!H||!ST.M)return;
-  const left=key==='g'?(wrap.clientWidth-PROF.g-PROF.d):(wrap.clientWidth-PROF.d);
-  cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;cv.style.width=W+'px';cv.style.height=H+'px';cv.style.left=left+'px';cv.style.top='0';
-  const ctx=cv.getContext('2d');ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-  ctx.fillStyle='#0c1322';ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,H);ctx.stroke();
-  const rows=ST.M.rows,mn=ST.pMin,mx=ST.pMax,pr=mx-mn||1,P={t:14,b:22},cH=H-P.t-P.b;
-  const py=p=>P.t+cH-((p-mn)/pr)*cH;
-  const vals=rows.map(r=>key==='g'?r.netGamma:r.netDelta);const maxV=Math.max(...vals.map(Math.abs),1);
-  const bh=Math.max(1.5,cH/rows.length*.85);
-  rows.forEach((r,i)=>{if(r.K<mn||r.K>mx)return;const v=vals[i],y=py(r.K),w=Math.abs(v)/maxV*(W-6),pos=v>=0;ctx.fillStyle=pos?colPos:colNeg;ctx.fillRect(0,y-bh/2,w,bh);});
-  // position labels for biggest
-  $('lab-g').style.left=(wrap.clientWidth-PROF.g-PROF.d+4)+'px';
-  $('lab-d').style.left=(wrap.clientWidth-PROF.d+4)+'px';
+function render(){
+  if(!ST.candles.length)return;initTV();if(!TVchart)return;
+  // candles must be unique & ascending by time (seconds)
+  const seen={},data=[],vol=[];
+  for(const c of ST.candles){if(!c.t||c.o==null||c.c==null)continue;const t=Math.floor(c.t/1000);if(seen[t])continue;seen[t]=1;
+    data.push({time:t,open:c.o,high:c.h,low:c.l,close:c.c});
+    vol.push({time:t,value:c.v||0,color:c.c>=c.o?'rgba(34,211,154,.22)':'rgba(255,84,112,.22)'});}
+  TVcandle.setData(data);TVvol.setData(vol);
+  if(ST._fit){TVchart.timeScale().fitContent();ST._fit=false;}
+  setLevels();
 }
-function drawGamma(){profileCanvas('gc','g','rgba(34,211,154,.75)','rgba(255,84,112,.75)');}
-function drawDelta(){profileCanvas('dc','d','rgba(56,189,248,.75)','rgba(245,158,11,.7)');}
+function setLevels(){
+  if(!TVcandle)return;
+  TVlines.forEach(l=>TVcandle.removePriceLine(l));TVlines=[];
+  const M=ST.M;if(!M)return;
+  const LS=LightweightCharts.LineStyle;
+  const add=(price,color,title,width,style)=>{if(!price||isNaN(price))return;TVlines.push(TVcandle.createPriceLine({price,color,lineWidth:width||1,lineStyle:style==null?LS.Dashed:style,axisLabelVisible:true,title}));};
+  // secondary GEX levels (lighter)
+  (M.gPos||[]).slice(1,4).forEach(r=>add(r.K,'rgba(34,211,154,.45)','+'+fv(r.netGamma),1,LS.Dotted));
+  (M.gNeg||[]).slice(1,4).forEach(r=>add(r.K,'rgba(255,84,112,.45)',fv(r.netGamma),1,LS.Dotted));
+  // primary levels (bold, like MRX)
+  add(M.callWall?.K,'#22d39a','Call Wall',2,LS.Solid);
+  add(M.putWall?.K,'#ff5470','Put Wall',2,LS.Solid);
+  add(M.flip,'#e6eefb','γ Flip',1,LS.Dashed);
+  add(M.pain?.K,'#a78bfa','Max Pain',1,LS.Dashed);
+}
+// live update of the forming candle (called from the price websocket)
+function tvUpdateLast(){
+  if(!TVcandle||!ST.candles.length)return;const c=ST.candles[ST.candles.length-1];if(!c.t)return;
+  TVcandle.update({time:Math.floor(c.t/1000),open:c.o,high:c.h,low:c.l,close:c.c});
+}
 
 function drawDemo(){
   const now=Date.now();const base=ST.spot>0?ST.spot:540;let p=base*0.97;const vol=base*0.006;
@@ -875,7 +864,7 @@ function applyExpiry(){
     const filt=ST.rawChain.filter(o=>expOf(o)===ST.expiry);
     M=compute(filt.length?filt:ST.rawChain);
   }
-  if(M){ST.demo=false;ST.M=M;renderAll();if(ST.candles.length)render();}
+  if(M){ST.demo=false;ST.M=M;renderAll();}
   else demoChain();
 }
 function renderExpSelector(){
@@ -908,7 +897,7 @@ function demoChain(){
     opts.push({option_symbol:`X261218C${String(Math.round(k*1000)).padStart(8,'0')}`,open_interest:cOI,implied_volatility:ivK,volume:Math.floor(rnd()*2000)});
     opts.push({option_symbol:`X261218P${String(Math.round(k*1000)).padStart(8,'0')}`,open_interest:pOI,implied_volatility:ivK+0.01,volume:Math.floor(rnd()*2000)});
   }
-  ST.M=compute(opts);renderAll();if(ST.candles.length)render();
+  ST.M=compute(opts);renderAll();
 }
 function renderAll(){renderHome();renderChain();renderAnalytics();const ds=$('dsrc');if(ds)ds.style.display=ST.demo?'block':'none';}
 
