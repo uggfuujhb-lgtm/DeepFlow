@@ -206,7 +206,7 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
         </div>
 
         <div style="display:flex;flex-direction:column;gap:12px">
-          <div class="panel"><div class="ph">المستويات الرئيسية <span class="mut">Key Levels</span></div>
+          <div class="panel"><div class="ph">المستويات الرئيسية <select id="expsel" onchange="onExp(this.value)" style="display:none;font-size:.62rem;padding:2px 6px"></select></div>
             <div class="pb" id="keylv"></div>
           </div>
           <div class="panel"><div class="ph">التضخم · فانا · تشارم <span class="mut" id="iv-time">--</span></div>
@@ -819,37 +819,64 @@ async function loadOpts(){
   const reqSym=ST.sym;
   const uwSym=({SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'})[ST.sym]||ST.sym;
   try{
-    // 1) greek-exposure FIRST, on its own (reliable) — real gamma/delta/charm/vanna
+    // A) per-contract chain (has expiry per contract → lets us filter by expiration date)
+    let chain=null;
+    for(const p of [`stock/${uwSym}/option-contracts?limit=5000`,`stock/${uwSym}/option-chains?limit=5000`,`stocks/${uwSym}/options-chain?limit=5000`]){
+      const a=await uwGet(p);
+      if(Array.isArray(a)&&a.length&&a.some(o=>expOf(o))){chain=a;break;}
+    }
+    // B) greek-exposure (official aggregate across all expiries — used for the "الكل" view)
     let ex=null;
     for(const p of [`stock/${uwSym}/greek-exposure/strike`,`stock/${uwSym}/spot-exposures/strike`]){
       const a=await uwGet(p);if(Array.isArray(a)&&a.length){ex=a;break;}
     }
+    // OI for the aggregate view (from the chain if we have it, else a per-strike feed)
+    let exOI=null;
+    if(ex){ if(chain)exOI=oiByStrike(chain); else{const a=await uwGet(`stock/${uwSym}/oi-per-strike`);if(Array.isArray(a)&&a.length)exOI=oiByStrike(a);} }
     if(reqSym!==ST.sym)return;
-    if(ex){
-      let M=computeFromExposure(ex,null);
-      if(M){ST.demo=false;ST.M=M;renderAll();}      // show real gamma immediately
-      // 2) then enrich with real open interest, fetched one endpoint at a time
-      let oim=null;
-      for(const p of [`stock/${uwSym}/oi-per-strike`,`stock/${uwSym}/option-contracts?limit=3000`,`stock/${uwSym}/option-chains?limit=3000`]){
-        const a=await uwGet(p);if(Array.isArray(a)&&a.length){const o=oiByStrike(a);if(o){oim=o;break;}}
-      }
-      if(reqSym!==ST.sym)return;
-      if(M&&oim){const M2=computeFromExposure(ex,oim);if(M2){ST.M=M2;renderAll();}}
-      if(M)return;
-    }
-    // 3) no exposure feed -> build everything from the raw chain (OI + Black-Scholes)
-    let M=null;
-    for(const p of [`stock/${uwSym}/option-contracts?limit=3000`,`stock/${uwSym}/option-chains?limit=3000`,`stocks/${uwSym}/options-chain?limit=3000`]){
-      const a=await uwGet(p);if(Array.isArray(a)&&a.length){const m=compute(a);if(m&&m.rows.length&&m.totGamma>0){M=m;break;}}
-    }
-    if(reqSym!==ST.sym)return;
-    if(!M)throw 0;
-    ST.demo=false;ST.M=M;renderAll();
+    if(!chain&&!ex)throw 0;
+    ST.rawChain=chain;ST.rawEx=ex;ST.rawExOI=exOI;
+    buildExpiries();   // populate expiry selector, default to nearest expiry
+    applyExpiry();     // compute metrics for the selected expiry + render
   }catch(e){
     if(reqSym!==ST.sym)return;
     demoChain(); // deterministic, spot-centred fallback
   }
 }
+// expiry timestamp (UTC midnight) for a contract, from OCC symbol or an expiry field
+function expOf(o){
+  const occ=parseOcc(o.option_symbol||o.option_symbol_str||'');if(occ)return occ.exp.getTime();
+  const e=o.expiry||o.expiration||o.expires||o.expiry_date||o.expiration_date;
+  if(e){const d=new Date(e);if(!isNaN(d))return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());}
+  return null;
+}
+function buildExpiries(){
+  const set=new Set();const floor=Date.now()-2*864e5;
+  (ST.rawChain||[]).forEach(o=>{const e=expOf(o);if(e&&e>=floor)set.add(e);});
+  ST.expiries=[...set].sort((a,b)=>a-b);
+  if(ST.expiry!=='all'&&!ST.expiries.includes(ST.expiry))ST.expiry=ST.expiries.length?ST.expiries[0]:'all';
+  renderExpSelector();
+}
+function applyExpiry(){
+  let M=null;
+  if(ST.expiry==='all'||!ST.rawChain){
+    if(ST.rawEx)M=computeFromExposure(ST.rawEx,ST.rawExOI);
+    else if(ST.rawChain)M=compute(ST.rawChain);
+  }else{
+    const filt=ST.rawChain.filter(o=>expOf(o)===ST.expiry);
+    M=compute(filt.length?filt:ST.rawChain);
+  }
+  if(M){ST.demo=false;ST.M=M;renderAll();if(ST.candles.length)render();}
+  else demoChain();
+}
+function renderExpSelector(){
+  const sel=$('expsel');if(!sel)return;
+  const fE=ts=>{const d=new Date(ts);const dd=Math.round((ts-Date.now())/864e5);return (d.getUTCMonth()+1)+'/'+d.getUTCDate()+(dd<=0?' (اليوم)':dd===1?' (غداً)':' ('+dd+'ي)');};
+  const o=ST.expiries.slice(0,16).map(ts=>`<option value="${ts}"${ts===ST.expiry?' selected':''}>${fE(ts)}</option>`).join('');
+  sel.innerHTML=o+`<option value="all"${ST.expiry==='all'?' selected':''}>كل التواريخ</option>`;
+  sel.style.display=ST.expiries.length?'':'none';
+}
+function onExp(v){ST.expiry=v==='all'?'all':+v;applyExpiry();}
 // deterministic seeded RNG so the same symbol always produces the same chain
 function seedRand(str){let s=2166136261>>>0;for(let i=0;i<str.length;i++){s^=str.charCodeAt(i);s=Math.imul(s,16777619);}return ()=>{s^=s<<13;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};}
 // realistic demo chain: call wall just above spot, put wall just below, stable per symbol
@@ -891,7 +918,7 @@ function loadCalcFromMarket(){if(ST.spot){$('k-s').value=ST.spot.toFixed(2);$('k
 /* ===== nav + symbol ===== */
 function setView(v){ST.view=v;document.querySelectorAll('.nav a[data-v]').forEach(a=>a.classList.toggle('on',a.dataset.v===v));document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));if(v==='home'&&ST.candles.length)setTimeout(render,30);if(v==='analytics')setTimeout(drawDist,30);}
 document.querySelectorAll('.nav a[data-v]').forEach(a=>a.addEventListener('click',()=>setView(a.dataset.v)));
-function pick(s){ST.sym=s;ST.lbl=LABELS[s]||s;ST.M=null;ST.spot=0;ST.prevClose=0;setT('ch-sym',ST.lbl);setT('navsym',ST.lbl);setT('ch-px','--');document.querySelectorAll('.tc').forEach(t=>t.classList.toggle('on',t.dataset.s===s));
+function pick(s){ST.sym=s;ST.lbl=LABELS[s]||s;ST.M=null;ST.spot=0;ST.prevClose=0;ST.expiry=null;ST.rawChain=null;ST.rawEx=null;setT('ch-sym',ST.lbl);setT('navsym',ST.lbl);setT('ch-px','--');document.querySelectorAll('.tc').forEach(t=>t.classList.toggle('on',t.dataset.s===s));
   // load chart first (sets real spot) then options so demo/real chain centres correctly
   loadChart().then(loadOpts);}
 document.querySelectorAll('.tfb[data-i]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tfb[data-i]').forEach(x=>x.classList.remove('on'));b.classList.add('on');ST.iv=b.dataset.i;loadChart();}));
