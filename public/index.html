@@ -94,7 +94,18 @@ canvas{position:absolute;inset:0}
 .kvc .v{font-size:.92rem;font-weight:800}
 
 .badge{padding:8px 12px;border-radius:10px;font-weight:800;font-size:.9rem;text-align:center}
-.b-put{background:linear-gradient(135deg,rgba(255,84,112,.22),rgba(255,84,112,.06));color:var(--r);border:1px solid rgba(255,84,112,.3)}
+.zg{background:rgba(230,238,251,.04);border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:8px}
+.zg .zgl{font-size:.56rem;color:var(--mut);margin-bottom:2px}
+.zg .zgv{font-size:1.05rem;font-weight:800}
+.wsec{font-size:.58rem;font-weight:700;letter-spacing:.05em;margin:8px 0 4px}
+.wsec.up{color:var(--g)}.wsec.dn{color:var(--r)}
+.wallrow{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:7px;margin-bottom:3px;border-right:3px solid transparent;background:rgba(255,255,255,.02)}
+.wallrow.up{border-right-color:var(--g)}.wallrow.dn{border-right-color:var(--r)}
+.wallrow .wl{display:flex;align-items:baseline;gap:7px}
+.wallrow .wn{font-size:.56rem;color:var(--mut2);font-weight:700}
+.wallrow .wk{font-size:.84rem;font-weight:800}
+.wallrow .wv{font-size:.72rem;font-weight:700}
+.v.p{color:var(--p)}.b-put{background:linear-gradient(135deg,rgba(255,84,112,.22),rgba(255,84,112,.06));color:var(--r);border:1px solid rgba(255,84,112,.3)}
 .b-call{background:linear-gradient(135deg,rgba(34,211,154,.22),rgba(34,211,154,.06));color:var(--g);border:1px solid rgba(34,211,154,.3)}
 
 /* expected move bar */
@@ -537,7 +548,9 @@ function aggregate(rows,X){
   const negT=putWalls[1]||putWall;
   const posT=callWalls[1]||callWall;
   const T0=7/365;const em=spot*(atmIV||0.2)*Math.sqrt(T0);
-  return{rows,spot,toiC,toiP,toi:toiC+toiP,hasOI,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),
+  const callG=rows.reduce((a,b)=>a+(b.cGamma||0),0),putG=rows.reduce((a,b)=>a+(b.pGamma||0),0);
+  const gexRatio=callG?putG/callG:0;
+  return{rows,spot,toiC,toiP,toi:toiC+toiP,hasOI,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),gexRatio,
     callWall,putWall,coiRow,poiRow,pain,flip,gPos,gNeg,cotmc,cotmp,negT,posT,em,atmIV,skew,sumCharm,sumVanna,sumNetDelta,
     byExp,cond:sumGEX<0?'put':'call'};
 }
@@ -613,13 +626,15 @@ function renderHome(){
   const cond=$('c-cond');cond.textContent=M.cond==='put'?'▼ هيمنة البوت':'▲ هيمنة الكول';cond.className=M.cond==='put'?'dn':'up';
   setT('c-conds',M.cond==='put'?'Put Dominated':'Call Dominated');
   // key levels: gamma walls, flip, OI levels + all significant gamma strikes
-  const px=v=>v?'$'+fmt(v,0):'--';
-  const kl=[['مقاومة الكول (Call Wall)',M.callWall?.K,'up'],['دعم البوت (Put Wall)',M.putWall?.K,'dn'],['نقطة انعطاف القاما',M.flip,'nt'],['Max Pain',M.pain?.K,'']];
-  if(M.hasOI){kl.push(['أعلى OI كول',M.coiRow?.K,'up'],['أعلى OI بوت',M.poiRow?.K,'dn']);}
-  let html=kl.map(([l,v,c])=>`<div class="ir"><span class="l">${l}</span><span class="v mono ${c}">${px(v)}</span></div>`).join('');
-  // all gamma levels (top +/- net gamma strikes)
-  const gl=[...(M.gPos||[]).map(r=>[r,'up']),...(M.gNeg||[]).map(r=>[r,'dn'])].sort((a,b)=>b[0].K-a[0].K);
-  if(gl.length){html+='<div class="sectitle" style="margin:8px 0 4px">مستويات القاما (GEX)</div>'+gl.map(([r,c])=>`<div class="ir"><span class="l mono">$${fmt(r.K,0)}</span><span class="v mono ${c}">${fv(r.netGamma)}</span></div>`).join('');}
+  // MRX-style Gamma Walls panel: Zero Gamma, Call Walls #1-4, Put Walls #1-4, summary
+  const wall=(rank,r,c)=>`<div class="wallrow ${c}"><div class="wl"><span class="wn">#${rank}</span><span class="wk mono">$${fmt(r.K,0)}</span></div><span class="wv mono ${c}">${r.netGamma>=0?'+':''}${fv(r.netGamma)}</span></div>`;
+  let html=`<div class="zg"><div class="zgl">Γ نقطة انعطاف القاما · Zero Gamma</div><div class="zgv mono">$${fmt(M.flip,0)}</div></div>`;
+  html+=`<div class="wsec up">↑ جدران الكول</div>`+(M.gPos||[]).map((r,i)=>wall(i+1,r,'up')).join('');
+  html+=`<div class="wsec dn">↓ جدران البوت</div>`+(M.gNeg||[]).map((r,i)=>wall(i+1,r,'dn')).join('');
+  html+=`<div class="ir" style="margin-top:8px"><span class="l">Max Pain</span><span class="v mono p">$${fmt(M.pain?.K,0)}</span></div>`;
+  if(M.hasOI)html+=`<div class="ir"><span class="l">أعلى OI كول · بوت</span><span class="v mono">$${fmt(M.coiRow?.K,0)} · $${fmt(M.poiRow?.K,0)}</span></div>`;
+  html+=`<div class="ir"><span class="l">Net GEX</span><span class="v mono ${M.netGEX>=0?'up':'dn'}">${M.netGEX>=0?'+':''}$${fv(M.netGEX)}</span></div>`;
+  html+=`<div class="ir"><span class="l">GEX Ratio</span><span class="v mono ${M.gexRatio<1?'up':'dn'}">${M.gexRatio.toFixed(2)}</span></div>`;
   $('keylv').innerHTML=html;
   // IV / charm / vanna  (ATM IV is real; rank requires historical IV which the feed doesn't provide)
   setT('iv-atmv',(M.atmIV*100).toFixed(1)+'%');
@@ -847,18 +862,19 @@ function buildExpiries(){
   const set=new Set();const floor=Date.now()-2*864e5;
   (ST.rawChain||[]).forEach(o=>{const e=expOf(o);if(e&&e>=floor)set.add(e);});
   ST.expiries=[...set].sort((a,b)=>a-b);
+  if(ST.expiry==null)ST.expiry='all'; // default to aggregate (matches MRX)
   if(ST.expiry!=='all'&&!ST.expiries.includes(ST.expiry))ST.expiry=ST.expiries.length?ST.expiries[0]:'all';
   renderExpSelector();
 }
 function applyExpiry(){
   let M=null;
-  if(ST.expiry==='all'||!ST.rawChain){
-    if(ST.rawEx)M=computeFromExposure(ST.rawEx,ST.rawExOI);
-    else if(ST.rawChain)M=compute(ST.rawChain);
-  }else{
-    const filt=ST.rawChain.filter(o=>expOf(o)===ST.expiry);
-    M=compute(filt.length?filt:ST.rawChain);
+  // compute from the per-contract chain (Black-Scholes gamma × OI) — same scale as MRX.
+  // "all" sums every expiry (large Net GEX); a single date filters to that expiration.
+  if(ST.rawChain){
+    const src=ST.expiry==='all'?ST.rawChain:ST.rawChain.filter(o=>expOf(o)===ST.expiry);
+    M=compute(src.length?src:ST.rawChain);
   }
+  if(!M&&ST.rawEx)M=computeFromExposure(ST.rawEx,ST.rawExOI);
   if(M){ST.demo=false;ST.M=M;renderAll();}
   else demoChain();
 }
