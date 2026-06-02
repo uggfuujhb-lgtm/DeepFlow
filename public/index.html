@@ -510,37 +510,32 @@ function aggregate(rows,X){
   if(!rows.length)return null;
   const {spot,toiC,toiP,sumGEX,totGamma,atmIV,atmDist,skew,sumCharm,sumVanna,sumNetDelta,byExp}=X;
   const hasOI=(toiC+toiP)>0;
-  const near=rows.filter(x=>!spot||Math.abs(x.K-spot)/spot<=0.15);
-  const scope=near.length>4?near:rows;
   const maxBy=(arr,f)=>arr.length?arr.reduce((a,b)=>f(b)>f(a)?b:a):null;
-  const hasCP=scope.some(x=>x.cGamma!=null);
-  // Menthor-Q style: Call Resistance = peak CALL gamma at/above spot; Put Support = peak PUT gamma at/below spot
-  let callWall,putWall;
-  if(hasCP){
-    const above=scope.filter(x=>x.K>=spot),below=scope.filter(x=>x.K<=spot);
-    callWall=maxBy(above.length?above:scope,x=>x.cGamma||0)||maxBy(scope,x=>x.cGamma||0);
-    putWall =maxBy(below.length?below:scope,x=>x.pGamma||0)||maxBy(scope,x=>x.pGamma||0);
-  }else{ // fallback to net-gamma walls
-    const pos=scope.filter(x=>x.netGamma>0),neg=scope.filter(x=>x.netGamma<0);
-    callWall=pos.length?pos.reduce((a,b)=>b.netGamma>a.netGamma?b:a):null;
-    putWall=neg.length?neg.reduce((a,b)=>b.netGamma<a.netGamma?b:a):null;
-  }
-  // OI-based levels (only meaningful when we actually have OI)
-  const coiRow=hasOI?rows.reduce((a,b)=>b.cOI>a.cOI?b:a,rows[0]):null;
-  const poiRow=hasOI?rows.reduce((a,b)=>b.pOI>a.pOI?b:a,rows[0]):null;
+  // relevant zone: gamma walls live within a few daily moves of spot (like MRX/Menthor Q),
+  // so far OTM round-strike OI can't masquerade as a wall
+  const dayMove=spot*(atmIV||0.2)*Math.sqrt(1/365);
+  const win=Math.min(spot*0.05,Math.max(spot*0.02,2.5*dayMove));
+  const inWin=rows.filter(x=>!spot||Math.abs(x.K-spot)<=win);
+  const scope=inWin.length>3?inWin:rows;
+  // MRX style: Call walls = largest POSITIVE net GEX; Put walls = largest NEGATIVE net GEX
+  const callWalls=scope.filter(x=>x.netGamma>0).sort((a,b)=>b.netGamma-a.netGamma);
+  const putWalls =scope.filter(x=>x.netGamma<0).sort((a,b)=>a.netGamma-b.netGamma);
+  const callWall=callWalls[0]||maxBy(scope,x=>x.netGamma);
+  const putWall =putWalls[0]||maxBy(scope,x=>-x.netGamma);
+  const gPos=callWalls.slice(0,4), gNeg=putWalls.slice(0,4);
+  // OI-based levels (only meaningful when we actually have OI), within the zone too
+  const coiRow=hasOI?maxBy(scope,x=>x.cOI):null;
+  const poiRow=hasOI?maxBy(scope,x=>x.pOI):null;
   // proper max pain: strike minimising total in-the-money payout to option holders
   let pain=null;
-  if(hasOI){let best=Infinity;for(const s of rows){const S=s.K;let v=0;for(const k of rows){v+=k.cOI*Math.max(0,S-k.K)+k.pOI*Math.max(0,k.K-S);}if(v<best){best=v;pain=s;}}}
+  if(hasOI){let best=Infinity;for(const s of scope){const S=s.K;let v=0;for(const k of rows){v+=k.cOI*Math.max(0,S-k.K)+k.pOI*Math.max(0,k.K-S);}if(v<best){best=v;pain=s;}}}
   // gamma flip (zero-gamma): cumulative net gamma sign change
   let cum=0,flip=null,prev=null;for(const x of rows){cum+=x.netGamma;if(prev!==null&&((prev<0&&cum>=0)||(prev>0&&cum<0)))flip=x.K;prev=cum;}
   if(flip===null){const z=scope.reduce((a,b)=>Math.abs(b.netGamma)<Math.abs(a.netGamma)?b:a,scope[0]||rows[0]);flip=z?z.K:null;}
-  // top gamma levels list (for the key-levels panel) – all significant +/- gamma strikes
-  const gPos=rows.filter(x=>x.netGamma>0).sort((a,b)=>b.netGamma-a.netGamma).slice(0,4);
-  const gNeg=rows.filter(x=>x.netGamma<0).sort((a,b)=>a.netGamma-b.netGamma).slice(0,4);
   let cw=0,cwo=0,pw=0,pwo=0;rows.forEach(x=>{cw+=x.K*x.cOI;cwo+=x.cOI;pw+=x.K*x.pOI;pwo+=x.pOI;});
   const cotmc=cwo?cw/cwo:spot,cotmp=pwo?pw/pwo:spot;
-  const negT=scope.filter(x=>x.netGamma<0).sort((a,b)=>a.netGamma-b.netGamma)[1]||putWall;
-  const posT=scope.filter(x=>x.netGamma>0).sort((a,b)=>b.netGamma-a.netGamma)[1]||callWall;
+  const negT=putWalls[1]||putWall;
+  const posT=callWalls[1]||callWall;
   const T0=7/365;const em=spot*(atmIV||0.2)*Math.sqrt(T0);
   return{rows,spot,toiC,toiP,toi:toiC+toiP,hasOI,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),
     callWall,putWall,coiRow,poiRow,pain,flip,gPos,gNeg,cotmc,cotmp,negT,posT,em,atmIV,skew,sumCharm,sumVanna,sumNetDelta,
