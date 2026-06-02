@@ -24,12 +24,12 @@ export default async function handler(req,res){
   try{
     if(IDX[raw]){
       const [cashSym,futSym]=IDX[raw];
-      // regular hours OR daily/weekly view -> cash index = exact TradingView match
-      if(isRTH()||interval==='1d'||interval==='1wk'){
+      // daily/weekly -> cash index (historical match with TradingView)
+      if(interval==='1d'||interval==='1wk'){
         const cr=await chart(cashSym,cfg.i,cfg.r,false);
         if(cr&&cr.timestamp){const candles=toCandles(cr),m=cr.meta||{};const price=(candles.length?candles[candles.length-1].c:0)||m.regularMarketPrice||0;return send(price,m.chartPreviousClose||m.previousClose,candles);}
       }
-      // outside RTH -> futures movement, shifted to cash scale via the prev-close basis
+      // intraday -> continuous 24h "SPX500": futures shifted onto the cash scale via prev-close basis
       const [fr,cr]=await Promise.all([chart(futSym,cfg.i,cfg.r,true),chart(cashSym,'1d','5d',false)]);
       if(fr&&fr.timestamp){
         const fm=fr.meta||{},cm=cr?.meta||{};
@@ -39,6 +39,9 @@ export default async function handler(req,res){
         const price=candles.length?candles[candles.length-1].c:0;
         return send(price,cashPrev||0,candles);
       }
+      // fallback: plain cash
+      const cr2=await chart(cashSym,cfg.i,cfg.r,false);
+      if(cr2&&cr2.timestamp){const candles=toCandles(cr2),m=cr2.meta||{};const price=(candles.length?candles[candles.length-1].c:0)||m.regularMarketPrice||0;return send(price,m.chartPreviousClose||m.previousClose,candles);}
     }
     // stocks / ETFs / VIX (pre & post market included)
     const sym=PLAIN[raw]||raw;

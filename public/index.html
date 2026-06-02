@@ -349,10 +349,10 @@ const fmt=(n,d=2)=>n==null||isNaN(n)?'--':Number(n).toLocaleString('en-US',{mini
 const fv=n=>{if(n==null||isNaN(n))return'--';const a=Math.abs(n),s=n<0?'-':'';if(a>=1e12)return s+(a/1e12).toFixed(2)+'T';if(a>=1e9)return s+(a/1e9).toFixed(2)+'B';if(a>=1e6)return s+(a/1e6).toFixed(2)+'M';if(a>=1e3)return s+(a/1e3).toFixed(1)+'K';return s+Math.round(a)};
 const sgn=v=>v>=0?'▲ ':'▼ ';const cls=v=>v>=0?'up':'dn';
 const SYMS=['SPX','NDX','NVDA','AAPL','TSLA','META','MSFT','AMD'];
-const LABELS={SPX:'SPX',NDX:'NDX',DJX:'DJX',RUT:'RUT'};
+const LABELS={SPX:'SPX500',NDX:'NDX100',DJX:'DJX',RUT:'RUT'};
 // live-trade proxy for Finnhub WS (indices have no free WS feed -> use the ETF)
 const WSPROXY={SPX:'SPY',NDX:'QQQ',DJX:'DIA',RUT:'IWM'};
-const ALL=[['SPX','SPX'],['NDX','NDX'],['DJX','DJX'],['RUT','RUT'],['TLT','TLT'],['GLD','GLD'],['NVDA','NVDA'],['AAPL','AAPL'],['TSLA','TSLA'],['META','META'],['MSFT','MSFT'],['AMZN','AMZN'],['GOOGL','GOOGL'],['AMD','AMD'],['PLTR','PLTR']];
+const ALL=[['SPX','SPX500'],['NDX','NDX100'],['DJX','DJX'],['RUT','RUT'],['TLT','TLT'],['GLD','GLD'],['NVDA','NVDA'],['AAPL','AAPL'],['TSLA','TSLA'],['META','META'],['MSFT','MSFT'],['AMZN','AMZN'],['GOOGL','GOOGL'],['AMD','AMD'],['PLTR','PLTR']];
 let ST={sym:'SPX',lbl:'SPX',iv:'5m',view:'home',candles:[],M:null,spot:0,prevClose:0,pcMap:{},hov:-1,pMin:0,pMax:0,vs:0,ve:0,drag:false,dragX:0,dragVS:0};
 const FH='d0rh1ohr01qgssk0pr80d0rh1ohr01qgssk0pr8g';
 

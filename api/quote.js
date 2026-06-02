@@ -18,10 +18,14 @@ async function quoteOne(key){
   try{
     if(IDX[key]){
       const [cashSym,futSym]=IDX[key];
-      if(isRTH()){const c=await px(cashSym,'5m','1d',false);if(c.price)return mk(key,c.price,c.prev);}
+      // continuous 24h "SPX500": futures price shifted onto the cash scale via prev-close basis
       const [f,c]=await Promise.all([px(futSym,'5m','1d',true),px(cashSym,'1d','5d',false)]);
-      const basis=(f.prev&&c.prev)?(f.prev-c.prev):0;
-      return mk(key,(f.price||0)-basis,c.prev||f.prev||0);
+      if(f.price){
+        const basis=(f.prev&&c.prev)?(f.prev-c.prev):0;
+        return mk(key,f.price-basis,c.prev||f.prev||0);
+      }
+      const cc=await px(cashSym,'5m','1d',false); // fallback: cash
+      return mk(key,cc.price,cc.prev);
     }
     const c=await px(PLAIN[key]||key,'5m','1d',true);
     return mk(key,c.price,c.prev);
