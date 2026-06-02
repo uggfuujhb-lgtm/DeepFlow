@@ -66,10 +66,9 @@ body{background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,"Taho
 .card .sub{font-size:.6rem;color:var(--mut2);margin-top:3px}
 .card .tag{position:absolute;top:10px;left:10px;font-size:.54rem;padding:2px 7px;border-radius:6px;font-weight:700}
 /* info tooltips */
-.tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.1);color:var(--mut);font-size:.58rem;cursor:help;vertical-align:middle}
-.tip .tipbox{display:none;position:absolute;top:20px;right:-6px;z-index:200;width:240px;background:var(--panel2);border:1px solid var(--c);border-radius:11px;padding:11px 13px;font-size:.66rem;line-height:1.8;color:var(--tx);font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.6);text-align:right;white-space:normal}
-.tip:hover .tipbox{display:block}
-.tip .tipbox b{color:var(--c);font-weight:800}
+.tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:rgba(56,189,248,.18);color:var(--c);font-size:.6rem;font-weight:800;cursor:help;vertical-align:middle}
+.tipbox{display:none;position:fixed;z-index:9999;width:260px;background:#10192b;border:1px solid var(--c);border-radius:12px;padding:13px 15px;font-size:.72rem;line-height:1.9;color:var(--tx);font-weight:500;box-shadow:0 14px 40px rgba(0,0,0,.7);text-align:right;white-space:normal;pointer-events:none}
+.tipbox b{color:var(--c);font-weight:800;font-size:.76rem}
 .tg-h{background:var(--gg);color:var(--g)}.tg-m{background:var(--yy);color:var(--y)}.tg-l{background:var(--rr);color:var(--r)}
 
 /* ===== layout grids ===== */
@@ -446,6 +445,19 @@ function tick(){
   setT('clock',et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+' ET');
 }
 setInterval(tick,1000);tick();
+
+/* ===== tooltips (fixed-position, escape card clipping) ===== */
+document.addEventListener('mouseover',e=>{
+  const tip=e.target.closest('.tip');if(!tip)return;
+  const box=tip.querySelector('.tipbox');if(!box)return;
+  const r=tip.getBoundingClientRect();
+  box.style.display='block';
+  const bw=Math.min(260,window.innerWidth-20);box.style.width=bw+'px';
+  let left=r.left+r.width/2-bw+20;if(left<10)left=10;if(left+bw>window.innerWidth-10)left=window.innerWidth-bw-10;
+  box.style.left=left+'px';box.style.top=(r.bottom+8)+'px';
+  if(r.bottom+8+box.offsetHeight>window.innerHeight-10)box.style.top=Math.max(10,r.top-box.offsetHeight-8)+'px';
+});
+document.addEventListener('mouseout',e=>{const tip=e.target.closest('.tip');if(!tip)return;const box=tip.querySelector('.tipbox');if(box)box.style.display='none';});
 
 /* ===== symbol strip ===== */
 function buildStrip(){
