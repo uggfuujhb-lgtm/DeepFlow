@@ -501,7 +501,7 @@ function compute(opts){
     if(type==='P'&&Math.abs(Math.abs(d)-0.25)<0.12){if(!p25||Math.abs(Math.abs(d)-0.25)<p25.e)p25={iv,e:Math.abs(Math.abs(d)-0.25)};}
   });
   const rows=Object.values(byStrike).sort((a,b)=>a.K-b.K).map(s=>({
-    K:s.K,netGamma:s.cGamma-s.pGamma,netDelta:s.cDelta-s.pDelta,netOI:s.cOI-s.pOI,
+    K:s.K,netGamma:s.cGamma-s.pGamma,cGamma:s.cGamma,pGamma:s.pGamma,netDelta:s.cDelta-s.pDelta,netOI:s.cOI-s.pOI,
     cOI:s.cOI,pOI:s.pOI,charm:s.charm,vanna:s.vanna,gex:s.cGamma-s.pGamma,
     iv:s.ivn?s.iv/s.ivn:0,pct:spot?((s.K-spot)/spot*100):0
   }));
@@ -513,12 +513,21 @@ function aggregate(rows,X){
   if(!rows.length)return null;
   const {spot,toiC,toiP,sumGEX,totGamma,atmIV,atmDist,skew,sumCharm,sumVanna,sumNetDelta,byExp}=X;
   const hasOI=(toiC+toiP)>0;
-  // gamma walls: strongest +/- net gamma strikes (prefer those near spot for relevance)
   const near=rows.filter(x=>!spot||Math.abs(x.K-spot)/spot<=0.15);
   const scope=near.length>4?near:rows;
-  const pos=scope.filter(x=>x.netGamma>0),neg=scope.filter(x=>x.netGamma<0);
-  const callWall=pos.length?pos.reduce((a,b)=>b.netGamma>a.netGamma?b:a):null;
-  const putWall=neg.length?neg.reduce((a,b)=>b.netGamma<a.netGamma?b:a):null;
+  const maxBy=(arr,f)=>arr.length?arr.reduce((a,b)=>f(b)>f(a)?b:a):null;
+  const hasCP=scope.some(x=>x.cGamma!=null);
+  // Menthor-Q style: Call Resistance = peak CALL gamma at/above spot; Put Support = peak PUT gamma at/below spot
+  let callWall,putWall;
+  if(hasCP){
+    const above=scope.filter(x=>x.K>=spot),below=scope.filter(x=>x.K<=spot);
+    callWall=maxBy(above.length?above:scope,x=>x.cGamma||0)||maxBy(scope,x=>x.cGamma||0);
+    putWall =maxBy(below.length?below:scope,x=>x.pGamma||0)||maxBy(scope,x=>x.pGamma||0);
+  }else{ // fallback to net-gamma walls
+    const pos=scope.filter(x=>x.netGamma>0),neg=scope.filter(x=>x.netGamma<0);
+    callWall=pos.length?pos.reduce((a,b)=>b.netGamma>a.netGamma?b:a):null;
+    putWall=neg.length?neg.reduce((a,b)=>b.netGamma<a.netGamma?b:a):null;
+  }
   // OI-based levels (only meaningful when we actually have OI)
   const coiRow=hasOI?rows.reduce((a,b)=>b.cOI>a.cOI?b:a,rows[0]):null;
   const poiRow=hasOI?rows.reduce((a,b)=>b.pOI>a.pOI?b:a,rows[0]):null;
@@ -533,8 +542,8 @@ function aggregate(rows,X){
   const gNeg=rows.filter(x=>x.netGamma<0).sort((a,b)=>a.netGamma-b.netGamma).slice(0,4);
   let cw=0,cwo=0,pw=0,pwo=0;rows.forEach(x=>{cw+=x.K*x.cOI;cwo+=x.cOI;pw+=x.K*x.pOI;pwo+=x.pOI;});
   const cotmc=cwo?cw/cwo:spot,cotmp=pwo?pw/pwo:spot;
-  const negT=neg.slice().sort((a,b)=>a.netGamma-b.netGamma)[1]||putWall;
-  const posT=pos.slice().sort((a,b)=>b.netGamma-a.netGamma)[1]||callWall;
+  const negT=scope.filter(x=>x.netGamma<0).sort((a,b)=>a.netGamma-b.netGamma)[1]||putWall;
+  const posT=scope.filter(x=>x.netGamma>0).sort((a,b)=>b.netGamma-a.netGamma)[1]||callWall;
   const T0=7/365;const em=spot*(atmIV||0.2)*Math.sqrt(T0);
   return{rows,spot,toiC,toiP,toi:toiC+toiP,hasOI,pc:toiC?toiP/toiC:0,netGEX:sumGEX,totGamma:Math.abs(totGamma),
     callWall,putWall,coiRow,poiRow,pain,flip,gPos,gNeg,cotmc,cotmp,negT,posT,em,atmIV,skew,sumCharm,sumVanna,sumNetDelta,
@@ -565,7 +574,7 @@ function computeFromExposure(arr,oiMap){
     toiC+=cOI;toiP+=pOI;sumGEX+=cG-pG;totGamma+=Math.abs(cG)+Math.abs(pG);sumCharm+=cCh-pCh;sumVanna+=cV-pV;sumNetDelta+=cD-pD;
     const dist=Math.abs(K-spot);if(dist<atmDist){atmDist=dist;if(iv)atmIV=iv>5?iv/100:iv;}
   });
-  const rows=Object.values(byStrike).sort((a,b)=>a.K-b.K).map(s=>({K:s.K,netGamma:s.cGamma-s.pGamma,netDelta:s.netDelta,netOI:s.cOI-s.pOI,cOI:s.cOI,pOI:s.pOI,charm:s.charm,vanna:s.vanna,gex:s.cGamma-s.pGamma,iv:0,pct:spot?((s.K-spot)/spot*100):0}));
+  const rows=Object.values(byStrike).sort((a,b)=>a.K-b.K).map(s=>({K:s.K,netGamma:s.cGamma-s.pGamma,cGamma:s.cGamma,pGamma:s.pGamma,netDelta:s.netDelta,netOI:s.cOI-s.pOI,cOI:s.cOI,pOI:s.pOI,charm:s.charm,vanna:s.vanna,gex:s.cGamma-s.pGamma,iv:0,pct:spot?((s.K-spot)/spot*100):0}));
   if(!rows.length||rows.reduce((a,b)=>a+Math.abs(b.netGamma),0)===0)return null; // no usable gamma
   return aggregate(rows,{spot,toiC,toiP,sumGEX,totGamma,atmIV:atmIV||0.2,atmDist,skew:skewFromIV(oiMap,spot),sumCharm,sumVanna,sumNetDelta,byExp:{}});
 }
