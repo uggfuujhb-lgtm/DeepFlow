@@ -65,6 +65,11 @@ body{background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,"Taho
 .card .val{font-size:1.18rem;font-weight:800}
 .card .sub{font-size:.6rem;color:var(--mut2);margin-top:3px}
 .card .tag{position:absolute;top:10px;left:10px;font-size:.54rem;padding:2px 7px;border-radius:6px;font-weight:700}
+/* info tooltips */
+.tip{position:relative;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,.1);color:var(--mut);font-size:.58rem;cursor:help;vertical-align:middle}
+.tip .tipbox{display:none;position:absolute;top:20px;right:-6px;z-index:200;width:240px;background:var(--panel2);border:1px solid var(--c);border-radius:11px;padding:11px 13px;font-size:.66rem;line-height:1.8;color:var(--tx);font-weight:500;box-shadow:0 10px 30px rgba(0,0,0,.6);text-align:right;white-space:normal}
+.tip:hover .tipbox{display:block}
+.tip .tipbox b{color:var(--c);font-weight:800}
 .tg-h{background:var(--gg);color:var(--g)}.tg-m{background:var(--yy);color:var(--y)}.tg-l{background:var(--rr);color:var(--r)}
 
 /* ===== layout grids ===== */
@@ -211,24 +216,24 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
       <div class="tstrip" id="ts"></div>
 
       <div class="cards">
-        <div class="card"><span class="tag tg-h" id="c-gtag">--</span><div class="lab">⚡ إجمالي القاما</div><div class="val mono" id="c-tg">--</div><div class="sub" id="c-tgs">Net GEX</div></div>
-        <div class="card"><div class="lab">🔻 عقود البوت المفتوحة</div><div class="val mono dn" id="c-poi">--</div><div class="sub">Put Open Interest</div></div>
-        <div class="card"><div class="lab">🔺 عقود الكول المفتوحة</div><div class="val mono up" id="c-coi">--</div><div class="sub">Call Open Interest</div></div>
-        <div class="card"><div class="lab">💧 ضغط السيولة</div><div class="val mono" id="c-liq">--</div><div class="sub" id="c-liqs">Liquidity Pressure</div></div>
-        <div class="card"><div class="lab">⚖️ نسبة P/C</div><div class="val mono nt" id="c-pc">--</div><div class="sub" id="c-pcs">Put / Call</div></div>
-        <div class="card"><div class="lab">🎯 حالة القاما</div><div class="val" id="c-cond" style="font-size:.92rem">--</div><div class="sub" id="c-conds">Gamma Regime</div></div>
+        <div class="card"><span class="tag tg-h" id="c-gtag">--</span><div class="lab">⚡ إجمالي القاما <span class="tip">؟<span class="tipbox"><b>إجمالي القاما (Net GEX)</b><br>يقيس قوة "مغناطيس" العقود على السعر. <b>أخضر (موجب)</b> = سوق هادئ ومستقر، صانعو السوق يكبحون التذبذب. <b>أحمر (سالب)</b> = سوق متقلب وحركته أعنف. كل ما كبر الرقم زاد التأثير.</span></span></div><div class="val mono" id="c-tg">--</div><div class="sub" id="c-tgs">Net GEX</div></div>
+        <div class="card"><div class="lab">🔻 عقود البوت المفتوحة <span class="tip">؟<span class="tipbox"><b>عقود البوت المفتوحة</b><br>عدد عقود البيع (رهان على الهبوط أو حماية) المفتوحة حالياً. لما تتفوّق بكثير على الكول = حذر أو توقّع هبوط، والسوق متوتر.</span></span></div><div class="val mono dn" id="c-poi">--</div><div class="sub">Put Open Interest</div></div>
+        <div class="card"><div class="lab">🔺 عقود الكول المفتوحة <span class="tip">؟<span class="tipbox"><b>عقود الكول المفتوحة</b><br>عدد عقود الشراء (رهان على الصعود) المفتوحة حالياً. لما تتفوّق بكثير على البوت = اهتمام صعودي والسوق يتوقّع ارتفاع.</span></span></div><div class="val mono up" id="c-coi">--</div><div class="sub">Call Open Interest</div></div>
+        <div class="card"><div class="lab">💧 ضغط السيولة <span class="tip">؟<span class="tipbox"><b>ضغط السيولة</b><br>المسافة بين مقاومة الكول ودعم البوت كنسبة من السعر. كل ما <b>ضاقت</b> = السعر محصور وقريب ينفجر في اتجاه. اللون يوضّح ميل الضغط (كول/بوت).</span></span></div><div class="val mono" id="c-liq">--</div><div class="sub" id="c-liqs">Liquidity Pressure</div></div>
+        <div class="card"><div class="lab">⚖️ نسبة P/C <span class="tip">؟<span class="tipbox"><b>نسبة البوت إلى الكول (P/C)</b><br>تقسيم عقود البوت على الكول. <b>أكبر من 1</b> = بوت أكثر (ميل هبوطي/تحوّط). <b>أقل من 1</b> = كول أكثر (ميل صعودي).</span></span></div><div class="val mono nt" id="c-pc">--</div><div class="sub" id="c-pcs">Put / Call</div></div>
+        <div class="card"><div class="lab">🎯 حالة القاما <span class="tip">؟<span class="tipbox"><b>حالة القاما</b><br>الميل العام للعقود. <b>كول</b> = العقود تميل للصعود/الاستقرار. <b>بوت</b> = تميل للهبوط/التقلّب. تلخّص اتجاه الضغط الحالي.</span></span></div><div class="val" id="c-cond" style="font-size:.92rem">--</div><div class="sub" id="c-conds">Gamma Regime</div></div>
       </div>
 
       <!-- 🐋 Hot strikes heatmap + setup score (Rasad-style, above the chart) -->
       <div class="panel" style="margin-bottom:12px">
-        <div class="ph">🐋 خريطة السترايكات الحارة <span class="mut" id="hm-spot">--</span></div>
+        <div class="ph">🐋 خريطة السترايكات الحارة <span class="tip">؟<span class="tipbox"><b>خريطة السترايكات الحارة</b><br>تُظهر شدة تراكم العقود على كل سترايك حول السعر. صف <b>الكول</b> فوق وصف <b>البوت</b> تحت. كل ما كان اللون أقوى = تركّز أكبر للعقود عند ذلك السعر (دعم أو مقاومة محتملة). الخط الأبيض = السعر الحالي.</span></span> <span class="mut" id="hm-spot">--</span></div>
         <div class="pb">
           <div id="heatmap"></div>
           <div class="hslg"><span><i style="background:var(--y)"></i>ضعيف</span><span><i style="background:var(--o)"></i>متوسط</span><span><i style="background:var(--r)"></i>قوي</span><span><i style="background:var(--g)"></i>قوي جداً</span></div>
         </div>
       </div>
       <div class="grid2" style="margin-bottom:12px">
-        <div class="panel"><div class="ph">⚡ تقييم الإعداد · الثقة <span class="mut" id="setup-side">--</span></div>
+        <div class="panel"><div class="ph">⚡ تقييم الإعداد · الثقة <span class="tip">؟<span class="tipbox"><b>تقييم الإعداد (من 100)</b><br>درجة جودة الفرصة الحالية، مبنية على 4 عوامل: <b>قرب السعر من جدار قاما</b> (40)، <b>تدفق الصفقات الكبيرة</b> (30)، <b>قربه من مستوى رئيسي/Zero Gamma</b> (20)، و<b>قوة الزخم</b> (10). الأعلى = إعداد أقوى. ليست توصية شراء/بيع.</span></span> <span class="mut" id="setup-side">--</span></div>
           <div class="pb" id="setup"></div>
         </div>
         <div class="panel"><div class="ph">🐳 الصفقات الكبيرة · آخر 15د <span class="mut" id="bigflow-b">--</span></div>
@@ -674,8 +679,11 @@ function renderHome(){
   setT('c-tg',fv(M.totGamma));setT('c-tgs','Net GEX: $'+fv(M.netGEX));
   const gt=$('c-gtag');if(gt){const hi=M.totGamma>5e8;gt.textContent=hi?'عالي':'متوسط';gt.className='tag '+(hi?'tg-h':'tg-m');}
   setT('c-poi',M.hasOI?fv(M.toiP):'—');setT('c-coi',M.hasOI?fv(M.toiC):'—');
-  const liq=M.toi?(Math.min(M.toiC,M.toiP)/Math.max(M.toiC,M.toiP)*100):0;
-  setT('c-liq',M.hasOI?liq.toFixed(2)+'%':'—');setT('c-liqs','توازن السيولة');
+  // ضغط السيولة = المسافة بين جدار الكول ودعم البوت كنسبة من السعر (مثل رصد): أضيق = أقرب للانفجار
+  const spot=ST.spot||M.spot;
+  const squeeze=(M.callWall&&M.putWall&&spot)?Math.abs(M.callWall.K-M.putWall.K)/spot*100:0;
+  const liqEl=$('c-liq');if(liqEl){liqEl.textContent=squeeze?squeeze.toFixed(2)+'%':'—';liqEl.className='val mono '+(squeeze&&squeeze<1?'dn':'');}
+  setT('c-liqs',squeeze?(squeeze<1?'ضيّق · قرب انفجار':'واسع · مدى مفتوح'):'Liquidity Pressure');
   setT('c-pc',M.hasOI?M.pc.toFixed(2):'—');setT('c-pcs',M.hasOI?(M.pc>1?'هيمنة بوت':'هيمنة كول'):'—');
   const cond=$('c-cond');cond.textContent=M.cond==='put'?'▼ هيمنة البوت':'▲ هيمنة الكول';cond.className=M.cond==='put'?'dn':'up';
   setT('c-conds',M.cond==='put'?'Put Dominated':'Call Dominated');
