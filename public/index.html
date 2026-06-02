@@ -86,6 +86,10 @@ canvas{position:absolute;inset:0}
 .tfb.on{background:var(--gg);color:var(--g)}
 .proflab{position:absolute;top:6px;font-size:.56rem;color:var(--mut2);font-weight:700;z-index:3}
 #tip{position:absolute;display:none;background:rgba(8,12,20,.97);border:1px solid var(--line2);border-radius:9px;padding:9px 12px;font-size:.66rem;pointer-events:none;z-index:20;min-width:150px}
+#profwrap{position:absolute;right:0;top:0;bottom:0;width:124px;background:#0c1322;border-right:1px solid var(--line)}
+#profwrap .proflbl{display:flex;height:18px;font-size:.56rem;color:var(--mut2);font-weight:700}
+#profwrap .proflbl span{flex:1;text-align:center;line-height:18px}
+#profcv{position:absolute;top:18px;left:0;right:0;bottom:0;width:124px}
 #ld{position:absolute;inset:0;background:rgba(10,14,23,.85);display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:.82rem;z-index:9}
 
 /* info rows */
@@ -255,7 +259,8 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
             <button class="tfb" data-i="1d">يومي</button>
           </div>
           <div class="chart-wrap" id="cwrap">
-            <div id="tvchart" style="position:absolute;inset:0"></div>
+            <div id="tvchart" style="position:absolute;left:0;top:0;bottom:0;right:124px"></div>
+            <div id="profwrap"><div class="proflbl"><span>قاما</span><span>دلتا</span></div><canvas id="profcv"></canvas></div>
             <div id="ld">جاري تحميل الشارت...</div>
           </div>
         </div>
@@ -898,7 +903,36 @@ function render(){
     vol.push({time:t,value:c.v||0,color:c.c>=c.o?'rgba(34,211,154,.22)':'rgba(255,84,112,.22)'});}
   TVcandle.setData(data);TVvol.setData(vol);
   if(ST._fit){TVchart.timeScale().fitContent();ST._fit=false;}
-  setLevels();
+  setLevels();startProfileLoop();
+}
+// gamma & delta profile beside the chart, aligned to TradingView price coordinates
+let _profRAF=null;
+function startProfileLoop(){if(_profRAF)return;const loop=()=>{_profRAF=requestAnimationFrame(loop);if(ST.view==='home')drawProfile();};_profRAF=requestAnimationFrame(loop);}
+function drawProfile(){
+  const cv=$('profcv');if(!cv||!TVcandle||!ST.M||!ST.M.rows)return;
+  const W=cv.clientWidth||124,H=cv.clientHeight;if(!H)return;
+  if(cv.width!==W*devicePixelRatio||cv.height!==H*devicePixelRatio){cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;}
+  const ctx=cv.getContext('2d');ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);ctx.clearRect(0,0,W,H);
+  const gap=6,colW=(W-gap)/2;                    // left col = gamma, right col = delta
+  const rows=ST.M.rows;
+  const maxG=Math.max(...rows.map(r=>Math.abs(r.netGamma||0)),1);
+  const maxD=Math.max(...rows.map(r=>Math.abs(r.netDelta||0)),1);
+  const OFF=18; // profcv sits 18px below the chart top (labels row)
+  ctx.strokeStyle='rgba(255,255,255,.05)';ctx.beginPath();ctx.moveTo(colW+gap/2,0);ctx.lineTo(colW+gap/2,H);ctx.stroke();
+  // bar height from strike spacing
+  let bh=8;if(rows.length>1){const ys=rows.map(r=>TVcandle.priceToCoordinate(r.K)).filter(y=>y!=null).sort((a,b)=>a-b);for(let i=1;i<ys.length;i++)bh=Math.min(bh||99,Math.max(2,ys[i]-ys[i-1]-1));}
+  bh=Math.max(2,Math.min(bh,10));
+  rows.forEach(r=>{
+    const yc=TVcandle.priceToCoordinate(r.K);if(yc==null)return;const y=yc-OFF;if(y<0||y>H)return;
+    // gamma (left col): bar grows leftward from the center divider
+    const gw=Math.abs(r.netGamma)/maxG*(colW-3),gp=r.netGamma>=0;
+    ctx.fillStyle=gp?'rgba(34,211,154,.8)':'rgba(255,84,112,.8)';
+    ctx.fillRect(colW-gw,y-bh/2,gw,bh);
+    // delta (right col): bar grows rightward from the divider
+    const dw=Math.abs(r.netDelta)/maxD*(colW-3),dp=r.netDelta>=0;
+    ctx.fillStyle=dp?'rgba(56,189,248,.8)':'rgba(245,158,11,.8)';
+    ctx.fillRect(colW+gap,y-bh/2,dw,bh);
+  });
 }
 function setLevels(){
   if(!TVcandle)return;
