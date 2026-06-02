@@ -1,6 +1,7 @@
 // Candles + quote via Yahoo Finance (free, no API key). Falls back to Finnhub.
-// Map our internal tickers to the real Yahoo symbol (indices use ^ caret symbols).
-const YF={SPX:'^GSPC',NDX:'^NDX',DJX:'^DJI',RUT:'^RUT',VIX:'^VIX',SPY:'SPY',QQQ:'QQQ',DIA:'DIA',IWM:'IWM'};
+// Indices -> front-month FUTURES so the chart moves overnight / pre-market (Sun 6pm ET onward),
+// just like MRX. Cash indices (^GSPC) freeze at the Friday close.
+const YF={SPX:'ES=F',NDX:'NQ=F',DJX:'YM=F',RUT:'RTY=F',VIX:'^VIX',SPY:'SPY',QQQ:'QQQ',DIA:'DIA',IWM:'IWM'};
 export default async function handler(req,res){
   res.setHeader('Access-Control-Allow-Origin','*');
   const raw=(req.query.sym||'SPY').trim().toUpperCase();
@@ -13,7 +14,7 @@ export default async function handler(req,res){
   };
   const cfg=map[interval]||map['5m'];
   try{
-    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${cfg.i}&range=${cfg.r}&includePrePost=false`;
+    const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${cfg.i}&range=${cfg.r}&includePrePost=true`;
     const r=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0','Accept':'application/json'}});
     const d=await r.json();
     const result=d?.chart?.result?.[0];
@@ -27,7 +28,8 @@ export default async function handler(req,res){
       if(o==null||c==null)continue;
       candles.push({t:ts[i]*1000,o,h,l,c,v:v||0});
     }
-    const price=meta.regularMarketPrice||(candles.length?candles[candles.length-1].c:0);
+    // most recent traded price (covers extended-hours / overnight); fall back to meta
+    const price=(candles.length?candles[candles.length-1].c:0)||meta.regularMarketPrice||0;
     const prev=meta.chartPreviousClose||meta.previousClose||0;
     res.status(200).json({symbol:sym,regularMarketPrice:price,previousClose:prev,candles});
     return;

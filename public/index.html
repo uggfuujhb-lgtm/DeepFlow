@@ -375,15 +375,27 @@ function bs(S,K,T,sig,r,type){
 }
 
 /* ===== clock + market hours ===== */
-function marketOpen(){
-  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const h=et.getHours(),m=et.getMinutes(),wd=et.getDay();
-  return wd>=1&&wd<=5&&(h>9||(h===9&&m>=30))&&h<16;
+function etNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));}
+function marketOpen(){const et=etNow(),h=et.getHours(),m=et.getMinutes(),wd=et.getDay();return wd>=1&&wd<=5&&(h>9||(h===9&&m>=30))&&h<16;}
+// session: regular / pre / after / overnight-futures / closed
+function marketSession(){
+  const et=etNow(),wd=et.getDay(),t=et.getHours()*60+et.getMinutes();
+  if(wd>=1&&wd<=5){
+    if(t>=570&&t<960)return'open';
+    if(t>=240&&t<570)return'pre';
+    if(t>=960&&t<1200)return'after';
+  }
+  // index futures trade Sun 18:00 -> Fri 17:00 ET
+  const fut=!(wd===6||(wd===5&&t>=1020)||(wd===0&&t<1080));
+  return fut?'fut':'closed';
 }
+// is any tradable session live (for refresh cadence)
+function marketActive(){return marketSession()!=='closed';}
 function tick(){
-  const et=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-  const open=marketOpen();
-  setT('mst',open?'السوق مفتوح':'السوق مغلق');$('mst').className='mst '+(open?'open':'closed');
+  const et=etNow();const s=marketSession();
+  const map={open:['السوق مفتوح','open'],pre:['ما قبل السوق','open'],after:['ما بعد السوق','open'],fut:['العقود الآجلة','open'],closed:['السوق مغلق','closed']};
+  const [txt,cls2]=map[s];
+  setT('mst',txt);$('mst').className='mst '+cls2;
   setT('clock',et.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+' ET');
 }
 setInterval(tick,1000);tick();
@@ -947,12 +959,13 @@ async function init(){
   wsConnect();
   await loadChart();            // sets real spot first
   await Promise.all([loadOpts(),loadFlow()]);
-  setInterval(fetchPrices,30000);// fallback + refresh prev-close / off-hours
-  // Adaptive refresh: faster while market is open, slower when closed.
-  const loop=(fn,openMs,closedMs)=>{const run=async()=>{try{await fn();}catch(_){}setTimeout(run,marketOpen()?openMs:closedMs);};setTimeout(run,marketOpen()?openMs:closedMs);};
-  loop(loadChart, 60*1000, 5*60*1000);   // candles: 1m open / 5m closed
-  loop(loadOpts,  30*1000, 5*60*1000);   // options chain: 30s open / 5m closed
-  loop(loadFlow,  20*1000, 3*60*1000);   // flow alerts: 20s open / 3m closed
+  setInterval(fetchPrices,15000);// prices refresh fast (incl. pre-market / overnight futures)
+  // Adaptive refresh: fast while any session is live (regular/pre/after/futures), slow when fully closed.
+  const loop=(fn,liveMs,closedMs)=>{const run=async()=>{try{await fn();}catch(_){}setTimeout(run,marketActive()?liveMs:closedMs);};setTimeout(run,marketActive()?liveMs:closedMs);};
+  loop(loadChart, 60*1000, 5*60*1000);   // candles: 1m live / 5m closed (futures move overnight)
+  loop(loadFlow,  20*1000, 3*60*1000);   // flow alerts
+  // options/OI only change during regular hours -> 30s RTH, 10m otherwise (avoid UW rate limits)
+  (function optLoop(){const run=async()=>{try{await loadOpts();}catch(_){}setTimeout(run,marketOpen()?30000:10*60*1000);};setTimeout(run,marketOpen()?30000:10*60*1000);})();
 }
 init();
 </script></body></html>
