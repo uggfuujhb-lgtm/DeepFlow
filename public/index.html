@@ -235,7 +235,7 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
         <div class="panel"><div class="ph">⚡ تقييم الإعداد · الثقة <span class="tip">؟<span class="tipbox"><b>تقييم الإعداد (من 100)</b><br>درجة جودة الفرصة الحالية، مبنية على 4 عوامل: <b>قرب السعر من جدار قاما</b> (40)، <b>تدفق الصفقات الكبيرة</b> (30)، <b>قربه من مستوى رئيسي/Zero Gamma</b> (20)، و<b>قوة الزخم</b> (10). الأعلى = إعداد أقوى. ليست توصية شراء/بيع.</span></span> <span class="mut" id="setup-side">--</span></div>
           <div class="pb" id="setup"></div>
         </div>
-        <div class="panel"><div class="ph">🐳 الصفقات الكبيرة · آخر 15د <span class="mut" id="bigflow-b">--</span></div>
+        <div class="panel"><div class="ph">🐳 الصفقات الكبيرة · آخر 15د <span class="tip">؟<span class="tipbox"><b>تدفق الثقة اللحظي</b><br>الصفقات الكبيرة (بريميوم ≥ <b>$250 ألف</b>) خلال آخر 15 دقيقة، مرتّبة بالحجم. تكشف نشاط المؤسسات/الحيتان وتغذّي درجة "تدفق الصفقات" في تقييم الإعداد. التحديث مباشر أثناء جلسة التداول.</span></span> <span class="mut" id="bigflow-b">--</span></div>
           <div class="pb" id="bigflow" style="color:var(--mut);text-align:center;padding:16px;font-size:.72rem">جاري التحميل...</div>
         </div>
       </div>
@@ -243,6 +243,7 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
       <div class="grid2">
         <div class="panel">
           <div class="tfbar">
+            <span class="tip">؟<span class="tipbox"><b>الشارت + مستويات القاما</b><br>شارت شموع يعرض السعر مع خطوط مستويات القاما مباشرة: <b>مقاومة الكول</b> (أخضر)، <b>دعم البوت</b> (أحمر)، <b>γ Flip / نقطة الانعطاف</b>، <b>Max Pain</b>، ومستويات GEX الثانوية. تكبير وسحب حر، والخطوط تتحدّث مع البيانات.</span></span>
             <span style="font-size:.7rem;font-weight:800;margin-left:6px" id="ch-sym">SPX</span>
             <span class="mono" id="ch-px" style="font-weight:800">--</span>
             <span class="mono" id="ch-chg" style="font-size:.7rem">--</span>
@@ -278,7 +279,7 @@ select{background:#0b1220;border:1px solid var(--line2);color:var(--tx);font-siz
       </div>
 
       <div class="grid2" style="margin-top:12px">
-        <div class="panel"><div class="ph">العقود النشطة · التدفقات <span class="mut" id="flow-b">--</span></div>
+        <div class="panel"><div class="ph">العقود النشطة · التدفقات <span class="tip">؟<span class="tipbox"><b>تدفقات العقود</b><br>أحدث صفقات الخيارات على الرمز: الوقت، النوع (كول/بوت)، السترايك، وقيمة البريميوم. النسبة بالأعلى = ميل التدفق (كم % منه كول). تساعد على معرفة اتجاه المتداولين النشطين.</span></span> <span class="mut" id="flow-b">--</span></div>
           <div class="pb" id="flw" style="color:var(--mut);text-align:center;padding:18px">جاري التحميل...</div>
         </div>
         <div class="panel"><div class="ph">القاما حسب تاريخ الاستحقاق <span class="mut">GEX by Expiry</span></div>
