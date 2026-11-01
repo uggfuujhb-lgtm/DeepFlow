@@ -1,0 +1,311 @@
+<title>مجلس المكتب</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* Layout: a Najdi mud-brick house — crenellated roofline header, «ينتظرك» as the main door, staff as rooms, tasks and log below. RTL. */
+:root{
+  --bg:#efe4cf; --wall:#e3cfaa; --panel:#f7efe0; --mud:#b98552; --mud-deep:#7c4f2c;
+  --ink:#33241a; --mut:#76604c; --line:rgba(92,60,34,.18);
+  --door:#2e6a66; --door-soft:rgba(46,106,102,.13);
+  --red:#a5402a; --red-soft:rgba(165,64,42,.12);
+  --gold:#b98418; --gold-soft:rgba(185,132,24,.15);
+  --f-display:"Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;
+  --f-body:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b140f; --wall:#2a1f17; --panel:#251b14; --mud:#a8774a; --mud-deep:#d2a678;
+  --ink:#f0e3cd; --mut:#b39c82; --line:rgba(240,215,180,.13);
+  --door:#5fb1aa; --door-soft:rgba(95,177,170,.15);
+  --red:#e27a5f; --red-soft:rgba(226,122,95,.15);
+  --gold:#e0b04a; --gold-soft:rgba(224,176,74,.16);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#1b140f; --wall:#2a1f17; --panel:#251b14; --mud:#a8774a; --mud-deep:#d2a678;
+  --ink:#f0e3cd; --mut:#b39c82; --line:rgba(240,215,180,.13);
+  --door:#5fb1aa; --door-soft:rgba(95,177,170,.15);
+  --red:#e27a5f; --red-soft:rgba(226,122,95,.15);
+  --gold:#e0b04a; --gold-soft:rgba(224,176,74,.16);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;direction:rtl;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;text-wrap:balance;margin:0}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--door);outline-offset:2px}
+
+/* Roofline: Najdi triangular parapets */
+.roof{position:relative;padding-top:34px}
+.crown{height:16px;background:var(--mud);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='16'%3E%3Cpath d='M1 16 L11 2 L21 16Z'/%3E%3C/svg%3E") repeat-x 0 100%/22px 16px;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='16'%3E%3Cpath d='M1 16 L11 2 L21 16Z'/%3E%3C/svg%3E") repeat-x 0 100%/22px 16px}
+.facade{background:var(--mud);color:#fbf3e4;border-radius:0 0 6px 6px;padding:22px 24px 20px;display:flex;flex-wrap:wrap;gap:18px 32px;align-items:flex-end;justify-content:space-between}
+.facade h1{font-size:clamp(28px,5vw,40px);line-height:1.1;color:#fff8ec}
+.facade .sub{opacity:.9;font-size:14px;margin-top:6px}
+.vents{display:flex;gap:6px;margin-top:12px}
+.vents i{width:7px;height:18px;background:rgba(40,22,10,.45);border-radius:1px}
+.facts{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:13px}
+.facts div{display:flex;flex-direction:column}
+.facts b{font-family:var(--f-display);font-size:20px;font-weight:500;color:#fff8ec}
+.facts span{opacity:.85}
+.band{height:8px;background:repeating-linear-gradient(90deg,var(--red) 0 12px,var(--gold) 12px 16px,var(--mud-deep) 16px 28px,var(--gold) 28px 32px);opacity:.85}
+
+.status-line{font-size:13px;color:var(--mut)}
+.status-line.warn{color:var(--red)}
+
+section>header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+section>header h2{font-size:22px}
+.count{font-family:var(--f-display);font-size:14px;padding:2px 10px;border-radius:999px;background:var(--wall);color:var(--mut)}
+
+/* ينتظرك: the door */
+.door{background:var(--panel);border:2px solid var(--door);border-radius:14px 14px 4px 4px;padding:18px;position:relative}
+.door::before{content:"";position:absolute;inset:-2px -2px auto -2px;height:10px;border-radius:12px 12px 0 0;
+  background:repeating-linear-gradient(90deg,var(--door) 0 10px,var(--gold) 10px 14px)}
+.door header{padding-top:6px}
+.door h2{color:var(--door);font-size:26px}
+.needs{display:grid;gap:12px}
+.need{display:grid;grid-template-columns:1fr auto;gap:8px 16px;padding:14px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.need .t{font-weight:600;min-width:0}
+.need .meta{font-size:12.5px;color:var(--mut);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.need .d{grid-column:1/-1;font-size:14px;color:var(--ink);white-space:pre-wrap;min-width:0;overflow-wrap:anywhere}
+.need .link{grid-column:1/-1;font-size:12.5px;color:var(--mut);direction:ltr;text-align:right;overflow-wrap:anywhere}
+.acts{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 14px;border-radius:6px;font-weight:500}
+.btn.ok{background:var(--door);border-color:var(--door);color:#fff}
+.btn.no{color:var(--red);border-color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+.confirm{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px;border-radius:6px;background:var(--gold-soft);font-size:14px}
+.kind{font-size:11.5px;padding:1px 8px;border-radius:999px;background:var(--door-soft);color:var(--door);font-weight:600}
+.kind.spend{background:var(--red-soft);color:var(--red)}
+.empty{padding:18px;text-align:center;color:var(--mut);border:1px dashed var(--line);border-radius:8px;font-size:14px}
+.history{margin-top:14px}
+.history summary{cursor:pointer;color:var(--mut);font-size:13.5px}
+.history ul{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px;font-size:13.5px}
+.history li{display:flex;gap:10px;flex-wrap:wrap}
+
+/* Staff rooms */
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.room{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;position:relative;min-width:0}
+.room .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.room h3{font-size:18px}
+.room .role{font-size:13px;color:var(--mut)}
+.room .cur{font-size:14px;min-height:1.6em;overflow-wrap:anywhere}
+.pill{font-size:12px;padding:2px 10px;border-radius:999px;font-weight:600;white-space:nowrap}
+.pill.working{background:var(--door-soft);color:var(--door)}
+.pill.blocked{background:var(--red-soft);color:var(--red)}
+.pill.idle,.pill.off{background:var(--wall);color:var(--mut)}
+.lvl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mut)}
+.bar{height:6px;background:var(--wall);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--gold)}
+
+/* Tasks */
+.cols{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.col{background:var(--wall);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.col h3{font-size:15px;display:flex;justify-content:space-between}
+.task{background:var(--panel);border-radius:4px;padding:8px 10px;font-size:13.5px;border-inline-start:3px solid var(--mud);min-width:0;overflow-wrap:anywhere}
+.task.blocked{border-color:var(--red)}
+.task.done{opacity:.7}
+.task small{display:block;color:var(--mut);font-size:12px}
+.addtask{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.addtask input{flex:1 1 220px;min-width:0;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit}
+
+/* Log */
+.log{list-style:none;padding:0;margin:0;display:grid;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:4px}
+.log li{display:grid;grid-template-columns:auto 110px 1fr auto;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);font-size:13.5px;align-items:baseline}
+.log li:last-child{border-bottom:0}
+.log time{color:var(--mut);font-size:12.5px;white-space:nowrap}
+.log .dp{color:var(--mud-deep);font-weight:600}
+.log .tx{min-width:0;overflow-wrap:anywhere}
+.log .xp{color:var(--gold);font-weight:600;font-size:12.5px}
+
+@media (max-width:860px){.cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){
+  .cols{grid-template-columns:1fr}
+  .need{grid-template-columns:1fr}
+  .log li{grid-template-columns:1fr auto;gap:2px 10px}
+  .log .dp{grid-column:1} .log time{grid-row:1;grid-column:2}
+  .log .tx{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <div class="roof">
+    <div class="crown" aria-hidden="true"></div>
+    <div class="facade">
+      <div>
+        <h1>مجلس المكتب</h1>
+        <div class="sub">فريق الدورات · الأوردر فلو والقاما</div>
+        <div class="vents" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="facts">
+        <div><b id="clock" class="num">—</b><span>الرياض الآن</span></div>
+        <div><b id="mkt">—</b><span>السوق الأمريكي</span></div>
+        <div><b class="num">100,000</b><span>هدف السنة (ريال)</span></div>
+        <div><b class="num">50</b><span>طالب × 2,000 ريال</span></div>
+      </div>
+    </div>
+    <div class="band" aria-hidden="true"></div>
+  </div>
+
+  <div id="conn" class="status-line">يتصل بقاعدة البيانات…</div>
+
+  <section class="door" aria-labelledby="h-needs">
+    <header><h2 id="h-needs">ينتظرك</h2><span class="count num" id="needs-count">0</span></header>
+    <div class="needs" id="needs"><div class="empty">ما فيه شي ينتظرك. أي نشر أو إرسال أو صرف يحتاج موافقتك بيظهر هنا.</div></div>
+    <details class="history"><summary>آخر القرارات</summary><ul id="decided"></ul></details>
+  </section>
+
+  <section aria-labelledby="h-staff">
+    <header><h2 id="h-staff">الفريق</h2><span class="count num" id="staff-count">0</span></header>
+    <div class="rooms" id="staff"><div class="empty">الأقسام بتظهر هنا بعد ما يسجّلها المدير التنفيذي.</div></div>
+  </section>
+
+  <section aria-labelledby="h-tasks">
+    <header><h2 id="h-tasks">المهام</h2></header>
+    <div class="cols" id="tasks"></div>
+    <form class="addtask" id="addtask" hidden>
+      <label for="newtask" class="status-line" style="flex-basis:100%">أعطِ المدير التنفيذي مهمة جديدة</label>
+      <input id="newtask" maxlength="200" placeholder="مثال: جهّز إعلان افتتاح الدفعة الثانية" autocomplete="off">
+      <button class="btn ok" type="submit">أضف المهمة</button>
+    </form>
+  </section>
+
+  <section aria-labelledby="h-log">
+    <header><h2 id="h-log">سجل المجلس</h2><span class="status-line">آخر 40 حدث</span></header>
+    <ul class="log" id="log"><li><span class="tx" style="grid-column:1/-1;color:var(--mut)">ما فيه أحداث بعد.</span></li></ul>
+  </section>
+</div>
+
+<script>
+(function(){
+  const TZ='Asia/Riyadh';
+  const DEPTS={ceo:'المدير التنفيذي',market:'مكتب السوق',content:'المحتوى والنشر',brand:'الهوية والعلامة',academy:'الأكاديمية',growth:'النمو والمبيعات',owner:'المالك'};
+  const KIND={approve_publish:'موافقة نشر',approve_send:'موافقة إرسال',approve_spend:'موافقة صرف',approve_settings:'تغيير إعدادات',approve_install:'تثبيت أداة',question:'سؤال',input:'يحتاج معلومة'};
+  const STATUS={working:'يشتغل',blocked:'متوقف',idle:'متفرّغ',off:'خارج الدوام'};
+  const TSTAT=[['todo','قادمة'],['doing','قيد العمل'],['blocked','متوقفة'],['review','للمراجعة'],['done','خلصت']];
+  const LEVELS=[0,100,250,500,850,1300,1900,2700,3700,5000];
+  const TITLES=['متدرّب','موظّف','موظّف أول','أخصائي','خبير','قائد قسم','مستشار','مستشار أول','شريك تنفيذي','أسطورة المكتب'];
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtT=new Intl.DateTimeFormat('ar-SA-u-nu-latn',{timeZone:TZ,hour:'numeric',minute:'2-digit',hour12:true});
+  const fmtD=new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{timeZone:TZ,weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true});
+  const when=iso=>{const d=new Date(iso);return isNaN(d)?'':fmtD.format(d)};
+
+  function tick(){
+    const now=new Date();$('clock').textContent=fmtT.format(now);
+    // US market: 9:30 AM–4:00 PM New York, weekdays (holidays not tracked)
+    const ny=new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const m=ny.getHours()*60+ny.getMinutes(),wd=ny.getDay();
+    const open=wd>0&&wd<6&&m>=570&&m<960;
+    $('mkt').textContent=open?'مفتوح':'مغلق';
+  }
+  tick();setInterval(tick,30000);
+
+  let isOwner=false,db=null;
+  const state={needs:[],staff:[],tasks:[],events:[]};
+
+  function lvl(xp){let i=0;while(i<LEVELS.length-1&&xp>=LEVELS[i+1])i++;const next=LEVELS[i+1];
+    const pct=next?Math.min(100,Math.round((xp-LEVELS[i])/(next-LEVELS[i])*100)):100;return{n:i+1,title:TITLES[i],next,pct}}
+
+  function renderNeeds(){
+    const waiting=state.needs.filter(n=>n.status==='waiting').sort((a,b)=>String(a.created).localeCompare(String(b.created)));
+    const decided=state.needs.filter(n=>n.status!=='waiting').sort((a,b)=>String(b.decided||b.created).localeCompare(String(a.decided||a.created))).slice(0,15);
+    $('needs-count').textContent=waiting.length;
+    $('needs').innerHTML=waiting.length?waiting.map(n=>`
+      <article class="need" data-id="${esc(n.id)}">
+        <div><div class="t">${esc(n.title)}</div>
+          <div class="meta"><span class="kind ${n.kind==='approve_spend'?'spend':''}">${esc(KIND[n.kind]||n.kind||'طلب')}</span><span>${esc(DEPTS[n.dept]||n.dept||'')}</span><span>${esc(when(n.created))}</span></div></div>
+        ${isOwner&&String(n.kind||'').startsWith('approve')?`<div class="acts"><button class="btn ok" data-act="approved">موافق</button><button class="btn no" data-act="rejected">رفض</button></div>`:''}
+        ${n.detail?`<div class="d">${esc(n.detail)}</div>`:''}
+        ${n.link?`<div class="link">${esc(n.link)}</div>`:''}
+        <div class="confirm" hidden></div>
+      </article>`).join(''):'<div class="empty">ما فيه شي ينتظرك. أي نشر أو إرسال أو صرف يحتاج موافقتك بيظهر هنا.</div>';
+    $('decided').innerHTML=decided.length?decided.map(n=>`<li><span class="pill ${n.status==='rejected'?'blocked':'working'}">${n.status==='approved'?'موافق':n.status==='rejected'?'مرفوض':'نُفّذ'}</span><span>${esc(n.title)}</span><span class="status-line">${esc(when(n.decided||n.created))}</span></li>`).join(''):'<li class="status-line">ما فيه قرارات بعد.</li>';
+  }
+
+  function renderStaff(){
+    $('staff-count').textContent=state.staff.length;
+    if(!state.staff.length){$('staff').innerHTML='<div class="empty">الأقسام بتظهر هنا بعد ما يسجّلها المدير التنفيذي.</div>';return}
+    const order=['ceo','market','content','brand','academy','growth'];
+    const list=[...state.staff].sort((a,b)=>(order.indexOf(a.id)+99)%99-(order.indexOf(b.id)+99)%99);
+    $('staff').innerHTML=list.map(s=>{const xp=+s.xp||0,L=lvl(xp),st=s.status||'idle';return`
+      <article class="room">
+        <div class="top"><h3>${esc(s.name||DEPTS[s.id]||s.id)}</h3><span class="pill ${esc(st)}">${esc(STATUS[st]||st)}</span></div>
+        <div class="role">${esc(s.role||'')}</div>
+        <div class="cur">${esc(s.current||'—')}</div>
+        <div class="lvl"><span>المستوى ${L.n} · ${esc(L.title)}</span><span class="num">${xp.toLocaleString('en')}${L.next?' / '+L.next.toLocaleString('en'):''} XP</span></div>
+        <div class="bar" role="progressbar" aria-valuenow="${L.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${L.pct}%"></i></div>
+      </article>`}).join('');
+  }
+
+  function renderTasks(){
+    $('tasks').innerHTML=TSTAT.map(([k,label])=>{
+      let items=state.tasks.filter(t=>(t.status||'todo')===k);
+      if(k==='done')items=items.slice(0,8);
+      return`<div class="col"><h3><span>${label}</span><span class="num">${items.length}</span></h3>${
+        items.length?items.map(t=>`<div class="task ${esc(k)}">${esc(t.title)}<small>${esc(DEPTS[t.dept]||t.dept||'')}${t.due?' · '+esc(t.due):''}</small></div>`).join(''):'<div class="status-line">—</div>'}</div>`}).join('');
+  }
+
+  function renderLog(){
+    $('log').innerHTML=state.events.length?state.events.map(e=>`<li><time>${esc(when(e.at))}</time><span class="dp">${esc(DEPTS[e.dept]||e.dept||'')}</span><span class="tx">${esc(e.text)}</span><span class="xp num">${e.xp?(e.xp>0?'+':'')+esc(e.xp)+' XP':''}</span></li>`).join(''):'<li><span class="tx" style="grid-column:1/-1;color:var(--mut)">ما فيه أحداث بعد.</span></li>';
+  }
+
+  // Approve / reject with an inline confirm step
+  $('needs').addEventListener('click',async ev=>{
+    const b=ev.target.closest('button');if(!b||!db||!isOwner)return;
+    const card=b.closest('.need'),id=card.dataset.id,box=card.querySelector('.confirm');
+    if(b.dataset.act){
+      const ok=b.dataset.act==='approved';
+      box.hidden=false;
+      box.innerHTML=`<span>${ok?'تأكيد الموافقة على هذا الطلب بس (مرة وحدة)؟':'تأكيد الرفض؟'}</span><button class="btn ${ok?'ok':'no'}" data-yes="${b.dataset.act}">${ok?'نعم، موافق':'نعم، ارفض'}</button><button class="btn" data-cancel="1">إلغاء</button>`;
+      return;
+    }
+    if(b.dataset.cancel){box.hidden=true;box.innerHTML='';return}
+    if(b.dataset.yes){
+      b.disabled=true;const st=b.dataset.yes,now=new Date().toISOString();
+      const n=state.needs.find(x=>x.id===id);
+      try{
+        await db.doc('needs/'+id).update({status:st,decided:now});
+        await db.collection('events').add({dept:'owner',type:st==='approved'?'approved':'note',text:(st==='approved'?'وافق المالك: ':'رفض المالك: ')+(n?.title||id),at:now});
+      }catch(e){box.innerHTML='<span>ما انحفظ القرار. جرّب مرة ثانية بعد لحظات.</span><button class="btn" data-cancel="1">إغلاق</button>'}
+    }
+  });
+
+  $('addtask').addEventListener('submit',async ev=>{
+    ev.preventDefault();const inp=$('newtask'),v=inp.value.trim();if(!v||!db)return;
+    const now=new Date().toISOString();
+    try{await db.collection('tasks').add({title:v,dept:'ceo',status:'todo',created:now,updated:now});
+      await db.collection('events').add({dept:'owner',type:'note',text:'مهمة جديدة للمدير: '+v,at:now});inp.value='';}
+    catch(e){$('conn').textContent='ما انحفظت المهمة. جرّب بعد لحظات.';$('conn').className='status-line warn'}
+  });
+
+  async function start(){
+    db=await claude.use('db');
+    const user=await claude.use('user');
+    isOwner=user?.isOwner?.()??false;
+    if(!db){$('conn').textContent='قاعدة البيانات غير متاحة في هذا العرض. افتح اللوحة وأنت مسجّل دخول.';$('conn').className='status-line warn';return}
+    if(isOwner)$('addtask').hidden=false;
+    let fresh=false;
+    const timer=setTimeout(()=>{if(!fresh){$('conn').textContent='البيانات ما وصلت بعد، وممكن اللي معروض قديم.';$('conn').className='status-line warn'}},10000);
+    const ok=s=>{if(!s.metadata.fromCache&&!fresh){fresh=true;clearTimeout(timer);$('conn').textContent=isOwner?'متصل · أنت المالك، أزرار الموافقة مفعّلة':'متصل · عرض فقط';$('conn').className='status-line'}};
+    const err=e=>{clearTimeout(timer);$('conn').textContent='انقطع الاتصال بقاعدة البيانات ('+e.code+'). حدّث الصفحة لاحقاً.';$('conn').className='status-line warn'};
+    const rows=s=>s.docs.map(d=>({id:d.id,...d.data()}));
+    db.collection('needs').onSnapshot(s=>{ok(s);state.needs=rows(s);renderNeeds()},err);
+    db.collection('staff').onSnapshot(s=>{ok(s);state.staff=rows(s);renderStaff()},err);
+    db.collection('tasks').orderBy('updated','desc').limit(300).onSnapshot(s=>{ok(s);state.tasks=rows(s);renderTasks()},err);
+    db.collection('events').orderBy('at','desc').limit(40).onSnapshot(s=>{ok(s);state.events=rows(s);renderLog()},err);
+  }
+  renderTasks();
+  let tries=0;(function boot(){
+    if(window.claude?.use){start();return}
+    if(++tries<30){setTimeout(boot,100);return}
+    $('conn').textContent='افتح اللوحة داخل Claude عشان تشتغل البيانات الحيّة.';$('conn').className='status-line warn';
+  })();
+})();
+</script>
