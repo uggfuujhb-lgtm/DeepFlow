@@ -185,7 +185,7 @@ section>header h2{font-size:22px}
 <script>
 (function(){
   const TZ='Asia/Riyadh';
-  const DEPTS={ceo:'المدير التنفيذي',market:'مكتب السوق',content:'المحتوى والنشر',brand:'الهوية والعلامة',academy:'الأكاديمية',growth:'النمو والمبيعات',owner:'المالك'};
+  const DEPTS={ceo:'المدير التنفيذي',market:'مكتب السوق',content:'المحتوى والنشر',brand:'الهوية والعلامة',academy:'الأكاديمية',growth:'النمو والمبيعات',design:'الهوية البصرية',owner:'المالك'};
   const KIND={approve_publish:'موافقة نشر',approve_send:'موافقة إرسال',approve_spend:'موافقة صرف',approve_settings:'تغيير إعدادات',approve_install:'تثبيت أداة',question:'سؤال',input:'يحتاج معلومة'};
   const STATUS={working:'يشتغل',blocked:'متوقف',idle:'متفرّغ',off:'خارج الدوام'};
   const TSTAT=[['todo','قادمة'],['doing','قيد العمل'],['blocked','متوقفة'],['review','للمراجعة'],['done','خلصت']];
@@ -232,7 +232,7 @@ section>header h2{font-size:22px}
   function renderStaff(){
     $('staff-count').textContent=state.staff.length;
     if(!state.staff.length){$('staff').innerHTML='<div class="empty">الأقسام بتظهر هنا بعد ما يسجّلها المدير التنفيذي.</div>';return}
-    const order=['ceo','market','content','brand','academy','growth'];
+    const order=['ceo','market','content','brand','design','academy','growth'];
     const list=[...state.staff].sort((a,b)=>(order.indexOf(a.id)+99)%99-(order.indexOf(b.id)+99)%99);
     $('staff').innerHTML=list.map(s=>{const xp=+s.xp||0,L=lvl(xp),st=s.status||'idle';return`
       <article class="room">
