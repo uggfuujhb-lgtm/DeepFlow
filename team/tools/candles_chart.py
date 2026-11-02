@@ -102,16 +102,17 @@ def build(args, ts, candles):
         svg.append(f'<text x="{left-10}" y="{y+5:.1f}" class="tick" text-anchor="end">{v:g}</text>')
         v += tick
     # zones (bands)
+    zone_labels = []
     for zlo, zhi, kind, label in zones:
         y1, y2 = Y(max(zlo, zhi)), Y(min(zlo, zhi))
         y1, y2 = max(y1, top), min(y2, bottom)
         if y2 <= y1: continue
         svg.append(f'<rect x="{left}" y="{y1:.1f}" width="{pw}" height="{y2-y1:.1f}" fill="{C[kind+"_soft"]}" opacity="0.9"/>')
-        svg.append(f'<text x="{right-12}" y="{(y1+y2)/2+8:.1f}" class="zl" fill="{C[kind]}" text-anchor="start" direction="rtl">{html.escape(label)} {min(zlo,zhi):,.0f}–{max(zlo,zhi):,.0f}</text>')
+        zone_labels.append((y1, y2, kind, label, zlo, zhi))
     # time labels (Riyadh, 12h) every hour
     for i, c in enumerate(candles):
         t = c[0] + off
-        if t.minute == 0 or i == 0:
+        if t.minute == 0 or (i == 0 and (candles[0][0] + off).minute <= 15):
             svg.append(f'<line x1="{X(i):.1f}" x2="{X(i):.1f}" y1="{top}" y2="{bottom}" stroke="{C["line"]}" stroke-width="1" stroke-dasharray="2 6"/>')
             svg.append(f'<text x="{X(i):.1f}" y="{bottom+34}" class="tick" text-anchor="middle">{h12(t).split()[0]}</text>')
     # levels (lines) under candles
@@ -129,16 +130,25 @@ def build(args, ts, candles):
             svg.append(f'<rect x="{x-bw/2:.1f}" y="{yb:.1f}" width="{bw:.1f}" height="{hgt:.1f}" fill="{C["surface"]}" stroke="{col}" stroke-width="2"/>')
         else:
             svg.append(f'<rect x="{x-bw/2:.1f}" y="{yb:.1f}" width="{bw:.1f}" height="{hgt:.1f}" fill="{col}"/>')
+    for y1, y2, kind, label, zlo, zhi in zone_labels:
+        txt = f'{html.escape(label)} {min(zlo,zhi):,.0f}–{max(zlo,zhi):,.0f}'
+        w = 14 * len(txt) + 24; ym = (y1 + y2) / 2
+        svg.append(f'<rect x="{left+8}" y="{ym-17:.1f}" width="{w}" height="34" rx="6" fill="{C["surface"]}" stroke="{C[kind]}" stroke-width="1.5" opacity="0.92"/>')
+        svg.append(f'<text x="{left+8+w/2:.1f}" y="{ym+7:.1f}" class="zl" fill="{C[kind]}" text-anchor="middle">{txt}</text>')
     # day high / low markers
     ih = max(range(n), key=lambda i: candles[i][2]); il = min(range(n), key=lambda i: candles[i][3])
-    svg.append(f'<text x="{X(ih):.1f}" y="{Y(hi)-14:.1f}" class="hl" text-anchor="middle">أعلى {hi:,.0f}</text>')
-    svg.append(f'<text x="{X(il):.1f}" y="{Y(lo)+30:.1f}" class="hl" text-anchor="middle">أدنى {lo:,.0f}</text>')
+    def hl_x(i):
+        x = X(i)
+        return (x - 12, 'end') if x > right - 90 else (x + 12, 'start') if x < left + 90 else (x, 'middle')
+    hx, ha = hl_x(ih); lx, la = hl_x(il)
+    svg.append(f'<text x="{hx:.1f}" y="{Y(hi)-14:.1f}" class="hl" text-anchor="{ha}" direction="ltr">{hi:,.0f} أعلى</text>')
+    svg.append(f'<text x="{lx:.1f}" y="{Y(lo)+30:.1f}" class="hl" text-anchor="{la}" direction="ltr">{lo:,.0f} أدنى</text>')
     # current price line
     yl = Y(last)
     svg.append(f'<line x1="{left}" x2="{right+12}" y1="{yl:.1f}" y2="{yl:.1f}" stroke="{C["signal"]}" stroke-width="2" stroke-dasharray="3 5"/>')
 
     # right column chips (levels + last price), de-overlapped
-    chips = [(p, kind, label) for p, kind, label in levels] + [(last, "price", "📍 السعر")]
+    chips = [(p, kind, label) for p, kind, label in levels] + [(last, "price", args.price_label)]
     chips.sort(key=lambda c: -c[0])
     placed = []
     for p, kind, label in chips:
@@ -188,7 +198,7 @@ svg{{position:absolute;top:0;left:0}}
 .foot{{position:absolute;bottom:40px;right:56px;left:56px;display:flex;justify-content:space-between;font-size:22px;color:{C['muted']}}}
 </style></head><body><div class="bar"></div>
 <div class="head"><div><div class="title">{html.escape(args.title)}</div>
-<div class="sub">سباكس · شموع {args.tf} دقايق · {date_ar} · آخر بيانات <b>{h12(data_t)}</b> بتوقيت الرياض</div></div>
+<div class="sub">شموع {args.tf} دقايق · {date_ar} · آخر بيانات <b>{h12(data_t)}</b> الرياض</div></div>
 <div class="brand">Option<span>Lap</span></div></div>{note}
 <svg width="{W}" height="{H}">{''.join(svg)}</svg>
 {''.join(chip_html)}
@@ -213,7 +223,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sym", default="_SPX"); ap.add_argument("--json")
     ap.add_argument("--tf", type=int, default=5); ap.add_argument("--size", default="1080x1350")
-    ap.add_argument("--title", default="سباكس بين الجدارين"); ap.add_argument("--note", default="")
+    ap.add_argument("--title", default="سباكس بين الجدارين"); ap.add_argument("--note", default=""); ap.add_argument("--price-label", default="📍 السعر")
     ap.add_argument("--level", action="append", default=[]); ap.add_argument("--zone", action="append", default=[])
     ap.add_argument("--out", required=True); ap.add_argument("--html", help="also keep the HTML here")
     a = ap.parse_args()
