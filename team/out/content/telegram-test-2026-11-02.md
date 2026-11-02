@@ -14,7 +14,7 @@
 ```
 
 ## نتيجة الفحص (قراءة فقط — getMe / getChat، بدون نشر، بدون طباعة التوكن)
-- البوت: `@Rashed_alnuqayr_bot` (الاسم: Six Flags) — شغّال ✅
+- البوت: بوت القناة — شغّال ✅
 - `@OptionLap` → قناة باسم "Treder" (من متغيّر البيئة TELEGRAM_CHANNEL_ID)
 - `@sixfllag` → سوبر‑قروب باسم "Trading" (من دليل الشركة)
 
