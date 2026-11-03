@@ -21,6 +21,17 @@ C = dict(surface="#0E1116", raised="#161B22", line="#2A3442", ink="#F3F6F8", mut
          wall_soft="#3A1A1D", support_soft="#0F2A1C", flow_soft="#0F2238", signal_soft="#33260A",
          g1="#05B36B", g2="#057A64", g3="#078A92", g4="#05505C")
 
+# Draft themes for brand v1.2 (not approved yet). "night" is the approved v1.1 palette.
+THEMES = {
+    "neon": dict(surface="#050607", raised="#0B0E12", line="#1A2129", ink="#F5F7FA", muted="#8E99A6",
+                 wall="#FF3B47", support="#00E58A", flow="#2EC5FF", signal="#FFC21A",
+                 wall_soft="#2A0A0E", support_soft="#032619", flow_soft="#06202C", signal_soft="#2B2006"),
+    "violet": dict(surface="#050607", raised="#0B0E12", line="#1A2129", ink="#F5F7FA", muted="#8E99A6",
+                   wall="#FF3B47", support="#00E58A", flow="#9B6BFF", signal="#FFC21A",
+                   wall_soft="#2A0A0E", support_soft="#032619", flow_soft="#1A1033", signal_soft="#2B2006"),
+}
+GLOW = {"on": False}
+
 
 def et_offset(day):
     """Hours from US Eastern to Riyadh (UTC+3). EDT (UTC-4) -> 7, EST (UTC-5) -> 8."""
@@ -119,7 +130,7 @@ def build(args, ts, candles):
     for p, kind, label in levels:
         if ymin <= p <= ymax:
             y = Y(p)
-            svg.append(f'<line x1="{left}" x2="{right+12}" y1="{y:.1f}" y2="{y:.1f}" stroke="{C[kind]}" stroke-width="3" stroke-dasharray="{"" if kind in ("wall","support") else "10 7"}"/>')
+            svg.append(f'<line x1="{left}" x2="{right+12}" y1="{y:.1f}" y2="{y:.1f}" stroke="{C[kind]}" stroke-width="3" {'filter="url(#glow)"' if GLOW["on"] else ''} stroke-dasharray="{"" if kind in ("wall","support") else "10 7"}"/>')
     # candles: up hollow ink, down filled muted
     for i, (t, o, h, l, c) in enumerate(candles):
         x = X(i); up = c >= o
@@ -200,7 +211,7 @@ svg{{position:absolute;top:0;left:0}}
 <div class="head"><div><div class="title">{html.escape(args.title)}</div>
 <div class="sub">شموع {args.tf} دقايق · {date_ar} · آخر بيانات <b>{h12(data_t)}</b> الرياض</div></div>
 <div class="brand">Option<span>Lap</span></div></div>{note}
-<svg width="{W}" height="{H}">{''.join(svg)}</svg>
+<svg width="{W}" height="{H}"><defs><filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{H}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>{''.join(svg)}</svg>
 {''.join(chip_html)}
 <div class="axis">الوقت بتوقيت الرياض، مساءً</div>
 <div class="foot"><span>المصدر: CBOE، بيانات متأخرة ~15 دقيقة · المستويات تقريبية من بيانات الأوبشن</span><span>للتعليم فقط وليست توصية</span></div>
@@ -224,9 +235,11 @@ def main():
     ap.add_argument("--sym", default="_SPX"); ap.add_argument("--json")
     ap.add_argument("--tf", type=int, default=5); ap.add_argument("--size", default="1080x1350")
     ap.add_argument("--title", default="سباكس بين الجدارين"); ap.add_argument("--note", default=""); ap.add_argument("--price-label", default="📍 السعر")
+    ap.add_argument("--theme", default="night", choices=["night", *THEMES])
     ap.add_argument("--level", action="append", default=[]); ap.add_argument("--zone", action="append", default=[])
     ap.add_argument("--out", required=True); ap.add_argument("--html", help="also keep the HTML here")
     a = ap.parse_args()
+    if a.theme != "night": C.update(THEMES[a.theme]); GLOW["on"] = True
     ts, bars = load(a.sym, a.json)
     if not bars: sys.exit("no intraday bars (market closed or data empty)")
     candles = resample(bars, a.tf)
