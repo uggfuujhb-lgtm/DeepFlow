@@ -21,7 +21,7 @@ C = dict(surface="#0E1116", raised="#161B22", line="#2A3442", ink="#F3F6F8", mut
          wall_soft="#3A1A1D", support_soft="#0F2A1C", flow_soft="#0F2238", signal_soft="#33260A",
          g1="#05B36B", g2="#057A64", g3="#078A92", g4="#05505C")
 
-# Draft themes for brand v1.2 (not approved yet). "night" is the approved v1.1 palette.
+# Brand v1.2 (approved Nov 3): "neon" is the default. "night" keeps the v1.1 palette; "violet" is a rejected draft.
 THEMES = {
     "neon": dict(surface="#050607", raised="#0B0E12", line="#1A2129", ink="#F5F7FA", muted="#8E99A6",
                  wall="#FF3B47", support="#00E58A", flow="#2EC5FF", signal="#FFC21A",
@@ -235,7 +235,7 @@ def main():
     ap.add_argument("--sym", default="_SPX"); ap.add_argument("--json")
     ap.add_argument("--tf", type=int, default=5); ap.add_argument("--size", default="1080x1350")
     ap.add_argument("--title", default="سباكس بين الجدارين"); ap.add_argument("--note", default=""); ap.add_argument("--price-label", default="📍 السعر")
-    ap.add_argument("--theme", default="night", choices=["night", *THEMES])
+    ap.add_argument("--theme", default="neon", choices=["night", *THEMES])
     ap.add_argument("--level", action="append", default=[]); ap.add_argument("--zone", action="append", default=[])
     ap.add_argument("--out", required=True); ap.add_argument("--html", help="also keep the HTML here")
     a = ap.parse_args()
