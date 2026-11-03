@@ -20,6 +20,9 @@ for o in d["options"]:
     if not m: continue
     rows.append((m["exp"], m["cp"], int(m["k"]) / 1000, o))
 exps = sorted({r[0] for r in rows})
+# drop expiries already past (CBOE keeps yesterday's chain until it rolls)
+today = (raw.get("timestamp") or "")[:10].replace("-", "")[2:]
+if today: exps = [e for e in exps if e >= today] or exps
 if want == "next": sel = {exps[0]}
 elif want == "all": sel = set(exps)
 else: sel = {want}
