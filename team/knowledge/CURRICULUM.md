@@ -6,7 +6,7 @@
 
 ## المسار 1: نظرية المزاد (Auction Market Theory)
 - [x] 1.1 منطقة البزنس، والقيمة، والـPOC ← business-area.md
-- [ ] 1.2 أصول نظرية المزاد: ستيدلماير والـMarket Profile ورسم TPO
+- [x] 1.2 أصول نظرية المزاد: ستيدلماير والـMarket Profile ورسم TPO ← market-profile-tpo.md (الأداة tpo.py)
 - [ ] 1.3 التوازن وعدم التوازن (Balance / Imbalance) وكيف ينتقل السوق بينهم
 - [ ] 1.4 أنواع الأيام: Trend وNormal وNeutral وDouble Distribution
 - [ ] 1.5 Initial Balance وعلاقته بالأوبن رينج
