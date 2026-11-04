@@ -10,6 +10,8 @@ Studies:
                    next-day returns, and how often the failed extreme is revisited within 5 days
   bracket_break    close beyond the prior 10-day high/low (leaving a multi-day bracket) -> next 1 and 5 day returns
   open_location    open above yesterday's high / below its low / inside -> open-to-close direction (OTF proxy)
+  plan_open        day-plan stats: open inside yday range -> touches yday midpoint?; open above/below ->
+                   trades back into yday range (rejection) and how it closes
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -124,6 +126,20 @@ elif a.study == "open_location":
     summ("ALL days open→close        ", [x for g in groups.values() for x in g])
     for k in ("above", "below", "inside"):
         summ(f"OPEN {k:6} yday range open→close", groups[k])
+elif a.study == "plan_open":
+    ins = mid = 0; res = {"above": [0, 0, [], []], "below": [0, 0, [], []]}
+    for i in range(1, len(D)):
+        _, o, h, l, c = D[i]; ph, pl = D[i - 1][2], D[i - 1][3]; m = (ph + pl) / 2
+        if pl <= o <= ph:
+            ins += 1; mid += l <= m <= h
+        else:
+            k = "above" if o > ph else "below"; r = res[k]; r[0] += 1
+            back = (l <= ph) if k == "above" else (h >= pl)
+            r[1] += back; (r[2] if back else r[3]).append(100 * (c / o - 1))
+    print(f"open INSIDE yday range: n={ins}  touched yday midpoint same day {100*mid/ins:.1f}%")
+    for k, (n, b, rb, ra) in res.items():
+        print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
+        summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
 else:
     sys.exit("unknown study")
 print("للتعليم فقط وليست توصية. بدون تكاليف، وبيانات يومية بس.")
