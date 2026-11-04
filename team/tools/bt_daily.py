@@ -8,6 +8,7 @@ Studies:
   trend_day        trend-day proxy: range >= 1.5x median of prior 20 days and close in top/bottom 10% -> next day
   failed_auction   look above/below yesterday's extreme and fail (close back inside) vs acceptance (close outside):
                    next-day returns, and how often the failed extreme is revisited within 5 days
+  bracket_break    close beyond the prior 10-day high/low (leaving a multi-day bracket) -> next 1 and 5 day returns
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -101,6 +102,18 @@ elif a.study == "failed_auction":
         lab = "above yday high" if side == "up" else "below yday low "
         summ(f"FAILED {lab} next close→close", fail); summ(f"ACCEPT {lab} next close→close", acc)
         print(f"  extreme revisited within 5 days: failed {100*rev/max(len(fail),1):.1f}% (n={len(fail)})  accepted {100*revb/max(len(acc),1):.1f}% (n={len(acc)})")
+elif a.study == "bracket_break":
+    b1 = [100 * (D[i + 1][4] / D[i][4] - 1) for i in range(10, len(D) - 5)]
+    b5 = [100 * (D[i + 5][4] / D[i][4] - 1) for i in range(10, len(D) - 5)]
+    summ("ALL days next 1d", b1); summ("ALL days next 5d", b5)
+    for side in ("up", "down"):
+        r1, r5 = [], []
+        for i in range(10, len(D) - 5):
+            hh = max(d[2] for d in D[i - 10:i]); ll = min(d[3] for d in D[i - 10:i]); c = D[i][4]
+            if (side == "up" and c > hh) or (side == "down" and c < ll):
+                r1.append(100 * (D[i + 1][4] / c - 1)); r5.append(100 * (D[i + 5][4] / c - 1))
+        summ(f"CLOSE {'above 10d high' if side=='up' else 'below 10d low '} next 1d", r1)
+        summ(f"CLOSE {'above 10d high' if side=='up' else 'below 10d low '} next 5d", r5)
 else:
     sys.exit("unknown study")
 print("للتعليم فقط وليست توصية. بدون تكاليف، وبيانات يومية بس.")

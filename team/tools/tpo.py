@@ -6,19 +6,20 @@ Each 30-minute period gets a letter (A = 9:30-10:00 ET). Source: team/data/intra
 import argparse, csv, gzip, math, os, string
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ap = argparse.ArgumentParser(); ap.add_argument("day"); ap.add_argument("--tick", type=float, default=2.5)
+ap = argparse.ArgumentParser(); ap.add_argument("day", help="YYYY-MM-DD, or several comma-separated days for a composite"); ap.add_argument("--tick", type=float, default=2.5)
 ap.add_argument("--va", type=float, default=0.70); ap.add_argument("--structure", action="store_true"); a = ap.parse_args()
-rows = list(csv.DictReader(gzip.open(os.path.join(ROOT, "team/data/intraday", f"{a.day}_SPX.csv.gz"), "rt")))
 per = {}
-for r in rows:
+for di, day in enumerate(a.day.split(",")):
+  rows = list(csv.DictReader(gzip.open(os.path.join(ROOT, "team/data/intraday", f"{day}_SPX.csv.gz"), "rt")))
+  for r in rows:
     hh, mm = int(r["datetime_et"][11:13]), int(r["datetime_et"][14:16])
-    k = ((hh * 60 + mm) - (9 * 60 + 30)) // 30
+    k = di * 13 + ((hh * 60 + mm) - (9 * 60 + 30)) // 30
     lo, hi = per.get(k, (1e9, -1e9)); per[k] = (min(lo, float(r["low"])), max(hi, float(r["high"])))
 prof = {}
 for k, (lo, hi) in sorted(per.items()):
     p = math.floor(lo / a.tick) * a.tick
     while p <= hi:
-        prof.setdefault(round(p, 2), []).append(string.ascii_uppercase[k]); p += a.tick
+        prof.setdefault(round(p, 2), []).append((string.ascii_uppercase + string.ascii_lowercase)[k % 52]); p += a.tick
 prices = sorted(prof); total = sum(len(v) for v in prof.values())
 mid = sum(prices) / len(prices)
 poc = max(prices, key=lambda p: (len(prof[p]), -abs(p - mid)))
