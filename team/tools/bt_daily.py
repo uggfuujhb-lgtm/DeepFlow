@@ -6,6 +6,8 @@ Studies:
   gap_fill         gaps >= 0.5% -> how often the gap fills the same day
   range            daily range (high-low)/prev close distribution
   trend_day        trend-day proxy: range >= 1.5x median of prior 20 days and close in top/bottom 10% -> next day
+  failed_auction   look above/below yesterday's extreme and fail (close back inside) vs acceptance (close outside):
+                   next-day returns, and how often the failed extreme is revisited within 5 days
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -79,6 +81,26 @@ elif a.study == "trend_day":
     summ("ALL days next close→close", base)
     for side in ("up", "down"):
         summ(f"TREND {side:4} next close→close", out[side][0]); summ(f"TREND {side:4} next open→close ", out[side][1])
+elif a.study == "failed_auction":
+    base = [100 * (D[i + 1][4] / D[i][4] - 1) for i in range(1, len(D) - 1)]
+    summ("ALL days        next close→close", base)
+    for side in ("up", "down"):
+        fail, acc, rev, revb = [], [], 0, 0
+        for i in range(1, len(D) - 6):
+            _, o, h, l, c = D[i]; ph, pl = D[i - 1][2], D[i - 1][3]; nxt = 100 * (D[i + 1][4] / c - 1)
+            if side == "up" and h > ph:
+                if c < ph:
+                    fail.append(nxt); rev += any(D[k][2] > h for k in range(i + 1, i + 6))
+                else:
+                    acc.append(nxt); revb += any(D[k][2] > h for k in range(i + 1, i + 6))
+            if side == "down" and l < pl:
+                if c > pl:
+                    fail.append(nxt); rev += any(D[k][3] < l for k in range(i + 1, i + 6))
+                else:
+                    acc.append(nxt); revb += any(D[k][3] < l for k in range(i + 1, i + 6))
+        lab = "above yday high" if side == "up" else "below yday low "
+        summ(f"FAILED {lab} next close→close", fail); summ(f"ACCEPT {lab} next close→close", acc)
+        print(f"  extreme revisited within 5 days: failed {100*rev/max(len(fail),1):.1f}% (n={len(fail)})  accepted {100*revb/max(len(acc),1):.1f}% (n={len(acc)})")
 else:
     sys.exit("unknown study")
 print("للتعليم فقط وليست توصية. بدون تكاليف، وبيانات يومية بس.")
