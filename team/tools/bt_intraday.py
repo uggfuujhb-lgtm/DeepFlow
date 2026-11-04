@@ -3,6 +3,8 @@
 Usage: python3 team/tools/bt_intraday.py daytype
   daytype: classify each archived day by Initial Balance (first hour, 9:30-10:30 ET) extension
            (Dalton-style heuristics): normal / normal variation / trend / neutral (+extreme).
+  opentype: classify the first 30 minutes (9:30-10:00 ET) as open-drive / open-test-drive /
+           open-rejection-reverse / open-auction (heuristic), plus where it opened vs the prior day's range.
   ib:      per day: 15-min opening range vs 1-hour Initial Balance, which IB side broke first (and when),
            whether both sides broke, extension as a multiple of IB, close vs IB midpoint.
 Sample grows by one day per session; below 30 days results are anecdotal.
@@ -58,7 +60,40 @@ def ib_study(rows):
                 close_vs_mid="above" if c > mid else "below", close=round(c, 2))
 
 
+def open_type(rows, prev=None, tol=2.0):
+    t = lambda r: r["datetime_et"][11:16]
+    first = [r for r in rows if t(r) < "10:00"]
+    o = float(first[0]["open"]); hi = max(float(r["high"]) for r in first); lo = min(float(r["low"]) for r in first)
+    c30 = float(first[-1]["close"]); up, dn = hi - o, o - lo
+    # did price trade back through the open after the first 5 minutes?
+    later = [r for r in first if t(r) >= "09:35"]
+    back_up = any(float(r["low"]) < o - tol for r in later); back_dn = any(float(r["high"]) > o + tol for r in later)
+    if up >= 3 * max(dn, tol) and not back_up and c30 > o: typ = "open-drive up"
+    elif dn >= 3 * max(up, tol) and not back_dn and c30 < o: typ = "open-drive down"
+    elif min(up, dn) > tol and max(up, dn) >= 2.5 * min(up, dn):
+        # probed the small side first, then went the big side
+        typ = "open-test-drive " + ("up" if up > dn and c30 > o else "down" if dn > up and c30 < o else "?")
+        if typ.endswith("?"): typ = "open-rejection-reverse"
+    elif (up > tol and c30 < o - tol) or (dn > tol and c30 > o + tol):
+        typ = "open-rejection-reverse"
+    else:
+        typ = "open-auction"
+    loc = None
+    if prev:
+        ph = max(float(r["high"]) for r in prev); pl = min(float(r["low"]) for r in prev)
+        loc = "above prior range" if o > ph else "below prior range" if o < pl else "inside prior range"
+    c = float(rows[-1]["close"])
+    return dict(open=round(o, 2), first30=f"{lo:.1f}-{hi:.1f}", type=typ, open_location=loc, close=round(c, 2),
+                open_to_close=round(c - o, 1))
+
+
 if __name__ == "__main__":
+    if (sys.argv[1:] or [""])[0] == "opentype":
+        prev = None; n = 0
+        for d, rows in days():
+            n += 1; print(d, open_type(rows, prev)); prev = rows
+        print(f"n={n} day(s)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
+        sys.exit()
     if (sys.argv[1:] or [""])[0] == "ib":
         n = 0
         for d, rows in days():

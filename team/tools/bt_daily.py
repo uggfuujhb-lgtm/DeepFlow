@@ -9,6 +9,7 @@ Studies:
   failed_auction   look above/below yesterday's extreme and fail (close back inside) vs acceptance (close outside):
                    next-day returns, and how often the failed extreme is revisited within 5 days
   bracket_break    close beyond the prior 10-day high/low (leaving a multi-day bracket) -> next 1 and 5 day returns
+  open_location    open above yesterday's high / below its low / inside -> open-to-close direction (OTF proxy)
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -114,6 +115,15 @@ elif a.study == "bracket_break":
                 r1.append(100 * (D[i + 1][4] / c - 1)); r5.append(100 * (D[i + 5][4] / c - 1))
         summ(f"CLOSE {'above 10d high' if side=='up' else 'below 10d low '} next 1d", r1)
         summ(f"CLOSE {'above 10d high' if side=='up' else 'below 10d low '} next 5d", r5)
+elif a.study == "open_location":
+    groups = {"above": [], "below": [], "inside": []}
+    for i in range(1, len(D)):
+        _, o, h, l, c = D[i]; ph, pl = D[i - 1][2], D[i - 1][3]
+        k = "above" if o > ph else "below" if o < pl else "inside"
+        groups[k].append(100 * (c / o - 1))
+    summ("ALL days open→close        ", [x for g in groups.values() for x in g])
+    for k in ("above", "below", "inside"):
+        summ(f"OPEN {k:6} yday range open→close", groups[k])
 else:
     sys.exit("unknown study")
 print("للتعليم فقط وليست توصية. بدون تكاليف، وبيانات يومية بس.")

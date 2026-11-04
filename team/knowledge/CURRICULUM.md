@@ -13,7 +13,7 @@
 - [x] 1.6 القبول والرفض والمزاد الفاشل ← acceptance-rejection.md (bt_daily.py failed_auction)
 - [x] 1.7 Poor highs/lows، والـSingle prints، والـExcess ← poor-highs-single-prints.md (tpo.py --structure)
 - [x] 1.8 Composite Profile ومناطق القيمة متعددة الأيام ← composite-profile.md (tpo.py مركّب + bt_daily.py bracket_break)
-- [ ] 1.9 من يتحكم: Other Timeframe ضد Day Timeframe
+- [x] 1.9 من يتحكم: Other Timeframe ضد Day Timeframe ← otf-vs-dtf.md (bt_intraday.py opentype + bt_daily.py open_location)
 - [ ] 1.10 خطة يوم كاملة من نظرية المزاد بس
 
 ## المسار 2: الأوردر فلو
