@@ -11,7 +11,7 @@
 - [x] 1.4 أنواع الأيام ← day-types.md (bt_intraday.py daytype + bt_daily.py trend_day)
 - [x] 1.5 Initial Balance وعلاقته بالأوبن رينج ← initial-balance.md (bt_intraday.py ib)
 - [x] 1.6 القبول والرفض والمزاد الفاشل ← acceptance-rejection.md (bt_daily.py failed_auction)
-- [ ] 1.7 Poor highs/lows، والـSingle prints، والـExcess
+- [x] 1.7 Poor highs/lows، والـSingle prints، والـExcess ← poor-highs-single-prints.md (tpo.py --structure)
 - [ ] 1.8 Composite Profile ومناطق القيمة متعددة الأيام
 - [ ] 1.9 من يتحكم: Other Timeframe ضد Day Timeframe
 - [ ] 1.10 خطة يوم كاملة من نظرية المزاد بس
