@@ -3,6 +3,8 @@
 Usage: python3 team/tools/bt_intraday.py daytype
   daytype: classify each archived day by Initial Balance (first hour, 9:30-10:30 ET) extension
            (Dalton-style heuristics): normal / normal variation / trend / neutral (+extreme).
+  ib:      per day: 15-min opening range vs 1-hour Initial Balance, which IB side broke first (and when),
+           whether both sides broke, extension as a multiple of IB, close vs IB midpoint.
 Sample grows by one day per session; below 30 days results are anecdotal.
 """
 import csv, glob, gzip, os, sys
@@ -37,8 +39,32 @@ def daytype(rows):
                 ext_x_ib=round(ext, 2), close_pos=round(pos, 2), type=t)
 
 
+def ib_study(rows):
+    t = lambda r: r["datetime_et"][11:16]
+    orr = [r for r in rows if t(r) < "09:45"]; ib = [r for r in rows if t(r) < "10:30"]; rest = [r for r in rows if t(r) >= "10:30"]
+    hi = lambda rs: max(float(r["high"]) for r in rs); lo = lambda rs: min(float(r["low"]) for r in rs)
+    orh, orl, ibh, ibl = hi(orr), lo(orr), hi(ib), lo(ib)
+    first = None; up_t = dn_t = None
+    for r in rest:
+        if up_t is None and float(r["high"]) > ibh: up_t = t(r)
+        if dn_t is None and float(r["low"]) < ibl: dn_t = t(r)
+    if up_t or dn_t:
+        first = "up" if (up_t and (not dn_t or up_t <= dn_t)) else "down"
+    c = float(rows[-1]["close"]); mid = (ibh + ibl) / 2; ibr = ibh - ibl
+    ext = max(max(0, hi(rest) - ibh), max(0, ibl - lo(rest))) / ibr if rest and ibr else 0
+    return dict(or15=f"{orl:.1f}-{orh:.1f} ({orh-orl:.1f})", ib=f"{ibl:.1f}-{ibh:.1f} ({ibr:.1f})",
+                or_share_of_ib=f"{100*(orh-orl)/ibr:.0f}%", first_break=first, up_at=up_t, down_at=dn_t,
+                both=bool(up_t and dn_t), ext_x_ib=round(ext, 2),
+                close_vs_mid="above" if c > mid else "below", close=round(c, 2))
+
+
 if __name__ == "__main__":
-    if (sys.argv[1:] or ["daytype"])[0] == "daytype":
+    if (sys.argv[1:] or [""])[0] == "ib":
+        n = 0
+        for d, rows in days():
+            n += 1; print(d, ib_study(rows))
+        print(f"n={n} day(s)  (times ET; IB = 9:30-10:30 ET = 5:30-6:30 PM Riyadh)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
+    elif (sys.argv[1:] or ["daytype"])[0] == "daytype":
         n = 0
         for d, rows in days():
             n += 1; print(d, daytype(rows))
