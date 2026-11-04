@@ -5,6 +5,7 @@ Studies:
   close_near_low   down day closing in the bottom 10% of its range -> next day returns vs all days
   gap_fill         gaps >= 0.5% -> how often the gap fills the same day
   range            daily range (high-low)/prev close distribution
+  inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
 """
@@ -51,6 +52,19 @@ elif a.study == "range":
     r = sorted(100 * (d[2] - d[3]) / D[i - 1][4] for i, d in enumerate(D) if i)
     q = lambda p: r[int(p * (len(r) - 1))]
     print(f"daily range %: p25={q(.25):.2f} median={q(.5):.2f} p75={q(.75):.2f} p90={q(.9):.2f} p99={q(.99):.2f}")
+elif a.study == "inside_day":
+    rng = lambda i: 100 * (D[i][2] - D[i][3]) / D[i - 1][4]
+    base = [rng(i + 1) for i in range(1, len(D) - 1)]
+    sig, up, dn, both, none = [], 0, 0, 0, 0
+    for i in range(1, len(D) - 1):
+        if D[i][2] < D[i - 1][2] and D[i][3] > D[i - 1][3]:
+            sig.append(rng(i + 1)); n = D[i + 1]
+            u, d = n[2] > D[i][2], n[3] < D[i][3]
+            both += u and d; up += u and not d; dn += d and not u; none += not (u or d)
+    med = lambda xs: sorted(xs)[len(xs) // 2]
+    print(f"next-day range: ALL median {med(base):.2f}% (n={len(base)})  AFTER INSIDE DAY median {med(sig):.2f}% (n={len(sig)})")
+    t = len(sig)
+    print(f"next day vs inside range: broke up only {100*up/t:.1f}%  down only {100*dn/t:.1f}%  both {100*both/t:.1f}%  stayed inside {100*none/t:.1f}%")
 else:
     sys.exit("unknown study")
 print("للتعليم فقط وليست توصية. بدون تكاليف، وبيانات يومية بس.")
