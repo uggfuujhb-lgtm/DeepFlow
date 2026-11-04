@@ -5,6 +5,7 @@ Studies:
   close_near_low   down day closing in the bottom 10% of its range -> next day returns vs all days
   gap_fill         gaps >= 0.5% -> how often the gap fills the same day
   range            daily range (high-low)/prev close distribution
+  trend_day        trend-day proxy: range >= 1.5x median of prior 20 days and close in top/bottom 10% -> next day
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -65,6 +66,19 @@ elif a.study == "inside_day":
     print(f"next-day range: ALL median {med(base):.2f}% (n={len(base)})  AFTER INSIDE DAY median {med(sig):.2f}% (n={len(sig)})")
     t = len(sig)
     print(f"next day vs inside range: broke up only {100*up/t:.1f}%  down only {100*dn/t:.1f}%  both {100*both/t:.1f}%  stayed inside {100*none/t:.1f}%")
+elif a.study == "trend_day":
+    R = [None] + [100 * (D[i][2] - D[i][3]) / D[i - 1][4] for i in range(1, len(D))]
+    out = {"up": ([], []), "down": ([], [])}; base = []
+    for i in range(21, len(D) - 1):
+        _, o, h, l, c = D[i]; n = D[i + 1]; med = sorted(R[i - 20:i])[10]
+        cc = 100 * (n[4] / c - 1); base.append(cc)
+        if R[i] < 1.5 * med or h == l: continue
+        pos = (c - l) / (h - l)
+        side = "up" if pos >= 0.9 and c > D[i - 1][4] else "down" if pos <= 0.1 and c < D[i - 1][4] else None
+        if side: out[side][0].append(cc); out[side][1].append(100 * (n[4] / n[1] - 1))
+    summ("ALL days next close→close", base)
+    for side in ("up", "down"):
+        summ(f"TREND {side:4} next close→close", out[side][0]); summ(f"TREND {side:4} next open→close ", out[side][1])
 else:
     sys.exit("unknown study")
 print("للتعليم فقط وليست توصية. بدون تكاليف، وبيانات يومية بس.")

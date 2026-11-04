@@ -8,7 +8,7 @@
 - [x] 1.1 منطقة البزنس، والقيمة، والـPOC ← business-area.md
 - [x] 1.2 أصول نظرية المزاد: ستيدلماير والـMarket Profile ورسم TPO ← market-profile-tpo.md (الأداة tpo.py)
 - [x] 1.3 التوازن وعدم التوازن ← balance-imbalance.md (باك تست: inside_day)
-- [ ] 1.4 أنواع الأيام: Trend وNormal وNeutral وDouble Distribution
+- [x] 1.4 أنواع الأيام ← day-types.md (bt_intraday.py daytype + bt_daily.py trend_day)
 - [ ] 1.5 Initial Balance وعلاقته بالأوبن رينج
 - [ ] 1.6 القبول والرفض (Acceptance / Rejection) والمزاد الفاشل
 - [ ] 1.7 Poor highs/lows، والـSingle prints، والـExcess
