@@ -10,6 +10,9 @@ Usage: python3 team/tools/bt_intraday.py daytype
   vwap:    SPX has no volume, so a time-weighted proxy (TWAP of typical price, cumulative from the open) with
            ±1 sd bands. After the first 30 min: how often the close crosses the line, % of minutes above it,
            and whether the 10:00 ET side (above/below) held to the close (known only at 10:00, no look-ahead).
+  flowdelta: footprint proxy. Per 5-min bar, SPX options (calls_volume - puts_volume)/(calls+puts). Correlation with
+           the same bar's move, and the NEXT bar's move after the top/bottom 20% imbalance bars (thresholds from
+           the whole sample, so mildly in-sample), vs all bars as baseline.
 Sample grows by one day per session; below 30 days results are anecdotal.
 """
 import csv, glob, gzip, os, sys
@@ -114,6 +117,29 @@ if __name__ == "__main__":
         for d, rows in days():
             n += 1; print(d, open_type(rows, prev)); prev = rows
         print(f"n={n} day(s)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
+        sys.exit()
+    if (sys.argv[1:] or [""])[0] == "flowdelta":
+        import statistics as st
+        X, S, Y = [], [], []
+        for d, rows in days():
+            b = []
+            for i in range(0, len(rows) - 4, 5):
+                g = rows[i:i + 5]; cv = sum(float(x["calls_volume"] or 0) for x in g); pv = sum(float(x["puts_volume"] or 0) for x in g)
+                b.append((float(g[0]["open"]), float(g[-1]["close"]), (cv - pv) / max(1.0, cv + pv)))
+            for k in range(len(b) - 1):
+                X.append(b[k][2]); S.append(b[k][1] - b[k][0]); Y.append(b[k + 1][1] - b[k + 1][0])
+        def corr(a, c):
+            ma, mc = st.mean(a), st.mean(c); num = sum((x - ma) * (y - mc) for x, y in zip(a, c))
+            return num / (sum((x - ma) ** 2 for x in a) * sum((y - mc) ** 2 for y in c)) ** 0.5
+        def summ(name, ys):
+            sd = st.stdev(ys); t = st.mean(ys) / (sd / len(ys) ** 0.5)
+            print(f"{name}: n={len(ys)} mean={st.mean(ys):+.2f} median={st.median(ys):+.2f} up={sum(y > 0 for y in ys) / len(ys):.1%} sd={sd:.2f} t={t:+.2f}")
+        q = sorted(X); lo, hi = q[int(0.2 * len(q))], q[int(0.8 * len(q))]
+        print(f"corr(imbalance, same bar move)={corr(X, S):+.3f}  corr(imbalance, next bar move)={corr(X, Y):+.3f}")
+        summ("all bars (next)", Y)
+        summ("calls-heavy top 20% (next)", [y for x, y in zip(X, Y) if x >= hi])
+        summ("puts-heavy bottom 20% (next)", [y for x, y in zip(X, Y) if x <= lo])
+        n = len(list(days())); print(f"days={n} (points, no costs)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
         sys.exit()
     if (sys.argv[1:] or [""])[0] == "vwap":
         n = 0; held = 0
