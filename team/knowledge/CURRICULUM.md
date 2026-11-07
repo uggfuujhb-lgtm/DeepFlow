@@ -22,7 +22,7 @@
 - [x] 2.3 VWAP وانحرافاته: متى يكون مغناطيس، ومتى يكون جدار ← vwap.md (bt_intraday.py vwap، تقريب TWAP)
 - [x] 2.4 الفوتبرنت: Bid×Ask، والدلتا لكل شمعة، والـImbalance ← footprint.md (bt_intraday.py flowdelta، بديل من تدفق الأوبشن)
 - [x] 2.5 الـCVD والدلتا التراكمية والتباعد (Divergence) ← cvd-divergence.md (bt_intraday.py cvd، بديل من تدفق الأوبشن)
-- [ ] 2.6 الامتصاص (Absorption) والإنهاك (Exhaustion)
+- [x] 2.6 الامتصاص (Absorption) والإنهاك (Exhaustion) ← absorption-exhaustion.md (bt_intraday.py absorb)
 - [ ] 2.7 Icebergs، والسحب والتعبئة (Spoofing / Pulling)، وقراءة الهيت ماب
 - [ ] 2.8 طريقة فابيو: Direction ← Location ← Aggression (من المصادر العامة)
 - [ ] 2.9 إدارة المخاطرة عند السكالبرز: 0.25%، وأين الوقف، ونسب العائد

@@ -16,6 +16,10 @@ Usage: python3 team/tools/bt_intraday.py daytype
   cvd:     CVD proxy = cumulative (calls_volume - puts_volume) of SPX options on 5-min bars. After the first 30 min,
            each new session high/low is tagged divergent (CVD lower than at the previous high / higher than at the
            previous low) or confirmed; next-30-min move vs all bars (point-in-time, no look-ahead).
+  absorb:  absorption/exhaustion proxies on 5-min bars, thresholds from PRIOR bars of the same day only.
+           absorption = option volume >= 1.5x the day's average so far, body <= 0.5x median body so far, |calls-puts| >= 10%;
+           outcome = next-30-min move AGAINST the heavier side (points). exhaustion = new session high/low on volume
+           < 0.7x average so far; outcome = reversal points over the next 30 min.
 Sample grows by one day per session; below 30 days results are anecdotal.
 """
 import csv, glob, gzip, os, sys
@@ -127,6 +131,29 @@ if __name__ == "__main__":
             if prev is not None and not ok: r["open_location"] = "n/a (previous day not archived)"
             print(d, r); prev = rows; prevd = cur
         print(f"n={n} day(s)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
+        sys.exit()
+    if (sys.argv[1:] or [""])[0] == "absorb":
+        import statistics as st
+        A, E, base = [], [], []; nd = 0
+        for d, rows in days():
+            nd += 1; b = []
+            for i in range(0, len(rows) - 4, 5):
+                g = rows[i:i + 5]; cv = sum(float(x["calls_volume"] or 0) for x in g); pv = sum(float(x["puts_volume"] or 0) for x in g)
+                b.append(dict(o=float(g[0]["open"]), c=float(g[-1]["close"]), h=max(float(x["high"]) for x in g),
+                              l=min(float(x["low"]) for x in g), vol=cv + pv, imb=(cv - pv) / max(1.0, cv + pv)))
+            for k in range(6, len(b) - 6):
+                prev = b[:k]; avgv = st.mean(x["vol"] for x in prev); medb = st.median(abs(x["c"] - x["o"]) for x in prev)
+                x = b[k]; fwd = b[k + 6]["c"] - x["c"]; base.append(abs(fwd))
+                if x["vol"] >= 1.5 * avgv and abs(x["c"] - x["o"]) <= 0.5 * medb and abs(x["imb"]) >= 0.1:
+                    A.append(-fwd if x["imb"] > 0 else fwd)
+                if x["h"] > max(y["h"] for y in prev) and x["vol"] < 0.7 * avgv: E.append(-fwd)
+                if x["l"] < min(y["l"] for y in prev) and x["vol"] < 0.7 * avgv: E.append(fwd)
+        def summ(name, ys):
+            if len(ys) < 2: print(f"{name}: n={len(ys)} {ys}"); return
+            sd = st.stdev(ys); print(f"{name}: n={len(ys)} mean={st.mean(ys):+.2f} median={st.median(ys):+.2f} positive={sum(y > 0 for y in ys) / len(ys):.0%} sd={sd:.2f} t={st.mean(ys) / (sd / len(ys) ** 0.5):+.2f}")
+        print(f"baseline |next 30 min move| mean={st.mean(base):.2f} pts (n={len(base)})")
+        summ("absorption: move against heavier side", A); summ("exhaustion: reversal", E)
+        print(f"days={nd} (points, no costs)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if nd < 30 else ""))
         sys.exit()
     if (sys.argv[1:] or [""])[0] == "cvd":
         import statistics as st
