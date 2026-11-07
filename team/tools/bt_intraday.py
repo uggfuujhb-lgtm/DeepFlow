@@ -7,6 +7,9 @@ Usage: python3 team/tools/bt_intraday.py daytype
            open-rejection-reverse / open-auction (heuristic), plus where it opened vs the prior day's range.
   ib:      per day: 15-min opening range vs 1-hour Initial Balance, which IB side broke first (and when),
            whether both sides broke, extension as a multiple of IB, close vs IB midpoint.
+  vwap:    SPX has no volume, so a time-weighted proxy (TWAP of typical price, cumulative from the open) with
+           ±1 sd bands. After the first 30 min: how often the close crosses the line, % of minutes above it,
+           and whether the 10:00 ET side (above/below) held to the close (known only at 10:00, no look-ahead).
 Sample grows by one day per session; below 30 days results are anecdotal.
 """
 import csv, glob, gzip, os, sys
@@ -87,12 +90,36 @@ def open_type(rows, prev=None, tol=2.0):
                 open_to_close=round(c - o, 1))
 
 
+def vwap_study(rows):
+    import statistics as st
+    tp = [(float(r["high"]) + float(r["low"]) + float(r["close"])) / 3 for r in rows]
+    c = [float(r["close"]) for r in rows]
+    tw, s = [], 0.0
+    for i, v in enumerate(tp):
+        s += v; tw.append(s / (i + 1))
+    side = [1 if c[i] > tw[i] else -1 for i in range(len(c))]
+    crosses = sum(1 for i in range(31, len(c)) if side[i] != side[i - 1])
+    above = sum(1 for i in range(30, len(c)) if side[i] > 0) / max(1, len(c) - 30)
+    sd = st.pstdev(tp)
+    side10 = side[29] if len(c) > 30 else 0
+    held = (c[-1] > tw[-1]) == (side10 > 0)
+    return dict(twap_end=round(tw[-1], 2), sd=round(sd, 2), crosses=crosses, pct_above=round(above, 2),
+                side_at_10=("above" if side10 > 0 else "below"), side_held_to_close=held,
+                regime=("magnet (rotation)" if crosses >= 10 else "wall (one-sided)"))
+
+
 if __name__ == "__main__":
     if (sys.argv[1:] or [""])[0] == "opentype":
         prev = None; n = 0
         for d, rows in days():
             n += 1; print(d, open_type(rows, prev)); prev = rows
         print(f"n={n} day(s)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
+        sys.exit()
+    if (sys.argv[1:] or [""])[0] == "vwap":
+        n = 0; held = 0
+        for d, rows in days():
+            n += 1; r = vwap_study(rows); held += r["side_held_to_close"]; print(d, r)
+        print(f"n={n} day(s)  side at 10:00 ET held to close: {held}/{n}" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
         sys.exit()
     if (sys.argv[1:] or [""])[0] == "ib":
         n = 0
