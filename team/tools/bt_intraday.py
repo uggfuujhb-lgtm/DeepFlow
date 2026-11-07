@@ -113,9 +113,16 @@ def vwap_study(rows):
 
 if __name__ == "__main__":
     if (sys.argv[1:] or [""])[0] == "opentype":
-        prev = None; n = 0
+        import datetime as _dt
+        prev = None; prevd = None; n = 0
         for d, rows in days():
-            n += 1; print(d, open_type(rows, prev)); prev = rows
+            n += 1; cur = _dt.date.fromisoformat(d)
+            # only compare with the archive if it is the previous trading day (a missing day, e.g. Nov 5, breaks the chain)
+            gap = (cur - prevd).days if prevd else None
+            ok = gap == 1 or (gap == 3 and cur.weekday() == 0)
+            r = open_type(rows, prev if ok else None)
+            if prev is not None and not ok: r["open_location"] = "n/a (previous day not archived)"
+            print(d, r); prev = rows; prevd = cur
         print(f"n={n} day(s)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
         sys.exit()
     if (sys.argv[1:] or [""])[0] == "flowdelta":
