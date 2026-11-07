@@ -21,7 +21,7 @@
 - [x] 2.2 الفوليوم بروفايل بعمق: HVN وLVN، والجلسة ضد النطاق الثابت ← hvn-lvn.md (بروفايل الوقت، لأن SPX ما له فوليوم)
 - [x] 2.3 VWAP وانحرافاته: متى يكون مغناطيس، ومتى يكون جدار ← vwap.md (bt_intraday.py vwap، تقريب TWAP)
 - [x] 2.4 الفوتبرنت: Bid×Ask، والدلتا لكل شمعة، والـImbalance ← footprint.md (bt_intraday.py flowdelta، بديل من تدفق الأوبشن)
-- [ ] 2.5 الـCVD والدلتا التراكمية والتباعد (Divergence)
+- [x] 2.5 الـCVD والدلتا التراكمية والتباعد (Divergence) ← cvd-divergence.md (bt_intraday.py cvd، بديل من تدفق الأوبشن)
 - [ ] 2.6 الامتصاص (Absorption) والإنهاك (Exhaustion)
 - [ ] 2.7 Icebergs، والسحب والتعبئة (Spoofing / Pulling)، وقراءة الهيت ماب
 - [ ] 2.8 طريقة فابيو: Direction ← Location ← Aggression (من المصادر العامة)

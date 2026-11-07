@@ -13,6 +13,9 @@ Usage: python3 team/tools/bt_intraday.py daytype
   flowdelta: footprint proxy. Per 5-min bar, SPX options (calls_volume - puts_volume)/(calls+puts). Correlation with
            the same bar's move, and the NEXT bar's move after the top/bottom 20% imbalance bars (thresholds from
            the whole sample, so mildly in-sample), vs all bars as baseline.
+  cvd:     CVD proxy = cumulative (calls_volume - puts_volume) of SPX options on 5-min bars. After the first 30 min,
+           each new session high/low is tagged divergent (CVD lower than at the previous high / higher than at the
+           previous low) or confirmed; next-30-min move vs all bars (point-in-time, no look-ahead).
 Sample grows by one day per session; below 30 days results are anecdotal.
 """
 import csv, glob, gzip, os, sys
@@ -124,6 +127,30 @@ if __name__ == "__main__":
             if prev is not None and not ok: r["open_location"] = "n/a (previous day not archived)"
             print(d, r); prev = rows; prevd = cur
         print(f"n={n} day(s)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if n < 30 else ""))
+        sys.exit()
+    if (sys.argv[1:] or [""])[0] == "cvd":
+        import statistics as st
+        res = {"bear divergence (new high, CVD lower)": [], "confirmed new high": [], "bull divergence (new low, CVD higher)": [], "confirmed new low": []}
+        base = []; nd = 0
+        for d, rows in days():
+            nd += 1; b = []; cvd = 0.0
+            for i in range(0, len(rows) - 4, 5):
+                g = rows[i:i + 5]; cvd += sum(float(x["calls_volume"] or 0) - float(x["puts_volume"] or 0) for x in g)
+                b.append((max(float(x["high"]) for x in g), min(float(x["low"]) for x in g), float(g[-1]["close"]), cvd))
+            hi = max(x[0] for x in b[:6]); hcv = next(x[3] for x in b[:6] if x[0] == hi)
+            lo = min(x[1] for x in b[:6]); lcv = next(x[3] for x in b[:6] if x[1] == lo)
+            for k in range(6, len(b) - 6):
+                h, l, c, cv = b[k]; fwd = b[k + 6][2] - c; base.append(fwd)
+                if h > hi:
+                    res["bear divergence (new high, CVD lower)" if cv < hcv else "confirmed new high"].append(fwd); hi, hcv = h, cv
+                if l < lo:
+                    res["bull divergence (new low, CVD higher)" if cv > lcv else "confirmed new low"].append(fwd); lo, lcv = l, cv
+        def summ(name, ys):
+            if len(ys) < 2: print(f"{name}: n={len(ys)}"); return
+            sd = st.stdev(ys); print(f"{name}: n={len(ys)} mean={st.mean(ys):+.2f} median={st.median(ys):+.2f} up={sum(y > 0 for y in ys) / len(ys):.0%} sd={sd:.2f} t={st.mean(ys) / (sd / len(ys) ** 0.5):+.2f}")
+        summ("all bars, next 30 min", base)
+        for k, v in res.items(): summ(k, v)
+        print(f"days={nd} (points, no costs)" + ("  العيّنة صغيرة، النتيجة غير موثوقة" if nd < 30 else ""))
         sys.exit()
     if (sys.argv[1:] or [""])[0] == "flowdelta":
         import statistics as st
