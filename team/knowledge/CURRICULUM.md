@@ -23,7 +23,7 @@
 - [x] 2.4 الفوتبرنت: Bid×Ask، والدلتا لكل شمعة، والـImbalance ← footprint.md (bt_intraday.py flowdelta، بديل من تدفق الأوبشن)
 - [x] 2.5 الـCVD والدلتا التراكمية والتباعد (Divergence) ← cvd-divergence.md (bt_intraday.py cvd، بديل من تدفق الأوبشن)
 - [x] 2.6 الامتصاص (Absorption) والإنهاك (Exhaustion) ← absorption-exhaustion.md (bt_intraday.py absorb)
-- [ ] 2.7 Icebergs، والسحب والتعبئة (Spoofing / Pulling)، وقراءة الهيت ماب
+- [x] 2.7 Icebergs، والسحب والتعبئة (Spoofing / Pulling)، وقراءة الهيت ماب ← icebergs-spoofing-heatmap.md (غير قابل للاختبار ببياناتنا)
 - [ ] 2.8 طريقة فابيو: Direction ← Location ← Aggression (من المصادر العامة)
 - [ ] 2.9 إدارة المخاطرة عند السكالبرز: 0.25%، وأين الوقف، ونسب العائد
 - [ ] 2.10 خطة يوم كاملة: أوردر فلو + منطقة البزنس
