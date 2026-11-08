@@ -16,6 +16,8 @@ Studies:
                    A) buy the open -> close. B) limit buy AT yday high only if price comes back to it (low <= yday high)
                    -> close. Mirror for opens below yday low (short). Fills use only same-day prices that would have
                    filled a resting order; no stop, no costs.
+  weak_close       day closes in the bottom 15% of its own range (any direction) -> next day: touches the prior
+                   day's midpoint (value proxy)? close-to-close return; vs all days as baseline.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -144,6 +146,16 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "weak_close":
+    sig, base, ts, tb = [], [], 0, 0
+    for i in range(1, len(D) - 1):
+        _, o, h, l, c = D[i]; nh, nl, nc = D[i + 1][2], D[i + 1][3], D[i + 1][4]
+        if h <= l: continue
+        mid = (h + l) / 2; touch = nl <= mid <= nh; r = 100 * (nc / c - 1)
+        base.append(r); tb += touch
+        if (c - l) / (h - l) <= 0.15: sig.append(r); ts += touch
+    print(f"next day touches prior midpoint: weak close {100*ts/len(sig):.1f}% (n={len(sig)})  vs all days {100*tb/len(base):.1f}% (n={len(base)})")
+    summ("ALL days  next close-to-close", base); summ("WEAK close next close-to-close", sig)
 elif a.study == "dla":
     for side in ("above", "below"):
         A, B, N = [], [], 0

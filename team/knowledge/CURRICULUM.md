@@ -26,7 +26,7 @@
 - [x] 2.7 Icebergs، والسحب والتعبئة (Spoofing / Pulling)، وقراءة الهيت ماب ← icebergs-spoofing-heatmap.md (غير قابل للاختبار ببياناتنا)
 - [x] 2.8 طريقة فابيو: Direction ← Location ← Aggression (من المصادر العامة) ← fabio-dla.md (bt_daily.py dla)
 - [x] 2.9 إدارة المخاطرة عند السكالبرز: 0.25%، وأين الوقف، ونسب العائد ← risk-management.md (risk_sim.py)
-- [ ] 2.10 خطة يوم كاملة: أوردر فلو + منطقة البزنس
+- [x] 2.10 خطة يوم كاملة: أوردر فلو + منطقة البزنس ← full-day-plan.md (bt_daily.py weak_close، ومسودة الاثنين 9 نوفمبر)
 
 ## المسار 3: الأوبشن فلو
 - [ ] 3.1 صناع السوق: ليش يتحوّطون، وكيف
