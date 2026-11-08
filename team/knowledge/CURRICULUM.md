@@ -32,7 +32,7 @@
 - [x] 3.1 صناع السوق: ليش يتحوّطون، وكيف ← market-makers-hedging.md (bt_daily.py opex)
 - [x] 3.2 GEX بعمق: الحساب، والافتراضات، وحدوده (وليش أداتنا «تقريبية») ← gex-deep.md
 - [x] 3.3 Gamma Flip / الزيرو قاما: الحد بين القاما الموجبة والسالبة ← zero-gamma.md (تعريف المالك، والأداة zero_gamma.py)
-- [ ] 3.4 Call Wall وPut Wall وHVL: وكيف تنحسب عند المنصات المختلفة
+- [x] 3.4 Call Wall وPut Wall وHVL: وكيف تنحسب عند المنصات المختلفة ← walls-hvl.md
 - [ ] 3.5 DEX وجدران الدلتا
 - [ ] 3.6 عقود 0DTE: حجمها، وأثرها خلال اليوم، وPin risk
 - [ ] 3.7 الانتهاء الشهري وOPEX والـCharm Flows حوله
