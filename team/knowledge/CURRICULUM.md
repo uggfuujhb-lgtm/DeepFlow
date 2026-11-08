@@ -25,7 +25,7 @@
 - [x] 2.6 الامتصاص (Absorption) والإنهاك (Exhaustion) ← absorption-exhaustion.md (bt_intraday.py absorb)
 - [x] 2.7 Icebergs، والسحب والتعبئة (Spoofing / Pulling)، وقراءة الهيت ماب ← icebergs-spoofing-heatmap.md (غير قابل للاختبار ببياناتنا)
 - [x] 2.8 طريقة فابيو: Direction ← Location ← Aggression (من المصادر العامة) ← fabio-dla.md (bt_daily.py dla)
-- [ ] 2.9 إدارة المخاطرة عند السكالبرز: 0.25%، وأين الوقف، ونسب العائد
+- [x] 2.9 إدارة المخاطرة عند السكالبرز: 0.25%، وأين الوقف، ونسب العائد ← risk-management.md (risk_sim.py)
 - [ ] 2.10 خطة يوم كاملة: أوردر فلو + منطقة البزنس
 
 ## المسار 3: الأوبشن فلو
