@@ -24,7 +24,7 @@
 - [x] 2.5 الـCVD والدلتا التراكمية والتباعد (Divergence) ← cvd-divergence.md (bt_intraday.py cvd، بديل من تدفق الأوبشن)
 - [x] 2.6 الامتصاص (Absorption) والإنهاك (Exhaustion) ← absorption-exhaustion.md (bt_intraday.py absorb)
 - [x] 2.7 Icebergs، والسحب والتعبئة (Spoofing / Pulling)، وقراءة الهيت ماب ← icebergs-spoofing-heatmap.md (غير قابل للاختبار ببياناتنا)
-- [ ] 2.8 طريقة فابيو: Direction ← Location ← Aggression (من المصادر العامة)
+- [x] 2.8 طريقة فابيو: Direction ← Location ← Aggression (من المصادر العامة) ← fabio-dla.md (bt_daily.py dla)
 - [ ] 2.9 إدارة المخاطرة عند السكالبرز: 0.25%، وأين الوقف، ونسب العائد
 - [ ] 2.10 خطة يوم كاملة: أوردر فلو + منطقة البزنس
 

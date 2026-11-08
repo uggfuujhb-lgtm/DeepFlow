@@ -12,6 +12,10 @@ Studies:
   open_location    open above yesterday's high / below its low / inside -> open-to-close direction (OTF proxy)
   plan_open        day-plan stats: open inside yday range -> touches yday midpoint?; open above/below ->
                    trades back into yday range (rejection) and how it closes
+  dla              Direction->Location (daily proxy of Fabio's model): open above yday high (imbalance up).
+                   A) buy the open -> close. B) limit buy AT yday high only if price comes back to it (low <= yday high)
+                   -> close. Mirror for opens below yday low (short). Fills use only same-day prices that would have
+                   filled a resting order; no stop, no costs.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -140,6 +144,22 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "dla":
+    for side in ("above", "below"):
+        A, B, N = [], [], 0
+        for i in range(1, len(D)):
+            _, o, h, l, c = D[i]; ph, pl = D[i - 1][2], D[i - 1][3]
+            if side == "above" and o > ph:
+                N += 1; A.append(100 * (c / o - 1))
+                if l <= ph: B.append(100 * (c / ph - 1))
+            if side == "below" and o < pl:
+                N += 1; A.append(-100 * (c / o - 1))
+                if h >= pl: B.append(-100 * (c / pl - 1))
+        word = "long" if side == "above" else "short"
+        print(f"OPEN {side.upper()} yday range: n={N}")
+        summ(f"  A) {word} at open -> close        ", A)
+        summ(f"  B) {word} at yday extreme retest -> close", B)
+        if N: print(f"     retest happened {100*len(B)/N:.1f}% of these days")
 else:
     sys.exit("unknown study")
 print("للتعليم فقط وليست توصية. بدون تكاليف، وبيانات يومية بس.")
