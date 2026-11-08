@@ -18,6 +18,8 @@ Studies:
                    filled a resting order; no stop, no costs.
   weak_close       day closes in the bottom 15% of its own range (any direction) -> next day: touches the prior
                    day's midpoint (value proxy)? close-to-close return; vs all days as baseline.
+  opex             pinning check: monthly-expiration Fridays (3rd Friday, day 15-21) vs other Fridays: daily range and
+                   distance of the close to the nearest 25-point strike (uniform would average 6.25).
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -146,6 +148,21 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "opex":
+    import datetime as dt
+    op, fr = [], []
+    for i in range(1, len(D)):
+        d = dt.date.fromisoformat(D[i][0])
+        if d.weekday() != 4: continue
+        rng = 100 * (D[i][2] - D[i][3]) / D[i - 1][4]; dist = abs(D[i][4] / 25 - round(D[i][4] / 25)) * 25
+        (op if 15 <= d.day <= 21 else fr).append((rng, dist))
+    for name, x in (("monthly opex Fridays", op), ("other Fridays", fr)):
+        r = [v[0] for v in x]; ds = [v[1] for v in x]
+        print(f"{name}: n={len(x)}  range mean {st.mean(r):.3f}% median {st.median(r):.3f}%  | close-to-25-strike mean {st.mean(ds):.2f} median {st.median(ds):.2f} pts")
+    for k, lab in ((0, "range"), (1, "strike distance")):
+        a1 = [v[k] for v in op]; b1 = [v[k] for v in fr]
+        se = math.sqrt(st.pvariance(a1) / len(a1) + st.pvariance(b1) / len(b1))
+        print(f"t ({lab} opex - other) = {(st.mean(a1) - st.mean(b1)) / se:+.2f}")
 elif a.study == "weak_close":
     sig, base, ts, tb = [], [], 0, 0
     for i in range(1, len(D) - 1):
