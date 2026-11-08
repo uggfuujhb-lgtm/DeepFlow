@@ -33,7 +33,7 @@
 - [x] 3.2 GEX بعمق: الحساب، والافتراضات، وحدوده (وليش أداتنا «تقريبية») ← gex-deep.md
 - [x] 3.3 Gamma Flip / الزيرو قاما: الحد بين القاما الموجبة والسالبة ← zero-gamma.md (تعريف المالك، والأداة zero_gamma.py)
 - [x] 3.4 Call Wall وPut Wall وHVL: وكيف تنحسب عند المنصات المختلفة ← walls-hvl.md
-- [ ] 3.5 DEX وجدران الدلتا
+- [x] 3.5 DEX وجدران الدلتا ← dex-walls.md
 - [ ] 3.6 عقود 0DTE: حجمها، وأثرها خلال اليوم، وPin risk
 - [ ] 3.7 الانتهاء الشهري وOPEX والـCharm Flows حوله
 - [ ] 3.8 قراءة الفلو اللحظي: Sweeps وBlocks، والفرق بين Opening وClosing
