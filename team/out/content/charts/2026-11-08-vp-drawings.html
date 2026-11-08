@@ -1,0 +1,69 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Changa:wght@500;700;800&family=IBM+Plex+Mono:wght@500;600&display=block">
+<style>html,body{margin:0;background:#050607}canvas{display:block}</style></head>
+<body><canvas id="c" width="1080" height="1350"></canvas>
+<script>
+const C={bg:'#050607',ink:'#F5F7FA',muted:'#8E99A6',line:'#1A1F26',wall:'#FF3B47',sup:'#00E58A',flow:'#9B6BFF',sig:'#FFC21A'};
+const which=new URLSearchParams(location.search).get('p')||'form';
+const cv=document.getElementById('c'),x=cv.getContext('2d');
+function rng(s){return()=>{s=(s*16807)%2147483647;return s/2147483647}}
+// candle path generator: target path of means, with noise
+function path(fn,n,seed,vol){const r=rng(seed),out=[];let p=fn(0);for(let i=0;i<n;i++){const t=i/(n-1),m=fn(t);const o=p,c=m+(r()-.5)*vol;const h=Math.max(o,c)+r()*vol*.7,l=Math.min(o,c)-r()*vol*.7;out.push([o,h,l,c]);p=c}return out}
+function prof(cs,lo,hi,nb){const b=new Array(nb).fill(0);cs.forEach(([o,h,l,c])=>{for(let k=0;k<nb;k++){const p=lo+(k+.5)*(hi-lo)/nb;if(p>=l&&p<=h)b[k]++}});return b}
+function va(b){let pi=0;b.forEach((v,i)=>{if(v>b[pi])pi=i});const tot=b.reduce((a,v)=>a+v,0);let lo=pi,hi=pi,acc=b[pi];while(acc<.7*tot&&(lo>0||hi<b.length-1)){const u=hi<b.length-1?b[hi+1]:-1,d=lo>0?b[lo-1]:-1;if(u>=d){hi++;acc+=u}else{lo--;acc+=d}}return{pi,lo,hi}}
+function drawCandles(cs,X0,X1,T,B,lo,hi,upto=1e9,dim=false){const n=cs.length,st=(X1-X0)/n,Y=v=>B-(v-lo)/(hi-lo)*(B-T);for(let i=0;i<Math.min(n,upto);i++){const[o,h,l,c]=cs[i],xx=X0+st*(i+.5),up=c>=o,col=dim?'#3A414B':(up?C.ink:C.muted),bw=Math.max(2,st*.6);x.strokeStyle=col;x.lineWidth=2;x.beginPath();x.moveTo(xx,Y(h));x.lineTo(xx,Y(l));x.stroke();const yb=Y(Math.max(o,c)),hh=Math.max(Y(Math.min(o,c))-yb,2);if(up&&!dim){x.fillStyle=C.bg;x.fillRect(xx-bw/2,yb,bw,hh);x.strokeRect(xx-bw/2,yb,bw,hh)}else{x.fillStyle=col;x.fillRect(xx-bw/2,yb,bw,hh)}}return Y}
+function drawProf(b,X0,T,B,W,{showVA=true,color=C.flow,dir=1}={}){const n=b.length,rh=(B-T)/n,mx=Math.max(...b),v=va(b);b.forEach((val,i)=>{const y=B-(i+1)*rh,w=W*val/mx;x.fillStyle=i===v.pi?C.sig:(showVA&&i>=v.lo&&i<=v.hi?color:'rgba(155,107,255,.35)');x.beginPath();x.roundRect(dir>0?X0:X0-w,y+1,w,Math.max(2,rh-2),3);x.fill()});return{v,rh}}
+function T(t,xx,y,size,col=C.ink,w=800,al='center'){x.font=`${w} ${size}px Changa`;x.fillStyle=col;x.textAlign=al;x.direction='rtl';x.fillText(t,xx,y)}
+function M(t,xx,y,size,col=C.muted,al='center'){x.font=`600 ${size}px "IBM Plex Mono"`;x.fillStyle=col;x.textAlign=al;x.direction='ltr';x.fillText(t,xx,y)}
+function panel(X,Y,W,H){x.fillStyle='rgba(255,255,255,.03)';x.strokeStyle='#1E2430';x.lineWidth=2;x.beginPath();x.roundRect(X,Y,W,H,22);x.fill();x.stroke()}
+function frame(title,sub){x.fillStyle=C.bg;x.fillRect(0,0,1080,1350);const g=x.createLinearGradient(0,0,1080,0);g.addColorStop(0,'#2E1065');g.addColorStop(.5,'#8B5CF6');g.addColorStop(1,'#B794FF');x.fillStyle=g;x.fillRect(0,0,1080,8);
+ x.font='800 40px Changa';x.direction='ltr';x.textAlign='left';x.fillStyle=C.ink;x.fillText('Option',56,74);const w=x.measureText('Option').width;x.fillStyle='#B794FF';x.fillText('Lap',56+w,74);
+ T(title,1024,80,52,C.ink,800,'right');T(sub,1024,128,30,C.muted,500,'right');
+ T('للتعليم فقط وليست توصية',540,1320,26,C.muted,500);}
+async function go(){await document.fonts.load('800 40px Changa');await document.fonts.load('600 20px "IBM Plex Mono"');await document.fonts.ready;
+if(which==='form'){
+ frame('كيف يتشكّل الفوليوم بروفايل؟','3 خطوات · رسم توضيحي');
+ const cs=path(t=>100+6*Math.sin(t*9)+(t>.55?-4:3)*Math.sin(t*3),60,7,2.2),lo=88,hi=112;
+ // step 1
+ panel(40,170,1000,330);T('١. الشموع: السعر يتحرّك مع الوقت',1010,215,34,C.ink,700,'right');
+ drawCandles(cs,80,1000,240,480,lo,hi);M('الوقت →',120,490,18);
+ // step 2: rows
+ panel(40,520,1000,330);T('٢. نقسّم السعر لصفوف، ونعدّ كم انتداول في كل صف',1010,565,34,C.ink,700,'right');
+ const Y2=drawCandles(cs,80,760,590,830,lo,hi,1e9,true);const nb=24,b=prof(cs,lo,hi,nb);
+ for(let k=0;k<=nb;k++){const y=830-k*(240/nb);x.strokeStyle='rgba(155,107,255,.18)';x.lineWidth=1;x.beginPath();x.moveTo(80,y);x.lineTo(760,y);x.stroke()}
+ // arrows sweep to side
+ x.strokeStyle=C.flow;x.lineWidth=3;x.setLineDash([8,8]);x.beginPath();x.moveTo(770,710);x.lineTo(820,710);x.stroke();x.setLineDash([]);
+ drawProf(b,830,590,830,190,{showVA:false});T('كل صف = عمود',925,845,22,C.flow,700);
+ // step 3 profile with POC VA
+ panel(40,870,1000,420);T('٣. البروفايل: أطول عمود = POC، و70% حوله = منطقة القيمة',1010,915,32,C.ink,700,'right');
+ drawCandles(cs,80,560,950,1260,lo,hi,1e9,true);const r=drawProf(b,580,950,1260,300);
+ const yP=1260-(r.v.pi+.5)*r.rh,yH=1260-(r.v.hi+1)*r.rh,yL=1260-r.v.lo*r.rh;
+ x.strokeStyle=C.sig;x.lineWidth=3;x.beginPath();x.moveTo(80,yP);x.lineTo(900,yP);x.stroke();
+ x.strokeStyle=C.ink;x.setLineDash([10,8]);x.lineWidth=2;[yH,yL].forEach(y=>{x.beginPath();x.moveTo(80,y);x.lineTo(900,y);x.stroke()});x.setLineDash([]);
+ M('POC',960,yP+8,22,C.sig);M('VAH',960,yH+6,20,C.ink);M('VAL',960,yL+6,20,C.ink);
+ T('السعر العادل',300,yP-12,26,C.sig,700,'right');
+}else{
+ frame('الأشكال الثلاثة للبروفايل','D · P · b · رسم توضيحي');
+ const shapes=[
+  {k:'D',name:'شكل D: توازن',col:C.ink,fn:t=>100+5*Math.sin(t*14)+2*Math.sin(t*5),seed:3,
+   who:'المشترين والبايعين متفقين على السعر',read:'يوم داخلي: السعر يرتد بين حدود القيمة',g:'قاما إيجابية غالباً: ارتداد من الجدار'},
+  {k:'P',name:'شكل P: شراء قوي ثم قبول فوق',col:C.sup,fn:t=>t<.3?88+t/.3*16:104+2.5*Math.sin(t*20),seed:11,
+   who:'صعود سريع (ذيل خفيف تحت) ثم تجميع فوق',read:'غالباً تغطية مراكز بيع أو دخول مشترين',g:'إذا قبل فوق الجدار = اختراق صاعد'},
+  {k:'b',name:'شكل b: بيع قوي ثم قبول تحت',col:C.wall,fn:t=>t<.3?112-t/.3*16:96+2.5*Math.sin(t*20),seed:5,
+   who:'نزول سريع (ذيل خفيف فوق) ثم تجميع تحت',read:'غالباً تصفية مراكز شراء أو دخول بايعين',g:'إذا قبل تحت الدعم = اختراق نازل'}];
+ shapes.forEach((s,i)=>{const Y0=160+i*380,H=352;panel(40,Y0,1000,H);
+  const cs=path(s.fn,48,s.seed,1.8),lo=84,hi=116,nb=26,b=prof(cs,lo,hi,nb);
+  drawCandles(cs,70,330,Y0+30,Y0+H-30,lo,hi);
+  x.strokeStyle='#2A303A';x.lineWidth=2;x.setLineDash([6,6]);x.beginPath();x.moveTo(345,Y0+40);x.lineTo(345,Y0+H-40);x.stroke();x.setLineDash([]);
+  drawProf(b,360,Y0+30,Y0+H-30,170);
+  x.font='800 230px Changa';x.direction='ltr';x.textAlign='center';x.fillStyle=s.col;x.globalAlpha=.16;x.fillText(s.k,460,Y0+260);x.globalAlpha=1;
+  T(s.name,1015,Y0+66,38,s.col,800,'right');
+  T(s.who,1015,Y0+130,27,C.ink,600,'right');
+  T(s.read,1015,Y0+180,27,C.muted,500,'right');
+  x.fillStyle='rgba(255,194,26,.12)';x.beginPath();x.roundRect(560,Y0+225,460,90,14);x.fill();
+  T('⚡ مع القاما',1005,Y0+260,24,C.sig,800,'right');T(s.g,1005,Y0+298,25,C.ink,600,'right');
+ });
+}
+window.__ready=true}
+go();
+</script></body></html>
