@@ -215,7 +215,7 @@ svg{{position:absolute;top:0;left:0}}
 <svg width="{W}" height="{H}"><defs><filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{H}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>{''.join(svg)}</svg>
 {''.join(chip_html)}
 <div class="axis">الوقت بتوقيت الرياض، مساءً</div>
-<div class="foot"><span>المصدر: CBOE، بيانات متأخرة ~15 دقيقة · المستويات تقريبية من بيانات الأوبشن</span><span>للتعليم فقط وليست توصية</span></div>
+<div class="foot"><span>المصدر: CBOE · المستويات تقريبية من بيانات الأوبشن</span><span>للتعليم فقط وليست توصية</span></div>
 </body></html>"""
 
 
