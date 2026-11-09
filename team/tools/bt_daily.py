@@ -33,6 +33,9 @@ Studies:
                    -5/-2.5/0/+2.5/+5% from the close, 20 trading days out, Black-Scholes delta N(d1) and N(d2) using that
                    day's VIX close as IV (r=0). Compare the average predicted value with the realized share of days where
                    SPX closed above the strike 20 days later. Overlapping windows.
+  theta_gamma      theta vs gamma for a 1-day ATM straddle: premium ~ 0.8 * VIX * sqrt(1/252) * close (Black-Scholes ATM
+                   approximation, VIX as the IV proxy) vs the realized |next close - close|. Positive edge = buyer (gamma) won,
+                   negative = seller (theta) won. All days and split by VIX level. Approximation, no skew, no costs.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -161,6 +164,25 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "theta_gamma":
+    import csv as _csv, io as _io
+    u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+    vx = {}
+    for r in _csv.DictReader(_io.StringIO(txt)):
+        m, d_, y = r["DATE"].split("/"); vx[f"{y}-{m}-{d_}"] = float(r["CLOSE"]) / 100
+    closes = [(d, c) for d, o, h, l, c in D]
+    g = {"all": [], "VIX<15": [], "VIX 15-25": [], "VIX>25": []}; ratio = []
+    for i in range(len(closes) - 1):
+        d, c = closes[i]
+        if d not in vx: continue
+        prem = 0.8 * vx[d] * math.sqrt(1 / 252) * c; move = abs(closes[i + 1][1] - c)
+        edge = 100 * (move - prem) / c; ratio.append(move / prem)
+        k = "VIX<15" if vx[d] < .15 else "VIX>25" if vx[d] > .25 else "VIX 15-25"
+        g["all"].append(edge); g[k].append(edge)
+    for k, v in g.items(): summ(f"{k:9} straddle buyer edge (% of index)", v)
+    print(f"median realized move / premium: {st.median(ratio):.2f}  (1.0 = fair; <1 = theta (seller) won)")
+    print(f"days the buyer won: {100*sum(r > 1 for r in ratio)/len(ratio):.1f}%")
 elif a.study == "delta_prob":
     import csv as _csv, io as _io
     u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
