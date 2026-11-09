@@ -29,6 +29,10 @@ Studies:
                    (no look-ahead). Top vs bottom quintile -> next 20-day SPX return and max drawdown, vs all days.
   term             VIX term structure: ratio VIX / VIX3M at the close (free Cboe CSVs). Backwardation (>1),
                    normal contango (0.85-1), steep contango (<0.85) -> next 5 and 20-day SPX return and 20-day max drawdown.
+  delta_prob       is call delta a fair 'probability of finishing in the money'? For each day, strikes at
+                   -5/-2.5/0/+2.5/+5% from the close, 20 trading days out, Black-Scholes delta N(d1) and N(d2) using that
+                   day's VIX close as IV (r=0). Compare the average predicted value with the realized share of days where
+                   SPX closed above the strike 20 days later. Overlapping windows.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -157,6 +161,24 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "delta_prob":
+    import csv as _csv, io as _io
+    u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+    vx = {}
+    for r in _csv.DictReader(_io.StringIO(txt)):
+        m, d_, y = r["DATE"].split("/"); vx[f"{y}-{m}-{d_}"] = float(r["CLOSE"]) / 100
+    N = lambda x: 0.5 * (1 + math.erf(x / math.sqrt(2)))
+    closes = [(d, c) for d, o, h, l, c in D]; T = 20 / 252
+    print("moneyness | avg delta N(d1) | avg N(d2) | realized share above strike | n")
+    for mny in (-0.05, -0.025, 0.0, 0.025, 0.05):
+        d1s, d2s, hit = [], [], []
+        for i, (d, c) in enumerate(closes):
+            if d not in vx or i + 20 >= len(closes): continue
+            K = c * (1 + mny); s_ = vx[d]; v = s_ * math.sqrt(T)
+            d1 = (math.log(c / K) + 0.5 * s_ * s_ * T) / v; d2 = d1 - v
+            d1s.append(N(d1)); d2s.append(N(d2)); hit.append(1 if closes[i + 20][1] > K else 0)
+        print(f"{mny*100:+5.1f}%    | {st.mean(d1s):.3f}           | {st.mean(d2s):.3f}     | {st.mean(hit):.3f}                       | {len(hit)}")
 elif a.study == "term":
     import csv as _csv, io as _io
     def cboe_close(name):
