@@ -25,6 +25,8 @@ Studies:
                    25-pt strike (uniform = 6.25). Periods: 2016-2019, 2020-May 2022, Jun 2022+. Descriptive only.
   opex_week        weekly close-to-close returns: monthly-OPEX week (week containing the 3rd Friday), the week after,
                    and all other weeks (charm/vanna "window of weakness" folklore check). Weeks keyed Mon-Fri by ISO week.
+  skew             fear gauges: CBOE SKEW and VIX (free CSVs) ranked against their own trailing 252-day history
+                   (no look-ahead). Top vs bottom quintile -> next 20-day SPX return and max drawdown, vs all days.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -153,6 +155,35 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "skew":
+    import csv as _csv, io as _io, datetime as dt
+    def cboe_csv(name, col):
+        u = f"https://cdn.cboe.com/api/global/us_indices/daily_prices/{name}_History.csv"
+        txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+        out = {}
+        for r in _csv.DictReader(_io.StringIO(txt)):
+            m, d_, y = r["DATE"].split("/"); out[f"{y}-{m}-{d_}"] = float(r[col])
+        return out
+    series = {"SKEW": cboe_csv("SKEW", "SKEW"), "VIX": cboe_csv("VIX", "CLOSE")}
+    closes = [(d, c) for d, o, h, l, c in D]
+    for name, sv in series.items():
+        hist, buckets = [], {"top": [], "bottom": [], "all": []}
+        dd = {"top": [], "bottom": [], "all": []}
+        for i, (d, c) in enumerate(closes):
+            v = sv.get(d)
+            if v is None: continue
+            if len(hist) >= 252 and i + 20 < len(closes):
+                past = sorted(hist[-252:]); pct = sum(x < v for x in past) / len(past)
+                fwd = 100 * (closes[i + 20][1] / c - 1)
+                mdd = 100 * (min(x[1] for x in closes[i + 1:i + 21]) / c - 1)
+                g = "top" if pct >= 0.8 else "bottom" if pct < 0.2 else None
+                buckets["all"].append(fwd); dd["all"].append(mdd)
+                if g: buckets[g].append(fwd); dd[g].append(mdd)
+            hist.append(v)
+        print(f"== {name} (percentile vs trailing 252 days)")
+        for g in ("all", "top", "bottom"):
+            summ(f"  {g:6} next 20d return", buckets[g])
+            print(f"         next 20d max drawdown: mean {st.mean(dd[g]):+.2f}%  median {st.median(dd[g]):+.2f}%")
 elif a.study == "opex_week":
     import datetime as dt
     weeks = {}

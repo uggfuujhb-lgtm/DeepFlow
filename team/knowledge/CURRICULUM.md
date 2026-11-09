@@ -37,7 +37,7 @@
 - [x] 3.6 عقود 0DTE: حجمها، وأثرها خلال اليوم، وPin risk ← 0dte.md (bt_daily.py zerodte)
 - [x] 3.7 الانتهاء الشهري وOPEX والـCharm Flows حوله ← opex-charm.md (bt_daily.py opex_week)
 - [x] 3.8 قراءة الفلو اللحظي: Sweeps وBlocks، والفرق بين Opening وClosing ← flow-feed.md (غير قابل للاختبار، وانضاف أرشيف السلسلة)
-- [ ] 3.9 الـSkew وسطح التذبذب، وش يقول عن الخوف
+- [x] 3.9 الـSkew وسطح التذبذب، وش يقول عن الخوف ← skew-vol-surface.md (bt_daily.py skew)
 - [ ] 3.10 VIX والـTerm Structure وعلاقتها بالقاما
 
 ## المسار 4: اليونانيات
