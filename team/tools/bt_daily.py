@@ -27,6 +27,8 @@ Studies:
                    and all other weeks (charm/vanna "window of weakness" folklore check). Weeks keyed Mon-Fri by ISO week.
   skew             fear gauges: CBOE SKEW and VIX (free CSVs) ranked against their own trailing 252-day history
                    (no look-ahead). Top vs bottom quintile -> next 20-day SPX return and max drawdown, vs all days.
+  term             VIX term structure: ratio VIX / VIX3M at the close (free Cboe CSVs). Backwardation (>1),
+                   normal contango (0.85-1), steep contango (<0.85) -> next 5 and 20-day SPX return and 20-day max drawdown.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -155,6 +157,31 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "term":
+    import csv as _csv, io as _io
+    def cboe_close(name):
+        u = f"https://cdn.cboe.com/api/global/us_indices/daily_prices/{name}_History.csv"
+        txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+        out = {}
+        for r in _csv.DictReader(_io.StringIO(txt)):
+            m, d_, y = r["DATE"].split("/"); out[f"{y}-{m}-{d_}"] = float(r["CLOSE"])
+        return out
+    vx, v3 = cboe_close("VIX"), cboe_close("VIX3M")
+    closes = [(d, c) for d, o, h, l, c in D]
+    g = {k: ([], [], []) for k in ("backwardation >1", "contango 0.85-1", "steep contango <0.85", "all")}
+    for i, (d, c) in enumerate(closes):
+        if d not in vx or d not in v3 or i + 20 >= len(closes): continue
+        r = vx[d] / v3[d]; k = "backwardation >1" if r > 1 else "contango 0.85-1" if r >= 0.85 else "steep contango <0.85"
+        f5 = 100 * (closes[i + 5][1] / c - 1); f20 = 100 * (closes[i + 20][1] / c - 1)
+        mdd = 100 * (min(x[1] for x in closes[i + 1:i + 21]) / c - 1)
+        for kk in (k, "all"):
+            g[kk][0].append(f5); g[kk][1].append(f20); g[kk][2].append(mdd)
+    for k, (a5, a20, md) in g.items():
+        print(f"== {k}: days={len(a5)}")
+        summ("   next 5d ", a5); summ("   next 20d", a20)
+        print(f"   20d max drawdown mean {st.mean(md):+.2f}%  median {st.median(md):+.2f}%")
+    last = max(d for d in vx if d in v3); print(f"latest {last}: VIX {vx[last]:.2f} / VIX3M {v3[last]:.2f} = {vx[last]/v3[last]:.3f}")
+    print("note: windows overlap, so t-stats are inflated")
 elif a.study == "skew":
     import csv as _csv, io as _io, datetime as dt
     def cboe_csv(name, col):
