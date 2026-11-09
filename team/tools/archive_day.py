@@ -1,7 +1,9 @@
 """Archive today's SPX 1-minute bars and the GEX levels, so backtests can grow day by day.
 
 Usage: python3 team/tools/archive_day.py [--json saved_intraday.json]
-Writes team/data/intraday/YYYY-MM-DD_SPX.csv.gz and team/data/gex/YYYY-MM-DD.txt (gex.py output).
+Writes team/data/intraday/YYYY-MM-DD_SPX.csv.gz, team/data/gex/YYYY-MM-DD.txt (gex.py output) and
+team/data/chain/YYYY-MM-DD_SPX.csv.gz (per-contract volume, open interest, IV, delta, gamma within ±3% of spot for
+expiries up to 7 days out), so volume-vs-OI (opening flow) and pinning can be tested later.
 Free CBOE data (delayed ~15 min); run after the US close (12:15 AM Riyadh).
 """
 import argparse, csv, gzip, io, json, os, subprocess, sys, urllib.request
@@ -29,3 +31,23 @@ if not a.no_gex:
     gp = os.path.join(ROOT, "team/data/gex", f"{day}.txt")
     open(gp, "w").write("## next (0DTE)\n" + g + "\n## all\n" + ga)
     print("gex ->", gp)
+    # option chain snapshot (volume vs open interest), for later opening-flow / pin studies
+    try:
+        import re, datetime as _dt
+        ch = json.load(urllib.request.urlopen("https://cdn.cboe.com/api/global/delayed_quotes/options/_SPX.json", timeout=60))
+        d = ch["data"]; spot = float(d["current_price"]); pat = re.compile(r"^[A-Z]+(\d{6})([CP])(\d{8})$")
+        lim = (_dt.date.fromisoformat(day) + _dt.timedelta(days=7)).strftime("%y%m%d")
+        cbuf = io.StringIO(); cw = csv.writer(cbuf)
+        cw.writerow(["snapshot", "expiry", "cp", "strike", "volume", "open_interest", "iv", "delta", "gamma", "last"])
+        n = 0
+        for o in d["options"]:
+            m = pat.match(o["option"])
+            if not m: continue
+            k = int(m[3]) / 1000
+            if m[1] > lim or abs(k - spot) > spot * 0.03: continue
+            cw.writerow([ch.get("timestamp"), m[1], m[2], k, o.get("volume"), o.get("open_interest"), o.get("iv"), o.get("delta"), o.get("gamma"), o.get("last_trade_price")]); n += 1
+        cp_ = os.path.join(ROOT, "team/data/chain", f"{day}_SPX.csv.gz"); os.makedirs(os.path.dirname(cp_), exist_ok=True)
+        with gzip.open(cp_, "wt") as f: f.write(cbuf.getvalue())
+        print(f"chain -> {cp_} ({n} contracts, spot {spot})")
+    except Exception as e:
+        print("chain snapshot skipped:", e)
