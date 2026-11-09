@@ -23,6 +23,8 @@ Studies:
   zerodte          regime comparison around daily SPX expirations (0DTE every weekday from mid-2022): median range,
                    open->close vs overnight-gap volatility (intraday share of variance), close distance to nearest
                    25-pt strike (uniform = 6.25). Periods: 2016-2019, 2020-May 2022, Jun 2022+. Descriptive only.
+  opex_week        weekly close-to-close returns: monthly-OPEX week (week containing the 3rd Friday), the week after,
+                   and all other weeks (charm/vanna "window of weakness" folklore check). Weeks keyed Mon-Fri by ISO week.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -151,6 +153,24 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "opex_week":
+    import datetime as dt
+    weeks = {}
+    for d, o, h, l, c in D:
+        k = dt.date.fromisoformat(d).isocalendar()[:2]; weeks.setdefault(k, []).append((d, c))
+    keys = sorted(weeks); tag = {}
+    for k in keys:
+        for d, _ in weeks[k]:
+            x = dt.date.fromisoformat(d)
+            if x.weekday() == 4 and 15 <= x.day <= 21: tag[k] = "opex"
+    rets = {"opex": [], "after": [], "other": []}
+    for i in range(1, len(keys)):
+        k, pk = keys[i], keys[i - 1]
+        r = 100 * (weeks[k][-1][1] / weeks[pk][-1][1] - 1)
+        g = "opex" if tag.get(k) == "opex" else "after" if tag.get(pk) == "opex" else "other"
+        rets[g].append(r)
+    summ("ALL weeks                ", [x for v in rets.values() for x in v])
+    summ("OPEX week (3rd Friday)   ", rets["opex"]); summ("week AFTER OPEX          ", rets["after"]); summ("other weeks              ", rets["other"])
 elif a.study == "zerodte":
     for lo, hi in (("2016-01-01", "2020-01-01"), ("2020-01-01", "2022-06-01"), ("2022-06-01", "2100-01-01")):
         rr, oc, gp, ds = [], [], [], []

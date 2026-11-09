@@ -35,7 +35,7 @@
 - [x] 3.4 Call Wall وPut Wall وHVL: وكيف تنحسب عند المنصات المختلفة ← walls-hvl.md
 - [x] 3.5 DEX وجدران الدلتا ← dex-walls.md
 - [x] 3.6 عقود 0DTE: حجمها، وأثرها خلال اليوم، وPin risk ← 0dte.md (bt_daily.py zerodte)
-- [ ] 3.7 الانتهاء الشهري وOPEX والـCharm Flows حوله
+- [x] 3.7 الانتهاء الشهري وOPEX والـCharm Flows حوله ← opex-charm.md (bt_daily.py opex_week)
 - [ ] 3.8 قراءة الفلو اللحظي: Sweeps وBlocks، والفرق بين Opening وClosing
 - [ ] 3.9 الـSkew وسطح التذبذب، وش يقول عن الخوف
 - [ ] 3.10 VIX والـTerm Structure وعلاقتها بالقاما
