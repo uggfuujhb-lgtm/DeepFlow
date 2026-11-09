@@ -20,6 +20,9 @@ Studies:
                    day's midpoint (value proxy)? close-to-close return; vs all days as baseline.
   opex             pinning check: monthly-expiration Fridays (3rd Friday, day 15-21) vs other Fridays: daily range and
                    distance of the close to the nearest 25-point strike (uniform would average 6.25).
+  zerodte          regime comparison around daily SPX expirations (0DTE every weekday from mid-2022): median range,
+                   open->close vs overnight-gap volatility (intraday share of variance), close distance to nearest
+                   25-pt strike (uniform = 6.25). Periods: 2016-2019, 2020-May 2022, Jun 2022+. Descriptive only.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -148,6 +151,17 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "zerodte":
+    for lo, hi in (("2016-01-01", "2020-01-01"), ("2020-01-01", "2022-06-01"), ("2022-06-01", "2100-01-01")):
+        rr, oc, gp, ds = [], [], [], []
+        for i in range(1, len(D)):
+            if not (lo <= D[i][0] < hi): continue
+            pc = D[i - 1][4]; o, h, l, c = D[i][1:]
+            rr.append(100 * (h - l) / pc); oc.append(100 * (c / o - 1)); gp.append(100 * (o / pc - 1)); ds.append(abs(c / 25 - round(c / 25)) * 25)
+        if not rr: continue
+        vo, vg = st.pstdev(oc), st.pstdev(gp)
+        print(f"{lo[:7]}..{hi[:7]}: n={len(rr)}  range median {st.median(rr):.3f}%  sd open->close {vo:.3f}%  sd gap {vg:.3f}%  "
+              f"intraday share of variance {vo**2/(vo**2+vg**2):.3f}  close-to-25-strike mean {st.mean(ds):.2f}")
 elif a.study == "opex":
     import datetime as dt
     op, fr = [], []

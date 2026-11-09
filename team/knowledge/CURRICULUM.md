@@ -34,7 +34,7 @@
 - [x] 3.3 Gamma Flip / الزيرو قاما: الحد بين القاما الموجبة والسالبة ← zero-gamma.md (تعريف المالك، والأداة zero_gamma.py)
 - [x] 3.4 Call Wall وPut Wall وHVL: وكيف تنحسب عند المنصات المختلفة ← walls-hvl.md
 - [x] 3.5 DEX وجدران الدلتا ← dex-walls.md
-- [ ] 3.6 عقود 0DTE: حجمها، وأثرها خلال اليوم، وPin risk
+- [x] 3.6 عقود 0DTE: حجمها، وأثرها خلال اليوم، وPin risk ← 0dte.md (bt_daily.py zerodte)
 - [ ] 3.7 الانتهاء الشهري وOPEX والـCharm Flows حوله
 - [ ] 3.8 قراءة الفلو اللحظي: Sweeps وBlocks، والفرق بين Opening وClosing
 - [ ] 3.9 الـSkew وسطح التذبذب، وش يقول عن الخوف
