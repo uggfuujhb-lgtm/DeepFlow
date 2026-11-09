@@ -73,7 +73,7 @@
 3. **الكول 7700 يوم 4 نوفمبر لمس داخل الفلوس وانتهى خارج. ليش؟** الدلتا (0.26) تقيس احتمال الانتهاء مو اللمس، والسعر رجع تحت 7700 قبل الإغلاق.
 
 ## المصادر
-- [CME Group: Options delta](https://www.cmegroup.com/education/courses/option-greeks/option-delta.html)
+- [CME Group: Options Delta, The Greeks](https://www.cmegroup.com/education/courses/option-greeks/options-delta-the-greeks.html)
 - [Options Analysis Suite: Dealer delta exposure](https://www.optionsanalysissuite.com/documentation/dealer-delta-exposure)
 - [FlashAlpha: Delta Exposure (DEX)](https://flashalpha.com/concepts/dex)
 - بيانات Cboe اليومية: SPX وVIX_History.csv.
