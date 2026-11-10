@@ -44,6 +44,9 @@ Studies:
   bs_tails        where Black-Scholes breaks: daily SPX return divided by the move implied by YESTERDAY's VIX
                    (VIX/sqrt(252)), i.e. a z-score with no look-ahead. Share of |z| > 1/2/3/4 vs the normal distribution,
                    down vs up tails, sd of z (1.0 if VIX were a fair normal forecast), excess kurtosis of raw returns.
+  edge_strike     confluence proxy (5.1): yesterday's high/low (business-area edge) lying within 0.1% of a round 50-pt
+                   strike (where SPX open interest clusters) vs not. When today trades through that edge: share of days that
+                   close back inside (rejection), and the next-day return. Proxy only: no real open-interest data before 2026.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -241,6 +244,25 @@ elif a.study == "bs_tails":
     print(f"raw daily returns: sd {sd:.2f}%  skew {skew:+.2f}  excess kurtosis {kurt:+.1f} (normal 0)")
     worst = sorted(zip(zs, [D[i][0] for i in range(1, len(D)) if D[i - 1][0] in vx]))[:5]
     print("most extreme down days (z):", ", ".join(f"{d} {z:+.1f}" for z, d in worst))
+elif a.study == "edge_strike":
+    import statistics as _st
+    def near(v): k = round(v / 50) * 50; return abs(v - k) <= 0.001 * v
+    for side in ("high", "low"):
+        res = {True: [0, 0, []], False: [0, 0, []]}
+        for i in range(1, len(D) - 1):
+            _, o, h, l, c = D[i]; ph, pl = D[i - 1][2], D[i - 1][3]
+            edge = ph if side == "high" else pl
+            if side == "high" and not (h > ph and o <= ph): continue
+            if side == "low" and not (l < pl and o >= pl): continue
+            rej = c < ph if side == "high" else c > pl
+            g = res[near(edge)]; g[0] += 1; g[1] += rej; g[2].append(100 * (D[i + 1][4] / c - 1))
+        for k in (True, False):
+            n, r, nx = res[k]
+            lab = f"yday {side} {'NEAR' if k else 'not near'} 50-pt strike"
+            p = r / n if n else 0; se = math.sqrt(p * (1 - p) / n) if n else 0
+            print(f"{lab}: n={n}  closed back inside {100*p:.1f}% (±{196*se:.1f})")
+            summ("   next day close→close", nx)
+    print("open must be inside yesterday's range (the edge is tested intraday). Proxy for OI walls; no costs.")
 elif a.study == "theta_gamma":
     import csv as _csv, io as _io
     u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
