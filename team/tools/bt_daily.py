@@ -38,6 +38,9 @@ Studies:
                    negative = seller (theta) won. All days and split by VIX level. Approximation, no skew, no costs.
   vega             spot-vol link: daily SPX % change vs VIX point change (correlation, slope), split by down/up days,
                    and how often VIX rose on SPX down days. Explains why put buyers gain vega in selloffs.
+  vanna           vanna-flow proxy: when VIX is elevated (yesterday's close >= its trailing-252-day 80th percentile) and
+                   falls >= 5% today ("vol crush"), dealers' hedges unwind -> next 1 and 5-day SPX return. Compared with
+                   elevated VIX rising >= 5%, elevated VIX overall, and all days. Signal known at the close; windows overlap.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -186,6 +189,31 @@ elif a.study == "vega":
     print(f"SPX down days: n={len(dn)}  VIX rose {100*sum(b > 0 for b in dn)/len(dn):.1f}%  mean VIX change {st.mean(dn):+.2f}")
     print(f"SPX up days:   n={len(up)}  VIX fell {100*sum(b < 0 for b in up)/len(up):.1f}%  mean VIX change {st.mean(up):+.2f}")
     print(f"SPX <= -2% days: n={len(big)}  mean VIX change {st.mean(big):+.2f}  median {st.median(big):+.2f}")
+elif a.study == "vanna":
+    import csv as _csv, io as _io, bisect as _bs
+    u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+    vx = {}
+    for r in _csv.DictReader(_io.StringIO(txt)):
+        m, d_, y = r["DATE"].split("/"); vx[f"{y}-{m}-{d_}"] = float(r["CLOSE"])
+    C = [(d, c) for d, o, h, l, c in D if d in vx]
+    g = {k: ([], []) for k in ("all", "VIX high", "VIX high & falls >=5% (vanna)", "VIX high & rises >=5%", "VIX low & falls >=5%")}
+    for i in range(253, len(C) - 5):
+        d, c = C[i]; pd_ = C[i - 1][0]
+        hist = sorted(vx[C[j][0]] for j in range(i - 253, i - 1))  # trailing window ending yesterday-1 (no look-ahead)
+        pct = _bs.bisect_left(hist, vx[pd_]) / len(hist)
+        ch = vx[d] / vx[pd_] - 1
+        f1 = 100 * (C[i + 1][1] / c - 1); f5 = 100 * (C[i + 5][1] / c - 1)
+        keys = ["all"]
+        if pct >= 0.8:
+            keys.append("VIX high")
+            if ch <= -0.05: keys.append("VIX high & falls >=5% (vanna)")
+            if ch >= 0.05: keys.append("VIX high & rises >=5%")
+        elif pct <= 0.2 and ch <= -0.05: keys.append("VIX low & falls >=5%")
+        for k in keys: g[k][0].append(f1); g[k][1].append(f5)
+    for k, (a1, a5) in g.items():
+        print(f"== {k}"); summ("   next 1d", a1); summ("   next 5d", a5)
+    print("note: 5-day windows overlap, so t-stats are inflated; no costs")
 elif a.study == "theta_gamma":
     import csv as _csv, io as _io
     u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
