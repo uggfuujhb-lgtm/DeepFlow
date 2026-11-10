@@ -36,6 +36,8 @@ Studies:
   theta_gamma      theta vs gamma for a 1-day ATM straddle: premium ~ 0.8 * VIX * sqrt(1/252) * close (Black-Scholes ATM
                    approximation, VIX as the IV proxy) vs the realized |next close - close|. Positive edge = buyer (gamma) won,
                    negative = seller (theta) won. All days and split by VIX level. Approximation, no skew, no costs.
+  vega             spot-vol link: daily SPX % change vs VIX point change (correlation, slope), split by down/up days,
+                   and how often VIX rose on SPX down days. Explains why put buyers gain vega in selloffs.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -164,6 +166,26 @@ elif a.study == "plan_open":
     for k, (n, b, rb, ra) in res.items():
         print(f"open {k.upper()} yday range: n={n}  traded back into yday range {100*b/n:.1f}%")
         summ(f"  {k} + came back   open→close", rb); summ(f"  {k} + stayed out open→close", ra)
+elif a.study == "vega":
+    import csv as _csv, io as _io
+    u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+    vx = {}
+    for r in _csv.DictReader(_io.StringIO(txt)):
+        m, d_, y = r["DATE"].split("/"); vx[f"{y}-{m}-{d_}"] = float(r["CLOSE"])
+    xs, ys = [], []
+    for i in range(1, len(D)):
+        d, pd_ = D[i][0], D[i - 1][0]
+        if d in vx and pd_ in vx: xs.append(100 * (D[i][4] / D[i - 1][4] - 1)); ys.append(vx[d] - vx[pd_])
+    mx, my = st.mean(xs), st.mean(ys)
+    cov = sum((a - mx) * (b - my) for a, b in zip(xs, ys)) / len(xs)
+    corr = cov / (st.pstdev(xs) * st.pstdev(ys)); slope = cov / st.pvariance(xs)
+    print(f"days={len(xs)}  corr(SPX %, VIX pts) = {corr:+.2f}  slope = {slope:+.2f} VIX pts per 1% SPX")
+    dn = [b for a, b in zip(xs, ys) if a < 0]; up = [b for a, b in zip(xs, ys) if a > 0]
+    big = [b for a, b in zip(xs, ys) if a <= -2]
+    print(f"SPX down days: n={len(dn)}  VIX rose {100*sum(b > 0 for b in dn)/len(dn):.1f}%  mean VIX change {st.mean(dn):+.2f}")
+    print(f"SPX up days:   n={len(up)}  VIX fell {100*sum(b < 0 for b in up)/len(up):.1f}%  mean VIX change {st.mean(up):+.2f}")
+    print(f"SPX <= -2% days: n={len(big)}  mean VIX change {st.mean(big):+.2f}  median {st.median(big):+.2f}")
 elif a.study == "theta_gamma":
     import csv as _csv, io as _io
     u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
