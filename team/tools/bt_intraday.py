@@ -20,6 +20,9 @@ Usage: python3 team/tools/bt_intraday.py daytype
            absorption = option volume >= 1.5x the day's average so far, body <= 0.5x median body so far, |calls-puts| >= 10%;
            outcome = next-30-min move AGAINST the heavier side (points). exhaustion = new session high/low on volume
            < 0.7x average so far; outcome = reversal points over the next 30 min.
+  charm:   end-of-day pin check (charm on 0DTE). Each day, price at the window start vs the nearest 25-pt strike, and
+           whether the window END is closer to that strike (point-in-time strike, no look-ahead). Windows:
+           11:00-12:00, 13:00-14:00 ET (baselines) and 15:00-16:00 ET (last hour, when 0DTE charm is strongest).
 Sample grows by one day per session; below 30 days results are anecdotal.
 """
 import csv, glob, gzip, os, sys
@@ -119,6 +122,27 @@ def vwap_study(rows):
 
 
 if __name__ == "__main__":
+    if (sys.argv[1:] or [""])[0] == "charm":
+        import statistics as st
+        W = [("11:00", "12:00"), ("13:00", "14:00"), ("15:00", "16:00")]
+        res = {w: [] for w in W}
+        for d, rows in days():
+            px = {r["datetime_et"][11:16]: float(r["close"]) for r in rows}
+            last = float(rows[-1]["close"])
+            for a_, b_ in W:
+                if a_ not in px: continue
+                p0 = px[a_]; p1 = px.get(b_, last) if b_ != "16:00" else last
+                k = round(p0 / 25) * 25
+                res[(a_, b_)].append((d, p0, k, p1, abs(p0 - k), abs(p1 - k), abs(p1 - p0)))
+                print(f"{d} {a_}-{b_} ET  start {p0:.1f}  strike {k}  end {p1:.1f}  dist {abs(p0-k):.1f} -> {abs(p1-k):.1f}  move {p1-p0:+.1f}")
+        for w, xs in res.items():
+            if not xs: continue
+            closer = sum(x[5] < x[4] for x in xs)
+            print(f"== {w[0]}-{w[1]} ET: n={len(xs)}  ended closer to strike {closer}/{len(xs)}  "
+                  f"mean dist start {st.mean(x[4] for x in xs):.1f} -> end {st.mean(x[5] for x in xs):.1f}  "
+                  f"mean |move| {st.mean(x[6] for x in xs):.1f}")
+        print("uniform distance to the nearest 25-pt strike averages 6.25. Sample < 30 days: anecdotal.")
+        sys.exit()
     if (sys.argv[1:] or [""])[0] == "opentype":
         import datetime as _dt
         prev = None; prevd = None; n = 0
