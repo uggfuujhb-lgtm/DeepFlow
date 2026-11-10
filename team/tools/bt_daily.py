@@ -41,6 +41,9 @@ Studies:
   vanna           vanna-flow proxy: when VIX is elevated (yesterday's close >= its trailing-252-day 80th percentile) and
                    falls >= 5% today ("vol crush"), dealers' hedges unwind -> next 1 and 5-day SPX return. Compared with
                    elevated VIX rising >= 5%, elevated VIX overall, and all days. Signal known at the close; windows overlap.
+  bs_tails        where Black-Scholes breaks: daily SPX return divided by the move implied by YESTERDAY's VIX
+                   (VIX/sqrt(252)), i.e. a z-score with no look-ahead. Share of |z| > 1/2/3/4 vs the normal distribution,
+                   down vs up tails, sd of z (1.0 if VIX were a fair normal forecast), excess kurtosis of raw returns.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -214,6 +217,30 @@ elif a.study == "vanna":
     for k, (a1, a5) in g.items():
         print(f"== {k}"); summ("   next 1d", a1); summ("   next 5d", a5)
     print("note: 5-day windows overlap, so t-stats are inflated; no costs")
+elif a.study == "bs_tails":
+    import csv as _csv, io as _io
+    u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+    vx = {}
+    for r in _csv.DictReader(_io.StringIO(txt)):
+        m, d_, y = r["DATE"].split("/"); vx[f"{y}-{m}-{d_}"] = float(r["CLOSE"])
+    zs, rs = [], []
+    for i in range(1, len(D)):
+        pd_ = D[i - 1][0]
+        if pd_ not in vx: continue
+        r = 100 * (D[i][4] / D[i - 1][4] - 1); exp_ = vx[pd_] / math.sqrt(252)
+        zs.append(r / exp_); rs.append(r)
+    nrm = lambda k: 100 * math.erfc(k / math.sqrt(2))
+    print(f"days={len(zs)}  sd of z = {st.pstdev(zs):.2f} (1.00 if VIX = fair normal forecast)  mean z = {st.mean(zs):+.3f}")
+    for k in (1, 2, 3, 4):
+        both = 100 * sum(abs(z) > k for z in zs) / len(zs)
+        dn = sum(z < -k for z in zs); up = sum(z > k for z in zs)
+        print(f"|z|>{k}: {both:.2f}% of days (normal {nrm(k):.3f}%)  down {dn}  up {up}")
+    m = st.mean(rs); sd = st.pstdev(rs); kurt = sum((x - m) ** 4 for x in rs) / len(rs) / sd ** 4 - 3
+    skew = sum((x - m) ** 3 for x in rs) / len(rs) / sd ** 3
+    print(f"raw daily returns: sd {sd:.2f}%  skew {skew:+.2f}  excess kurtosis {kurt:+.1f} (normal 0)")
+    worst = sorted(zip(zs, [D[i][0] for i in range(1, len(D)) if D[i - 1][0] in vx]))[:5]
+    print("most extreme down days (z):", ", ".join(f"{d} {z:+.1f}" for z, d in worst))
 elif a.study == "theta_gamma":
     import csv as _csv, io as _io
     u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
