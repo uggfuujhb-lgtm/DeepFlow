@@ -1,5 +1,5 @@
 //@version=6
-// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v6.2, SPX + Mag 7, price and value on one row)
+// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v6.3, finer volume profile rows)
 // Each level = a price box and, right under it, a value box ($M).
 //   Negative value → brown, positive value → fluorescent. Stronger value → brighter band.
 // One section per company (SPX + Mag 7). The section that matches the open chart is drawn automatically,
@@ -548,16 +548,17 @@ alertcondition(brkDn, "OL: IB break down", "كسر الـIB تحت (إغلاق �
 grpV = "الفوليوم بروفايل اليومي"
 showVP  = input.bool(true, "اعرض بروفايل كل يوم", group=grpV, tooltip="مؤشر SPX ما له حجم في TradingView. استخدم ES1! أو SPY، والأسهم عادي.")
 rthSess = input.session("0930-1600", "الجلسة", group=grpV)
-vpPct   = input.float(0.05, "حجم الخانة % من السعر", minval=0.005, step=0.005, group=grpV, tooltip="0.05% = حوالي 3.75 نقطة لسباكس، و0.17$ لسهم 350$")
+vpTicks = input.int(1, "دقة السعر (تيك لكل خانة)", minval=1, maxval=100, group=grpV, tooltip="1 = أدق شي (ES: 0.25 نقطة، الأسهم: 0.01$). المؤشر يجمع الخانات لين يوصل لعدد الأعمدة اللي تحت.")
+vpRows  = input.int(120, "عدد الأعمدة لكل يوم", minval=20, maxval=250, group=grpV, tooltip="مثل ديب شارت: 100 لين 150. أكثر = أدق، بس يقل عدد الأيام اللي تنعرض.")
 vpWidth = input.int(35, "عرض البروفايل % من اليوم", minval=5, maxval=100, group=grpV)
-vpDays  = input.int(5, "كم يوم يبقى على الشارت", minval=1, maxval=10, group=grpV)
+vpDays  = input.int(2, "كم يوم سابق يبقى على الشارت", minval=0, maxval=5, group=grpV, tooltip="كل يوم ياخذ حتى «عدد الأعمدة» من حد الرسم في TradingView (500). مع 120 عمود: يومين سابقة + اليوم.")
 vpVA    = input.int(70, "منطقة القيمة %", minval=50, maxval=90, group=grpV)
-colVPin = input.color(color.new(#8E99A6, 55), "داخل القيمة", group=grpV)
-colVPout= input.color(color.new(#8E99A6, 80), "برّا القيمة", group=grpV)
-colPOC  = input.color(#FFC21A, "POC", group=grpV)
+colVPin = input.color(color.new(#E07A3C, 25), "داخل القيمة", group=grpV)
+colVPout= input.color(color.new(#E8D36A, 35), "برّا القيمة", group=grpV)
+colPOC  = input.color(#FF2BD6, "POC", group=grpV)
 colVAL  = input.color(color.new(#9B6BFF, 0), "VAH و VAL", group=grpV)
 
-N_BINS = 400
+N_BINS = 3000
 var array<float> vVol   = array.new<float>(N_BINS, 0.0)
 var float vBase = na
 var float vBin  = na
@@ -574,43 +575,50 @@ var array<line> vpLiveL = array.new<line>()
 inRTH = not na(time(timeframe.period, rthSess, tz))
 rthStart = inRTH and (not inRTH[1] or newDay)
 
-// draws the profile currently held in vVol into the given arrays (x in bar TIME, so old days never break the drawing limit)
+// draws the profile held in vVol (fine bins grouped into at most vpRows rows); x in bar TIME
 f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
     if vMaxI >= vMinI and not na(vStart)
-        float tot = 0.0
-        int poc = vMinI
+        nFine = vMaxI - vMinI + 1
+        g = math.max(1, int(math.ceil(nFine / vpRows)))
+        nRows = int(math.ceil(nFine / g))
+        rows = array.new<float>(nRows, 0.0)
         for i = vMinI to vMaxI
-            v = array.get(vVol, i)
-            tot += v
-            if v > array.get(vVol, poc)
-                poc := i
+            r = int((i - vMinI) / g)
+            array.set(rows, r, array.get(rows, r) + array.get(vVol, i))
+        float tot = 0.0
+        int poc = 0
+        for r = 0 to nRows - 1
+            tot += array.get(rows, r)
+            if array.get(rows, r) > array.get(rows, poc)
+                poc := r
         if tot > 0
-            // value area: grow from POC toward the heavier side
             int lo = poc
             int hi = poc
-            float acc = array.get(vVol, poc)
-            while acc < tot * vpVA / 100.0 and (lo > vMinI or hi < vMaxI)
-                float up = hi < vMaxI ? array.get(vVol, hi + 1) : -1.0
-                float dn = lo > vMinI ? array.get(vVol, lo - 1) : -1.0
+            float acc = array.get(rows, poc)
+            while acc < tot * vpVA / 100.0 and (lo > 0 or hi < nRows - 1)
+                float up = hi < nRows - 1 ? array.get(rows, hi + 1) : -1.0
+                float dn = lo > 0 ? array.get(rows, lo - 1) : -1.0
                 if up >= dn
                     hi += 1
                     acc += up
                 else
                     lo -= 1
                     acc += dn
-            maxV = array.get(vVol, poc)
+            maxV = array.get(rows, poc)
             span = math.max(1, (xEnd - vStart) / TF_MS)
-            for i = vMinI to vMaxI
-                v = array.get(vVol, i)
+            rowH = vBin * g
+            y0 = vBase + vMinI * vBin
+            for r = 0 to nRows - 1
+                v = array.get(rows, r)
                 if v > 0
                     w = math.max(1, math.round(v / maxV * span * vpWidth / 100.0))
-                    top = vBase + (i + 1) * vBin
-                    bot = vBase + i * vBin
-                    c = i == poc ? color.new(colPOC, 30) : (i >= lo and i <= hi ? colVPin : colVPout)
+                    bot = y0 + r * rowH
+                    top = bot + rowH * 0.85
+                    c = r >= lo and r <= hi ? colVPin : colVPout
                     array.push(bx, box.new(vStart, top, vStart + w * TF_MS, bot, xloc=xloc.bar_time, border_color=color.new(c, 100), bgcolor=c))
-            pocP = vBase + (poc + 0.5) * vBin
-            vahP = vBase + (hi + 1) * vBin
-            valP = vBase + lo * vBin
+            pocP = y0 + (poc + 0.5) * rowH
+            vahP = y0 + (hi + 1) * rowH
+            valP = y0 + lo * rowH
             array.push(ln, line.new(vStart, pocP, xEnd, pocP, xloc=xloc.bar_time, color=colPOC, width=2))
             array.push(ln, line.new(vStart, vahP, xEnd, vahP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
             array.push(ln, line.new(vStart, valP, xEnd, valP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
@@ -618,15 +626,14 @@ f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
 if showVP
     // a new session: freeze yesterday's profile, then reset
     if rthStart
-        if not na(vStart)
+        if not na(vStart) and vpDays > 0
             f_vpDraw(vpHist, vpHistL, vEnd)
-            // keep only the last N days (about 3 lines per day)
             while array.size(vpHistL) > vpDays * 3
                 line.delete(array.shift(vpHistL))
-            while array.size(vpHist) > 330
+            while array.size(vpHist) > vpDays * vpRows
                 box.delete(array.shift(vpHist))
         array.fill(vVol, 0.0)
-        vBin := math.max(syminfo.mintick, close * vpPct / 100.0)
+        vBin := syminfo.mintick * vpTicks
         vBase := open - (N_BINS / 2) * vBin
         vStart := time
         vMinI := N_BINS
