@@ -1,10 +1,15 @@
 //@version=6
-// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v5.1, form inputs)
+// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v5.2, form inputs, one copy per symbol)
 // Each level = a price box and, right under it, a value box ($M).
 //   Negative value → brown, positive value → fluorescent. Stronger value → brighter band.
-// Inputs are saved with the chart, so keep one layout/template per symbol (SPX, AAPL, NVDA...).
+// Per symbol: add the indicator once per company and type its ticker in "الشركة". Each copy draws only on its own
+//   chart, so switching TSLA → NVDA hides TSLA's levels, and going back to TSLA shows them again.
 // Numbers: MenthorQ, or python3 team/tools/gex.py _SPX next --pine. For education only, not a recommendation.
 indicator("OptionLap · Gamma + Delta + OR", shorttitle="OL Gamma", overlay=true, max_lines_count=300, max_labels_count=150, max_boxes_count=500)
+
+// ───────── الشركة ─────────
+grpX = "الشركة"
+symKey = input.string("", "الشركة (مثل TSLA)", group=grpX, tooltip="اكتب رمز الشركة. اللفلات ترسم بس على شارتها، وتختفي إذا فتحت شركة ثانية، وترجع إذا رجعت لها.\nضيف المؤشر مرة لكل شركة. لو تركته فاضي يرسم على أي شارت.")
 
 // ───────── القاما: 7 لفلات (السعر، وتحته القيمة) ─────────
 grpG = "القاما (السعر، وتحته القيمة بالمليون)"
@@ -126,10 +131,18 @@ f_add(array<float> ps, array<float> vs, array<string> ns, float p, float v, stri
         array.push(vs, v)
         array.push(ns, n)
 
+// does this copy belong to the chart that is open now?  ("NASDAQ:TSLA" or "tsla" both work)
+f_mine() =>
+    k = str.upper(str.replace_all(symKey, " ", ""))
+    parts = str.split(k, ":")
+    k2 = array.size(parts) > 1 ? array.get(parts, array.size(parts) - 1) : k
+    str.length(k2) == 0 or k2 == str.upper(syminfo.ticker)
+
 if barstate.islast
     f_clearAll()
     half = bandAuto ? close * 0.0004 : bandPts
-    if showD
+    mine = f_mine()
+    if mine and showD
         dps = array.new<float>()
         dvs = array.new<float>()
         dns = array.new<string>()
@@ -141,7 +154,7 @@ if barstate.islast
         f_add(dps, dvs, dns, d6P, d6V, "Δ")
         f_add(dps, dvs, dns, d7P, d7V, "Δ")
         f_draw(dps, dvs, dns, colDPos, colDNeg, half, "هيت ماب")
-    if showG
+    if mine and showG
         gps = array.new<float>()
         gvs = array.new<float>()
         gns = array.new<string>()
