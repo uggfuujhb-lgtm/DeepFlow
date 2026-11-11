@@ -1,33 +1,42 @@
 //@version=6
-// OptionLap · Gamma lines + Delta heatmap + Opening Range + IB
-// TradingView can't read option data, so levels are pasted each morning:
-//   python3 team/tools/gex.py _SPX next --pine   → copy the "PINE levels" and "PINE delta" lines,
-//   or type MenthorQ numbers yourself as  strike:value  (value in $M).
+// OptionLap · Gamma + Delta heatmap + Opening Range + IB  (v3, multi-symbol)
+// One line per symbol in the box:   TICKER | gamma strike:$M,... | delta strike:$M,...
+// The indicator picks the line that matches the chart's ticker, so one indicator serves SPX, AAPL, NVDA...
+// Daily lines: python3 team/tools/gex.py _SPX next --pine   (or AAPL, NVDA, ...), or MenthorQ numbers by hand.
 // For education only, not a recommendation.
-indicator("OptionLap · Gamma + Delta + OR", shorttitle="OL Gamma", overlay=true, max_lines_count=100, max_labels_count=100, max_boxes_count=200)
+indicator("OptionLap · Gamma + Delta + OR", shorttitle="OL Gamma", overlay=true, max_lines_count=150, max_labels_count=150, max_boxes_count=400)
 
-// ───────── القاما (خطوط) ─────────
-grpG = "القاما: خطوط"
-gammaStr = input.string("7650:1011,7605:1370,7600:1448,7590:944,7585:988,7575:1355,7550:990,7520:-975", "لفلات القاما  strike:قوة ($M)", group=grpG, tooltip="الموجب كول (مقاومة)، والسالب بوت (دعم). القوة تحدد عرض الخط.")
+// ───────── البيانات (سطر لكل شركة) ─────────
+grpL = "اللفلات: سطر لكل شركة"
+data = input.text_area("SPX | 7650:1098,7605:1435,7600:1498,7590:965,7585:988,7580:678,7575:1338,7550:939,7520:-891,7510:-753 | 7670:-782,7605:775,7600:832,7585:859,7580:904,7575:1524,7550:2086,7450:782,7430:1071,7400:1021\nAAPL | 355:126,352.5:28,350:21,347.5:-45,345:-22 | 355:43,347.5:-56,342.5:-11", "الرمز | القاما | الدلتا", group=grpL, tooltip="كل سطر: الرمز | سعر:قيمة,سعر:قيمة | سعر:قيمة\nالقيمة بالمليون دولار، والموجب والسالب مهم.\nتضيف لفل جديد: حط فاصلة وبعدها سعر:قيمة، مثل ,7700:500\nتضيف شركة: سطر جديد بنفس الشكل.")
+alias  = input.string("", "رمز بديل (اختياري)", group=grpL, tooltip="لو الشارت رمزه غير السطر (مثل ES1! وتبي لفلات SPX)، اكتب هنا SPX")
+offset = input.float(0.0, "إزاحة السعر", group=grpL, tooltip="للفيوتشر: فرق ES عن SPX (مثلاً +35). تنضاف لكل اللفلات.")
+
+// ───────── القاما ─────────
+grpG = "القاما"
+gStyle   = input.string("هيت ماب", "شكل القاما", options=["هيت ماب", "خطوط", "الاثنين"], group=grpG)
 zeroG    = input.float(0.0, "الزيرو قاما (0 = بدون)", group=grpG)
 callWall = input.float(0.0, "جدار الكول (0 = بدون)", group=grpG)
 putWall  = input.float(0.0, "جدار البوت (0 = بدون)", group=grpG)
-showG    = input.bool(true, "اعرض خطوط القاما", group=grpG)
-showGTxt = input.bool(true, "اكتب القوة على الخط", group=grpG)
+showGTxt = input.bool(true, "اكتب القيمة جنب المستوى", group=grpG)
 colGPos  = input.color(#FF3B47, "قاما موجبة", group=grpG)
 colGNeg  = input.color(#00E58A, "قاما سالبة", group=grpG)
 colZero  = input.color(#FFC21A, "زيرو قاما", group=grpG)
 
-// ───────── الدلتا (هيت ماب) ─────────
-grpD = "الدلتا: هيت ماب"
-deltaStr = input.string("7670:-788,7605:701,7600:720,7585:795,7580:778,7575:1427,7550:2010,7450:768,7430:1064,7400:1015", "لفلات الدلتا  strike:قيمة ($M)", group=grpD, tooltip="الموجب فسفوري، والسالب بني. القوة تحدد وضوح اللون.")
+// ───────── الدلتا ─────────
+grpD = "الدلتا"
 showD    = input.bool(true, "اعرض هيت ماب الدلتا", group=grpD)
-bandPts  = input.float(2.5, "سماكة الشريط (نقاط فوق وتحت)", minval=0.25, step=0.25, group=grpD)
-glow     = input.bool(true, "توهّج حول الشريط", group=grpD)
+showDTxt = input.bool(false, "اكتب قيمة الدلتا", group=grpD)
 colDPos  = input.color(#2EF2C8, "دلتا موجبة (فسفوري)", group=grpD)
 colDNeg  = input.color(#C98A6A, "دلتا سالبة (بني)", group=grpD)
-minAlpha = input.int(15, "أقوى مستوى: شفافية %", minval=0, maxval=90, group=grpD)
-maxAlpha = input.int(85, "أضعف مستوى: شفافية %", minval=10, maxval=98, group=grpD)
+
+// ───────── شكل الهيت ماب ─────────
+grpH = "الهيت ماب"
+bandAuto = input.bool(true, "سماكة تلقائية (0.04% من السعر)", group=grpH)
+bandPts  = input.float(2.5, "سماكة يدوية (نقاط فوق وتحت)", minval=0.01, step=0.25, group=grpH)
+glow     = input.bool(true, "توهّج حول الشريط", group=grpH)
+minAlpha = input.int(15, "أقوى مستوى: شفافية %", minval=0, maxval=90, group=grpH)
+maxAlpha = input.int(85, "أضعف مستوى: شفافية %", minval=10, maxval=98, group=grpH)
 
 // ───────── الأوبن رينج والـIB ─────────
 grpS = "الأوبن رينج والـIB (توقيت نيويورك)"
@@ -43,21 +52,21 @@ colIB   = input.color(#8E99A6, "لون الـIB", group=grpS)
 // ───────── أدوات ─────────
 var array<line>  gLines  = array.new<line>()
 var array<label> gLabels = array.new<label>()
-var array<box>   dBoxes  = array.new<box>()
+var array<box>   gBoxes  = array.new<box>()
 
 f_clearAll() =>
     for l in gLines
         line.delete(l)
     for b in gLabels
         label.delete(b)
-    for x in dBoxes
+    for x in gBoxes
         box.delete(x)
     array.clear(gLines)
     array.clear(gLabels)
-    array.clear(dBoxes)
+    array.clear(gBoxes)
 
-// "7550:990,7520:-975" → keys / values
-f_parse(string s) =>
+// "7550:990,7520:-975" → keys / values (offset added to keys)
+f_parse(string s, float off) =>
     ks = array.new<float>()
     vs = array.new<float>()
     for p in str.split(s, ",")
@@ -66,7 +75,7 @@ f_parse(string s) =>
             k = str.tonumber(array.get(kv, 0))
             v = str.tonumber(array.get(kv, 1))
             if not na(k) and not na(v)
-                array.push(ks, k)
+                array.push(ks, k + off)
                 array.push(vs, v)
     [ks, vs]
 
@@ -76,52 +85,83 @@ f_maxAbs(array<float> vs) =>
         m := math.max(m, math.abs(v))
     m
 
-f_line(float price, color col, int w, string txt, bool dashed) =>
-    l = line.new(bar_index - 1, price, bar_index, price, extend=extend.both, color=col, width=w, style=dashed ? line.style_dashed : line.style_solid)
-    array.push(gLines, l)
-    if str.length(txt) > 0
-        b = label.new(bar_index + 3, price, txt, style=label.style_label_left, color=color.new(col, 85), textcolor=col, size=size.small)
-        array.push(gLabels, b)
+f_line(float price, color col, int w, bool dashed) =>
+    array.push(gLines, line.new(bar_index - 1, price, bar_index, price, extend=extend.both, color=col, width=w, style=dashed ? line.style_dashed : line.style_solid))
+
+f_tag(float price, color col, string txt) =>
+    array.push(gLabels, label.new(bar_index + 3, price, txt, style=label.style_label_left, color=color.new(col, 85), textcolor=col, size=size.small))
 
 f_band(float price, float half, color col, int transp) =>
-    b = box.new(bar_index - 1, price + half, bar_index, price - half, border_color=color.new(col, 100), bgcolor=color.new(col, transp), extend=extend.both)
-    array.push(dBoxes, b)
+    array.push(gBoxes, box.new(bar_index - 1, price + half, bar_index, price - half, border_color=color.new(col, 100), bgcolor=color.new(col, transp), extend=extend.both))
+
+// heatmap rows for one set of levels
+f_heat(array<float> ks, array<float> vs, color cPos, color cNeg, float half) =>
+    m = f_maxAbs(vs)
+    if m > 0 and array.size(ks) > 0
+        for i = 0 to array.size(ks) - 1
+            rel = math.abs(array.get(vs, i)) / m
+            t = math.round(maxAlpha - rel * (maxAlpha - minAlpha))
+            col = array.get(vs, i) >= 0 ? cPos : cNeg
+            if glow
+                f_band(array.get(ks, i), half * 2.2, col, math.min(97, t + 12))
+            f_band(array.get(ks, i), half, col, t)
+
+f_fmt(float k, float v) =>
+    str.tostring(k) + "  " + (v >= 0 ? "+" : "") + str.tostring(v) + "M"
+
+// ───────── اختيار سطر الشركة ─────────
+f_pick(string txt, string want) =>
+    string g = ""
+    string d = ""
+    bool found = false
+    for row in str.split(txt, "\n")
+        cols = str.split(row, "|")
+        if array.size(cols) >= 2 and not found
+            name = str.upper(str.replace_all(array.get(cols, 0), " ", ""))
+            if name == want
+                found := true
+                g := array.get(cols, 1)
+                d := array.size(cols) >= 3 ? array.get(cols, 2) : ""
+    [found, g, d]
 
 if barstate.islast
     f_clearAll()
-    // الدلتا أول (تحت الخطوط)
-    if showD
-        [dk, dv] = f_parse(deltaStr)
-        dMax = f_maxAbs(dv)
-        if dMax > 0
-            for i = 0 to array.size(dk) - 1
-                k = array.get(dk, i)
-                v = array.get(dv, i)
-                rel = math.abs(v) / dMax
-                t = math.round(maxAlpha - rel * (maxAlpha - minAlpha))
-                col = v >= 0 ? colDPos : colDNeg
-                if glow
-                    f_band(k, bandPts * 2.2, col, math.min(97, t + 12))
-                f_band(k, bandPts, col, t)
-    // القاما خطوط
-    if showG
-        [gk, gv] = f_parse(gammaStr)
-        gMax = f_maxAbs(gv)
-        if gMax > 0
+    want = str.upper(str.length(alias) > 0 ? alias : syminfo.ticker)
+    [found, gTxt, dTxt] = f_pick(data, want)
+    half = bandAuto ? close * 0.0004 : bandPts
+    if not found
+        f_tag(close, color.gray, "ما فيه سطر للرمز " + want + " في خانة اللفلات")
+    else
+        [gk, gv] = f_parse(gTxt, offset)
+        [dk, dv] = f_parse(dTxt, offset)
+        // الدلتا أول (تحت)، بعدها القاما
+        if showD
+            f_heat(dk, dv, colDPos, colDNeg, half)
+            if showDTxt and array.size(dk) > 0
+                for i = 0 to array.size(dk) - 1
+                    f_tag(array.get(dk, i), array.get(dv, i) >= 0 ? colDPos : colDNeg, "Δ " + f_fmt(array.get(dk, i), array.get(dv, i)))
+        gm = f_maxAbs(gv)
+        if gm > 0
+            if gStyle != "خطوط"
+                f_heat(gk, gv, colGPos, colGNeg, half * 0.7)
             for i = 0 to array.size(gk) - 1
                 k = array.get(gk, i)
                 v = array.get(gv, i)
-                rel = math.abs(v) / gMax
-                w = math.max(1, math.round(rel * 5))
-                col = color.new(v >= 0 ? colGPos : colGNeg, math.round((1 - rel) * 55))
-                txt = showGTxt ? str.tostring(k) + "  " + (v >= 0 ? "+" : "") + str.tostring(v) + "M" : ""
-                f_line(k, col, w, txt, false)
+                rel = math.abs(v) / gm
+                col = v >= 0 ? colGPos : colGNeg
+                if gStyle != "هيت ماب"
+                    f_line(k, color.new(col, math.round((1 - rel) * 55)), math.max(1, math.round(rel * 5)), false)
+                if showGTxt
+                    f_tag(k, col, "Γ " + f_fmt(k, v))
     if zeroG > 0
-        f_line(zeroG, colZero, 2, "زيرو قاما " + str.tostring(zeroG), true)
+        f_line(zeroG + offset, colZero, 2, true)
+        f_tag(zeroG + offset, colZero, "زيرو قاما " + str.tostring(zeroG))
     if callWall > 0
-        f_line(callWall, colGPos, 4, "جدار الكول " + str.tostring(callWall), false)
+        f_line(callWall + offset, colGPos, 4, false)
+        f_tag(callWall + offset, colGPos, "جدار الكول " + str.tostring(callWall))
     if putWall > 0
-        f_line(putWall, colGNeg, 4, "جدار البوت " + str.tostring(putWall), false)
+        f_line(putWall + offset, colGNeg, 4, false)
+        f_tag(putWall + offset, colGNeg, "جدار البوت " + str.tostring(putWall))
 
 // ───────── الأوبن رينج والـIB (لكل يوم) ─────────
 inOR = not na(time(timeframe.period, orSess, tz))
