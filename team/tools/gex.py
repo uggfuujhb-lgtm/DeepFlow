@@ -55,3 +55,8 @@ print("largest |GEX| below call resistance:", ", ".join(f"{k:g} {fmt(gex[k])}" f
 print(f"gamma flip (approx): {flip}")
 print("top DEX:", ", ".join(f"{k:g} {fmt(dex[k])}" for k in sorted(near, key=lambda k: -abs(dex[k]))[:5]))
 print("top OI (call/put):", ", ".join(f"{k:g} {oi[k][0]:.0f}/{oi[k][1]:.0f}" for k in sorted(near, key=lambda k: -(oi[k][0]+oi[k][1]))[:5]))
+if "--pine" in sys.argv:
+    # one line to paste into the TradingView indicator (team/tools/tradingview/optionlap_gamma_or.pine):
+    # strike:GEX in $M, the 8 largest |GEX| strikes within ±3% of spot
+    top = sorted(near, key=lambda k: -abs(gex[k]))[:8]
+    print("PINE levels:", ",".join(f"{k:g}:{gex[k]/1e6:.0f}" for k in sorted(top, reverse=True)))

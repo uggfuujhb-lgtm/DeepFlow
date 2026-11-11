@@ -1,0 +1,118 @@
+//@version=6
+// OptionLap · Gamma Levels + Opening Range + IB
+// Gamma levels are pasted by hand each morning (TradingView can't read option data):
+//   run  python3 team/tools/gex.py _SPX next --pine   and paste the "PINE levels" line,
+//   or type MenthorQ levels yourself as  strike:strength  (strength in $M, + call / − put).
+// For education only, not a recommendation.
+indicator("OptionLap · Gamma + OR + IB", shorttitle="OL Gamma", overlay=true, max_lines_count=100, max_labels_count=100, max_boxes_count=50)
+
+// ───────── Inputs: gamma ─────────
+grpG = "القاما (Gamma)"
+levelsStr = input.string("7550:626,7520:-1416,7510:-1122,7450:-198", "اللفلات  strike:قوة ($M)", group=grpG, tooltip="مثال: 7550:626,7520:-1416  الموجب كول (أحمر/مقاومة)، والسالب بوت (أخضر/دعم). القوة بالمليون دولار.")
+zeroG     = input.float(0.0, "الزيرو قاما (0 = بدون)", group=grpG)
+callWall  = input.float(0.0, "جدار الكول (0 = بدون)", group=grpG)
+putWall   = input.float(0.0, "جدار البوت (0 = بدون)", group=grpG)
+showVal   = input.bool(true, "اكتب القوة على الخط", group=grpG)
+colPos    = input.color(color.new(#FF3B47, 0), "لون القاما الموجبة", group=grpG)
+colNeg    = input.color(color.new(#00E58A, 0), "لون القاما السالبة", group=grpG)
+colZero   = input.color(color.new(#FFC21A, 0), "لون الزيرو قاما", group=grpG)
+
+// ───────── Inputs: sessions ─────────
+grpS = "الأوبن رينج والـIB (توقيت نيويورك)"
+tz      = input.string("America/New_York", "المنطقة الزمنية", group=grpS)
+orSess  = input.session("0930-0945", "الأوبن رينج", group=grpS, tooltip="0930-0935 = 5 دقايق، 0930-0945 = 15، 0930-1000 = 30")
+ibSess  = input.session("0930-1030", "الـIB (أول ساعة)", group=grpS)
+showOR  = input.bool(true, "اعرض الأوبن رينج", group=grpS)
+showIB  = input.bool(true, "اعرض الـIB", group=grpS)
+showBrk = input.bool(true, "علّم أول كسر للـIB (إغلاق برّا)", group=grpS)
+colOR   = input.color(color.new(#9B6BFF, 0), "لون الأوبن رينج", group=grpS)
+colIB   = input.color(color.new(#8E99A6, 0), "لون الـIB", group=grpS)
+
+// ───────── Gamma levels (redrawn on the last bar) ─────────
+var array<line>  gLines  = array.new<line>()
+var array<label> gLabels = array.new<label>()
+
+f_clear() =>
+    for l in gLines
+        line.delete(l)
+    for b in gLabels
+        label.delete(b)
+    array.clear(gLines)
+    array.clear(gLabels)
+
+f_level(float price, color col, int w, string txt, string styl) =>
+    st = styl == "dash" ? line.style_dashed : line.style_solid
+    l = line.new(bar_index - 1, price, bar_index, price, extend=extend.both, color=col, width=w, style=st)
+    array.push(gLines, l)
+    if str.length(txt) > 0
+        b = label.new(bar_index + 3, price, txt, style=label.style_label_left, color=color.new(col, 80), textcolor=col, size=size.small)
+        array.push(gLabels, b)
+
+if barstate.islast
+    f_clear()
+    parts = str.split(levelsStr, ",")
+    // strongest |strength| sets the scale for width (1..5) and transparency
+    float maxAbs = 0.0
+    for p in parts
+        kv = str.split(str.replace_all(p, " ", ""), ":")
+        if array.size(kv) == 2
+            v = str.tonumber(array.get(kv, 1))
+            if not na(v)
+                maxAbs := math.max(maxAbs, math.abs(v))
+    for p in parts
+        kv = str.split(str.replace_all(p, " ", ""), ":")
+        if array.size(kv) == 2
+            k = str.tonumber(array.get(kv, 0))
+            v = str.tonumber(array.get(kv, 1))
+            if not na(k) and not na(v) and maxAbs > 0
+                rel = math.abs(v) / maxAbs
+                w = math.max(1, math.round(rel * 5))
+                base = v >= 0 ? colPos : colNeg
+                col = color.new(base, math.round((1 - rel) * 60))
+                txt = showVal ? (str.tostring(k) + "  " + (v >= 0 ? "+" : "") + str.tostring(v) + "M") : str.tostring(k)
+                f_level(k, col, w, txt, "solid")
+    if zeroG > 0
+        f_level(zeroG, colZero, 2, "زيرو قاما " + str.tostring(zeroG), "dash")
+    if callWall > 0
+        f_level(callWall, colPos, 4, "جدار الكول " + str.tostring(callWall), "solid")
+    if putWall > 0
+        f_level(putWall, colNeg, 4, "جدار البوت " + str.tostring(putWall), "solid")
+
+// ───────── Opening range & IB (per day) ─────────
+inOR = not na(time(timeframe.period, orSess, tz))
+inIB = not na(time(timeframe.period, ibSess, tz))
+newDay = ta.change(time("D", "", tz)) != 0
+
+var float orH = na
+var float orL = na
+var float ibH = na
+var float ibL = na
+var bool  brkDone = false
+if newDay
+    orH := na
+    orL := na
+    ibH := na
+    ibL := na
+    brkDone := false
+if inOR
+    orH := na(orH) ? high : math.max(orH, high)
+    orL := na(orL) ? low  : math.min(orL, low)
+if inIB
+    ibH := na(ibH) ? high : math.max(ibH, high)
+    ibL := na(ibL) ? low  : math.min(ibL, low)
+
+orDone = not inOR and not na(orH)
+ibDone = not inIB and not na(ibH)
+plot(showOR and orDone ? orH : na, "OR High", colOR, 2, plot.style_linebr)
+plot(showOR and orDone ? orL : na, "OR Low",  colOR, 2, plot.style_linebr)
+plot(showIB and ibDone ? ibH : na, "IB High", colIB, 1, plot.style_linebr)
+plot(showIB and ibDone ? ibL : na, "IB Low",  colIB, 1, plot.style_linebr)
+
+brkUp = showBrk and ibDone and not brkDone and close > ibH
+brkDn = showBrk and ibDone and not brkDone and close < ibL
+if brkUp or brkDn
+    brkDone := true
+plotshape(brkUp, "IB break up",   shape.triangleup,   location.belowbar, colPos, size=size.small, text="IB↑")
+plotshape(brkDn, "IB break down", shape.triangledown, location.abovebar, colNeg, size=size.small, text="IB↓")
+alertcondition(brkUp, "OL: IB break up",   "كسر الـIB فوق (إغلاق شمعة)")
+alertcondition(brkDn, "OL: IB break down", "كسر الـIB تحت (إغلاق شمعة)")
