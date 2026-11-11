@@ -55,6 +55,6 @@
 ## المسار 5: الدمج (النبوغ)
 - [x] 5.1 جدار قاما على حافة منطقة بزنس: أقوى منطقة ← edge-plus-wall.md (bt_daily.py edge_strike)
 - [x] 5.2 نظام القاما + نوع اليوم في نظرية المزاد ← regime-daytype.md (bt_daily.py regime_daytype)
-- [ ] 5.3 أوبن رينج + Initial Balance + القاما
+- [x] 5.3 أوبن رينج + Initial Balance + القاما ← or-ib-gamma.md (bt_intraday.py ib)
 - [ ] 5.4 دراسة حالات: 10 أيام من سباكس بالطرق الثلاث
 - [ ] 5.5 كتابة منهج «المستوى المتقدم» للدورة من كل اللي فات
