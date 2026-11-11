@@ -1,5 +1,5 @@
 //@version=6
-// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v5, form inputs)
+// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v5.1, form inputs)
 // Each level = a price box and, right under it, a value box ($M).
 //   Negative value → brown, positive value → fluorescent. Stronger value → brighter band.
 // Inputs are saved with the chart, so keep one layout/template per symbol (SPX, AAPL, NVDA...).
@@ -214,6 +214,7 @@ var float vBase = na
 var float vBin  = na
 var int   vStart = na
 var int   vEnd   = na
+TF_MS = timeframe.in_seconds() * 1000
 var int   vMinI  = N_BINS
 var int   vMaxI  = -1
 var array<box>  vpHist  = array.new<box>()
@@ -222,9 +223,9 @@ var array<box>  vpLive  = array.new<box>()
 var array<line> vpLiveL = array.new<line>()
 
 inRTH = not na(time(timeframe.period, rthSess, tz))
-rthStart = inRTH and not inRTH[1]
+rthStart = inRTH and (not inRTH[1] or newDay)
 
-// draws the profile currently held in vVol into the given arrays; returns nothing
+// draws the profile currently held in vVol into the given arrays (x in bar TIME, so old days never break the drawing limit)
 f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
     if vMaxI >= vMinI and not na(vStart)
         float tot = 0.0
@@ -249,7 +250,7 @@ f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
                     lo -= 1
                     acc += dn
             maxV = array.get(vVol, poc)
-            span = math.max(1, xEnd - vStart)
+            span = math.max(1, (xEnd - vStart) / TF_MS)
             for i = vMinI to vMaxI
                 v = array.get(vVol, i)
                 if v > 0
@@ -257,13 +258,13 @@ f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
                     top = vBase + (i + 1) * vBin
                     bot = vBase + i * vBin
                     c = i == poc ? color.new(colPOC, 30) : (i >= lo and i <= hi ? colVPin : colVPout)
-                    array.push(bx, box.new(vStart, top, vStart + w, bot, border_color=color.new(c, 100), bgcolor=c))
+                    array.push(bx, box.new(vStart, top, vStart + w * TF_MS, bot, xloc=xloc.bar_time, border_color=color.new(c, 100), bgcolor=c))
             pocP = vBase + (poc + 0.5) * vBin
             vahP = vBase + (hi + 1) * vBin
             valP = vBase + lo * vBin
-            array.push(ln, line.new(vStart, pocP, xEnd, pocP, color=colPOC, width=2))
-            array.push(ln, line.new(vStart, vahP, xEnd, vahP, color=colVAL, width=1, style=line.style_dashed))
-            array.push(ln, line.new(vStart, valP, xEnd, valP, color=colVAL, width=1, style=line.style_dashed))
+            array.push(ln, line.new(vStart, pocP, xEnd, pocP, xloc=xloc.bar_time, color=colPOC, width=2))
+            array.push(ln, line.new(vStart, vahP, xEnd, vahP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
+            array.push(ln, line.new(vStart, valP, xEnd, valP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
 
 if showVP
     // a new session: freeze yesterday's profile, then reset
@@ -278,11 +279,11 @@ if showVP
         array.fill(vVol, 0.0)
         vBin := math.max(syminfo.mintick, close * vpPct / 100.0)
         vBase := open - (N_BINS / 2) * vBin
-        vStart := bar_index
+        vStart := time
         vMinI := N_BINS
         vMaxI := -1
     if inRTH and not na(vBase)
-        vEnd := bar_index
+        vEnd := time
         iLo = math.max(0, math.min(N_BINS - 1, int(math.floor((low - vBase) / vBin))))
         iHi = math.max(0, math.min(N_BINS - 1, int(math.floor((high - vBase) / vBin))))
         n = iHi - iLo + 1
@@ -299,4 +300,4 @@ if showVP
             line.delete(l)
         array.clear(vpLive)
         array.clear(vpLiveL)
-        f_vpDraw(vpLive, vpLiveL, bar_index)
+        f_vpDraw(vpLive, vpLiveL, time)
