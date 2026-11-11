@@ -1,10 +1,10 @@
 //@version=6
-// OptionLap · Gamma + Delta heatmap + Opening Range + IB  (v3, multi-symbol)
+// OptionLap · Gamma + Delta heatmap + Opening Range + IB  (v4, multi-symbol + daily volume profile)
 // One line per symbol in the box:   TICKER | gamma strike:$M,... | delta strike:$M,...
 // The indicator picks the line that matches the chart's ticker, so one indicator serves SPX, AAPL, NVDA...
 // Daily lines: python3 team/tools/gex.py _SPX next --pine   (or AAPL, NVDA, ...), or MenthorQ numbers by hand.
 // For education only, not a recommendation.
-indicator("OptionLap · Gamma + Delta + OR", shorttitle="OL Gamma", overlay=true, max_lines_count=150, max_labels_count=150, max_boxes_count=400)
+indicator("OptionLap · Gamma + Delta + OR", shorttitle="OL Gamma", overlay=true, max_lines_count=300, max_labels_count=150, max_boxes_count=500)
 
 // ───────── البيانات (سطر لكل شركة) ─────────
 grpL = "اللفلات: سطر لكل شركة"
@@ -201,3 +201,109 @@ plotshape(brkUp, "IB break up", shape.triangleup, location.belowbar, colGNeg, si
 plotshape(brkDn, "IB break down", shape.triangledown, location.abovebar, colGPos, size=size.small, text="IB↓")
 alertcondition(brkUp, "OL: IB break up", "كسر الـIB فوق (إغلاق شمعة)")
 alertcondition(brkDn, "OL: IB break down", "كسر الـIB تحت (إغلاق شمعة)")
+
+// ───────── فوليوم بروفايل يومي (لكل جلسة لحالها) ─────────
+grpV = "الفوليوم بروفايل اليومي"
+showVP  = input.bool(true, "اعرض بروفايل كل يوم", group=grpV, tooltip="مؤشر SPX ما له حجم في TradingView. استخدم ES1! أو SPY، والأسهم عادي.")
+rthSess = input.session("0930-1600", "الجلسة", group=grpV)
+vpPct   = input.float(0.05, "حجم الخانة % من السعر", minval=0.005, step=0.005, group=grpV, tooltip="0.05% = حوالي 3.75 نقطة لسباكس، و0.17$ لسهم 350$")
+vpWidth = input.int(35, "عرض البروفايل % من اليوم", minval=5, maxval=100, group=grpV)
+vpDays  = input.int(5, "كم يوم يبقى على الشارت", minval=1, maxval=10, group=grpV)
+vpVA    = input.int(70, "منطقة القيمة %", minval=50, maxval=90, group=grpV)
+colVPin = input.color(color.new(#8E99A6, 55), "داخل القيمة", group=grpV)
+colVPout= input.color(color.new(#8E99A6, 80), "برّا القيمة", group=grpV)
+colPOC  = input.color(#FFC21A, "POC", group=grpV)
+colVAL  = input.color(color.new(#9B6BFF, 0), "VAH و VAL", group=grpV)
+
+N_BINS = 400
+var array<float> vVol   = array.new<float>(N_BINS, 0.0)
+var float vBase = na
+var float vBin  = na
+var int   vStart = na
+var int   vEnd   = na
+var int   vMinI  = N_BINS
+var int   vMaxI  = -1
+var array<box>  vpHist  = array.new<box>()
+var array<line> vpHistL = array.new<line>()
+var array<box>  vpLive  = array.new<box>()
+var array<line> vpLiveL = array.new<line>()
+
+inRTH = not na(time(timeframe.period, rthSess, tz))
+rthStart = inRTH and not inRTH[1]
+
+// draws the profile currently held in vVol into the given arrays; returns nothing
+f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
+    if vMaxI >= vMinI and not na(vStart)
+        float tot = 0.0
+        int poc = vMinI
+        for i = vMinI to vMaxI
+            v = array.get(vVol, i)
+            tot += v
+            if v > array.get(vVol, poc)
+                poc := i
+        if tot > 0
+            // value area: grow from POC toward the heavier side
+            int lo = poc
+            int hi = poc
+            float acc = array.get(vVol, poc)
+            while acc < tot * vpVA / 100.0 and (lo > vMinI or hi < vMaxI)
+                float up = hi < vMaxI ? array.get(vVol, hi + 1) : -1.0
+                float dn = lo > vMinI ? array.get(vVol, lo - 1) : -1.0
+                if up >= dn
+                    hi += 1
+                    acc += up
+                else
+                    lo -= 1
+                    acc += dn
+            maxV = array.get(vVol, poc)
+            span = math.max(1, xEnd - vStart)
+            for i = vMinI to vMaxI
+                v = array.get(vVol, i)
+                if v > 0
+                    w = math.max(1, math.round(v / maxV * span * vpWidth / 100.0))
+                    top = vBase + (i + 1) * vBin
+                    bot = vBase + i * vBin
+                    c = i == poc ? color.new(colPOC, 30) : (i >= lo and i <= hi ? colVPin : colVPout)
+                    array.push(bx, box.new(vStart, top, vStart + w, bot, border_color=color.new(c, 100), bgcolor=c))
+            pocP = vBase + (poc + 0.5) * vBin
+            vahP = vBase + (hi + 1) * vBin
+            valP = vBase + lo * vBin
+            array.push(ln, line.new(vStart, pocP, xEnd, pocP, color=colPOC, width=2))
+            array.push(ln, line.new(vStart, vahP, xEnd, vahP, color=colVAL, width=1, style=line.style_dashed))
+            array.push(ln, line.new(vStart, valP, xEnd, valP, color=colVAL, width=1, style=line.style_dashed))
+
+if showVP
+    // a new session: freeze yesterday's profile, then reset
+    if rthStart
+        if not na(vStart)
+            f_vpDraw(vpHist, vpHistL, vEnd)
+            // keep only the last N days (about 3 lines per day)
+            while array.size(vpHistL) > vpDays * 3
+                line.delete(array.shift(vpHistL))
+            while array.size(vpHist) > 330
+                box.delete(array.shift(vpHist))
+        array.fill(vVol, 0.0)
+        vBin := math.max(syminfo.mintick, close * vpPct / 100.0)
+        vBase := open - (N_BINS / 2) * vBin
+        vStart := bar_index
+        vMinI := N_BINS
+        vMaxI := -1
+    if inRTH and not na(vBase)
+        vEnd := bar_index
+        iLo = math.max(0, math.min(N_BINS - 1, int(math.floor((low - vBase) / vBin))))
+        iHi = math.max(0, math.min(N_BINS - 1, int(math.floor((high - vBase) / vBin))))
+        n = iHi - iLo + 1
+        vol = nz(volume)
+        for i = iLo to iHi
+            array.set(vVol, i, array.get(vVol, i) + vol / n)
+        vMinI := math.min(vMinI, iLo)
+        vMaxI := math.max(vMaxI, iHi)
+    // today's profile, redrawn live on the last bar
+    if barstate.islast
+        for b in vpLive
+            box.delete(b)
+        for l in vpLiveL
+            line.delete(l)
+        array.clear(vpLive)
+        array.clear(vpLiveL)
+        f_vpDraw(vpLive, vpLiveL, bar_index)
