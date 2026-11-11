@@ -47,6 +47,9 @@ Studies:
   edge_strike     confluence proxy (5.1): yesterday's high/low (business-area edge) lying within 0.1% of a round 50-pt
                    strike (where SPX open interest clusters) vs not. When today trades through that edge: share of days that
                    close back inside (rejection), and the next-day return. Proxy only: no real open-interest data before 2026.
+  regime_daytype  5.2 proxy: yesterday's VIX/VIX3M (stress / likely short-gamma when > 1) vs today's day type:
+                   range relative to the prior 20-day median, trend-day share (range >= 1.5x median and close in the top or
+                   bottom 15% of the range), inside-day share. Known at the open (no look-ahead). No dealer data before 2026.
   inside_day       balance proxy: day inside yesterday's range -> next day range & breakout side vs all days
 Rules: signals use only data known at the close (no look-ahead); returns are index points/% with no costs.
 Descriptive statistics for education, not a trading system.
@@ -263,6 +266,31 @@ elif a.study == "edge_strike":
             print(f"{lab}: n={n}  closed back inside {100*p:.1f}% (±{196*se:.1f})")
             summ("   next day close→close", nx)
     print("open must be inside yesterday's range (the edge is tested intraday). Proxy for OI walls; no costs.")
+elif a.study == "regime_daytype":
+    import csv as _csv, io as _io
+    def cboe_close(name):
+        u = f"https://cdn.cboe.com/api/global/us_indices/daily_prices/{name}_History.csv"
+        txt = urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"}), timeout=60).read().decode()
+        out = {}
+        for r in _csv.DictReader(_io.StringIO(txt)):
+            m, d_, y = r["DATE"].split("/"); out[f"{y}-{m}-{d_}"] = float(r["CLOSE"])
+        return out
+    vx, v3 = cboe_close("VIX"), cboe_close("VIX3M")
+    B = {k: [[], 0, 0, 0] for k in ("backwardation >1", "contango 0.9-1", "steep contango <0.9", "all")}
+    for i in range(21, len(D)):
+        pd_ = D[i - 1][0]
+        if pd_ not in vx or pd_ not in v3: continue
+        rngs = sorted(D[j][2] - D[j][3] for j in range(i - 20, i)); med = rngs[10]
+        _, o, h, l, c = D[i]; r = h - l
+        if med <= 0 or r <= 0: continue
+        pos = (c - l) / r; trend = r >= 1.5 * med and (pos >= 0.85 or pos <= 0.15)
+        inside = h <= D[i - 1][2] and l >= D[i - 1][3]
+        q = vx[pd_] / v3[pd_]; k = "backwardation >1" if q > 1 else "contango 0.9-1" if q >= 0.9 else "steep contango <0.9"
+        for kk in (k, "all"):
+            g = B[kk]; g[0].append(r / med); g[1] += 1; g[2] += trend; g[3] += inside
+    for k, (rel, n, tr, ins) in B.items():
+        p = tr / n; se = math.sqrt(p * (1 - p) / n)
+        print(f"== {k}: n={n}  range/median20 mean {st.mean(rel):.2f} median {st.median(rel):.2f}  trend days {100*p:.1f}% (±{196*se:.1f})  inside days {100*ins/n:.1f}%")
 elif a.study == "theta_gamma":
     import csv as _csv, io as _io
     u = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
