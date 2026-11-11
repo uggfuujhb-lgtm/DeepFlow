@@ -1,0 +1,21 @@
+## next (0DTE)
+symbol _SPX  spot 7619.34  data_time 2026-11-11 21:15:39 (CBOE, delayed)  expiries ['261111']
+net GEX total (±3%): 16,235M  regime: positive
+call resistance (largest +GEX above spot): 7620.0 (94M)
+top +GEX above: 7620 94M, 7625 35M, 7630 7M, 7635 0M
+top -GEX below: 7395 0M, 7400 0M, 7405 0M, 7410 0M
+largest |GEX| below call resistance: 7615 9,984M, 7610 3,428M, 7600 2,623M, 7605 50M
+gamma flip (approx): None
+top DEX: 7550 2,851M, 7575 2,671M, 7600 2,654M, 7580 2,479M, 7605 2,343M
+top OI (call/put): 7510 1483/6411, 7520 916/5840, 7650 5521/413, 7400 1421/4143, 7580 3254/1828
+
+## all
+symbol _SPX  spot 7619.34  data_time 2026-11-11 21:15:39 (CBOE, delayed)  expiries ['261111', '261112', '261113']...
+net GEX total (±3%): 12,338M  regime: positive
+call resistance (largest +GEX above spot): 7700.0 (3,327M)
+top +GEX above: 7700 3,327M, 7800 2,983M, 7750 1,918M, 7825 1,450M
+top -GEX below: 7500 -5,910M, 7400 -4,400M, 7450 -2,649M, 7475 -1,783M
+largest |GEX| below call resistance: 7615 10,124M, 7500 -5,910M, 7400 -4,400M, 7610 3,485M
+gamma flip (approx): 7750.0
+top DEX: 7800 -18,204M, 7500 17,838M, 7750 -14,631M, 7400 13,351M, 7700 -9,834M
+top OI (call/put): 7700 233320/210100, 7500 143035/236154, 7600 149170/190318, 7400 92344/209389, 7800 170119/123018
