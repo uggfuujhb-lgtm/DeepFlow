@@ -27,5 +27,8 @@ for s in sys.argv[2:]:
     rng=max(x[1] for x in m)-min(x[2] for x in m)
     diffs=[abs(a[j]-f[j]) for j in range(3)]
     print(f"{s:6} bars1m={len(m):3} bin=${b:.3f} range=${rng:.2f}  POC/VAL/VAH diff (bins) {diffs}  ($ {[round(x*b,2) for x in diffs]})")
-    res.append(diffs)
-print("mean bins diff POC/VAL/VAH:",[round(sum(r[j] for r in res)/len(res),2) for j in range(3)], " within 1 bin:", [sum(r[j]<=1 for r in res) for j in range(3)], "of", len(res))
+    res.append(diffs + [x*b/rng*100 for x in diffs])
+n=len(res)
+print("mean bins diff POC/VAL/VAH:",[round(sum(r[j] for r in res)/n,2) for j in range(3)], " within 1 bin:", [sum(r[j]<=1 for r in res) for j in range(3)], "of", n)
+err=[sum(r[3+j] for r in res)/n for j in range(3)]
+print("mean error % of day range POC/VAL/VAH:",[round(e,1) for e in err], " -> accuracy %:",[round(100-e,1) for e in err])
