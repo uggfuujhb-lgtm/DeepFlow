@@ -1,23 +1,35 @@
 //@version=6
-// OptionLap · Gamma Levels + Opening Range + IB
-// Gamma levels are pasted by hand each morning (TradingView can't read option data):
-//   run  python3 team/tools/gex.py _SPX next --pine   and paste the "PINE levels" line,
-//   or type MenthorQ levels yourself as  strike:strength  (strength in $M, + call / − put).
+// OptionLap · Gamma lines + Delta heatmap + Opening Range + IB
+// TradingView can't read option data, so levels are pasted each morning:
+//   python3 team/tools/gex.py _SPX next --pine   → copy the "PINE levels" and "PINE delta" lines,
+//   or type MenthorQ numbers yourself as  strike:value  (value in $M).
 // For education only, not a recommendation.
-indicator("OptionLap · Gamma + OR + IB", shorttitle="OL Gamma", overlay=true, max_lines_count=100, max_labels_count=100, max_boxes_count=50)
+indicator("OptionLap · Gamma + Delta + OR", shorttitle="OL Gamma", overlay=true, max_lines_count=100, max_labels_count=100, max_boxes_count=200)
 
-// ───────── Inputs: gamma ─────────
-grpG = "القاما (Gamma)"
-levelsStr = input.string("7550:626,7520:-1416,7510:-1122,7450:-198", "اللفلات  strike:قوة ($M)", group=grpG, tooltip="مثال: 7550:626,7520:-1416  الموجب كول (أحمر/مقاومة)، والسالب بوت (أخضر/دعم). القوة بالمليون دولار.")
-zeroG     = input.float(0.0, "الزيرو قاما (0 = بدون)", group=grpG)
-callWall  = input.float(0.0, "جدار الكول (0 = بدون)", group=grpG)
-putWall   = input.float(0.0, "جدار البوت (0 = بدون)", group=grpG)
-showVal   = input.bool(true, "اكتب القوة على الخط", group=grpG)
-colPos    = input.color(color.new(#FF3B47, 0), "لون القاما الموجبة", group=grpG)
-colNeg    = input.color(color.new(#00E58A, 0), "لون القاما السالبة", group=grpG)
-colZero   = input.color(color.new(#FFC21A, 0), "لون الزيرو قاما", group=grpG)
+// ───────── القاما (خطوط) ─────────
+grpG = "القاما: خطوط"
+gammaStr = input.string("7650:1011,7605:1370,7600:1448,7590:944,7585:988,7575:1355,7550:990,7520:-975", "لفلات القاما  strike:قوة ($M)", group=grpG, tooltip="الموجب كول (مقاومة)، والسالب بوت (دعم). القوة تحدد عرض الخط.")
+zeroG    = input.float(0.0, "الزيرو قاما (0 = بدون)", group=grpG)
+callWall = input.float(0.0, "جدار الكول (0 = بدون)", group=grpG)
+putWall  = input.float(0.0, "جدار البوت (0 = بدون)", group=grpG)
+showG    = input.bool(true, "اعرض خطوط القاما", group=grpG)
+showGTxt = input.bool(true, "اكتب القوة على الخط", group=grpG)
+colGPos  = input.color(#FF3B47, "قاما موجبة", group=grpG)
+colGNeg  = input.color(#00E58A, "قاما سالبة", group=grpG)
+colZero  = input.color(#FFC21A, "زيرو قاما", group=grpG)
 
-// ───────── Inputs: sessions ─────────
+// ───────── الدلتا (هيت ماب) ─────────
+grpD = "الدلتا: هيت ماب"
+deltaStr = input.string("7670:-788,7605:701,7600:720,7585:795,7580:778,7575:1427,7550:2010,7450:768,7430:1064,7400:1015", "لفلات الدلتا  strike:قيمة ($M)", group=grpD, tooltip="الموجب فسفوري، والسالب بني. القوة تحدد وضوح اللون.")
+showD    = input.bool(true, "اعرض هيت ماب الدلتا", group=grpD)
+bandPts  = input.float(2.5, "سماكة الشريط (نقاط فوق وتحت)", minval=0.25, step=0.25, group=grpD)
+glow     = input.bool(true, "توهّج حول الشريط", group=grpD)
+colDPos  = input.color(#2EF2C8, "دلتا موجبة (فسفوري)", group=grpD)
+colDNeg  = input.color(#C98A6A, "دلتا سالبة (بني)", group=grpD)
+minAlpha = input.int(15, "أقوى مستوى: شفافية %", minval=0, maxval=90, group=grpD)
+maxAlpha = input.int(85, "أضعف مستوى: شفافية %", minval=10, maxval=98, group=grpD)
+
+// ───────── الأوبن رينج والـIB ─────────
 grpS = "الأوبن رينج والـIB (توقيت نيويورك)"
 tz      = input.string("America/New_York", "المنطقة الزمنية", group=grpS)
 orSess  = input.session("0930-0945", "الأوبن رينج", group=grpS, tooltip="0930-0935 = 5 دقايق، 0930-0945 = 15، 0930-1000 = 30")
@@ -25,60 +37,93 @@ ibSess  = input.session("0930-1030", "الـIB (أول ساعة)", group=grpS)
 showOR  = input.bool(true, "اعرض الأوبن رينج", group=grpS)
 showIB  = input.bool(true, "اعرض الـIB", group=grpS)
 showBrk = input.bool(true, "علّم أول كسر للـIB (إغلاق برّا)", group=grpS)
-colOR   = input.color(color.new(#9B6BFF, 0), "لون الأوبن رينج", group=grpS)
-colIB   = input.color(color.new(#8E99A6, 0), "لون الـIB", group=grpS)
+colOR   = input.color(#9B6BFF, "لون الأوبن رينج", group=grpS)
+colIB   = input.color(#8E99A6, "لون الـIB", group=grpS)
 
-// ───────── Gamma levels (redrawn on the last bar) ─────────
+// ───────── أدوات ─────────
 var array<line>  gLines  = array.new<line>()
 var array<label> gLabels = array.new<label>()
+var array<box>   dBoxes  = array.new<box>()
 
-f_clear() =>
+f_clearAll() =>
     for l in gLines
         line.delete(l)
     for b in gLabels
         label.delete(b)
+    for x in dBoxes
+        box.delete(x)
     array.clear(gLines)
     array.clear(gLabels)
+    array.clear(dBoxes)
 
-f_level(float price, color col, int w, string txt, string styl) =>
-    st = styl == "dash" ? line.style_dashed : line.style_solid
-    l = line.new(bar_index - 1, price, bar_index, price, extend=extend.both, color=col, width=w, style=st)
-    array.push(gLines, l)
-    if str.length(txt) > 0
-        b = label.new(bar_index + 3, price, txt, style=label.style_label_left, color=color.new(col, 80), textcolor=col, size=size.small)
-        array.push(gLabels, b)
-
-if barstate.islast
-    f_clear()
-    parts = str.split(levelsStr, ",")
-    // strongest |strength| sets the scale for width (1..5) and transparency
-    float maxAbs = 0.0
-    for p in parts
-        kv = str.split(str.replace_all(p, " ", ""), ":")
-        if array.size(kv) == 2
-            v = str.tonumber(array.get(kv, 1))
-            if not na(v)
-                maxAbs := math.max(maxAbs, math.abs(v))
-    for p in parts
+// "7550:990,7520:-975" → keys / values
+f_parse(string s) =>
+    ks = array.new<float>()
+    vs = array.new<float>()
+    for p in str.split(s, ",")
         kv = str.split(str.replace_all(p, " ", ""), ":")
         if array.size(kv) == 2
             k = str.tonumber(array.get(kv, 0))
             v = str.tonumber(array.get(kv, 1))
-            if not na(k) and not na(v) and maxAbs > 0
-                rel = math.abs(v) / maxAbs
-                w = math.max(1, math.round(rel * 5))
-                base = v >= 0 ? colPos : colNeg
-                col = color.new(base, math.round((1 - rel) * 60))
-                txt = showVal ? (str.tostring(k) + "  " + (v >= 0 ? "+" : "") + str.tostring(v) + "M") : str.tostring(k)
-                f_level(k, col, w, txt, "solid")
-    if zeroG > 0
-        f_level(zeroG, colZero, 2, "زيرو قاما " + str.tostring(zeroG), "dash")
-    if callWall > 0
-        f_level(callWall, colPos, 4, "جدار الكول " + str.tostring(callWall), "solid")
-    if putWall > 0
-        f_level(putWall, colNeg, 4, "جدار البوت " + str.tostring(putWall), "solid")
+            if not na(k) and not na(v)
+                array.push(ks, k)
+                array.push(vs, v)
+    [ks, vs]
 
-// ───────── Opening range & IB (per day) ─────────
+f_maxAbs(array<float> vs) =>
+    float m = 0.0
+    for v in vs
+        m := math.max(m, math.abs(v))
+    m
+
+f_line(float price, color col, int w, string txt, bool dashed) =>
+    l = line.new(bar_index - 1, price, bar_index, price, extend=extend.both, color=col, width=w, style=dashed ? line.style_dashed : line.style_solid)
+    array.push(gLines, l)
+    if str.length(txt) > 0
+        b = label.new(bar_index + 3, price, txt, style=label.style_label_left, color=color.new(col, 85), textcolor=col, size=size.small)
+        array.push(gLabels, b)
+
+f_band(float price, float half, color col, int transp) =>
+    b = box.new(bar_index - 1, price + half, bar_index, price - half, border_color=color.new(col, 100), bgcolor=color.new(col, transp), extend=extend.both)
+    array.push(dBoxes, b)
+
+if barstate.islast
+    f_clearAll()
+    // الدلتا أول (تحت الخطوط)
+    if showD
+        [dk, dv] = f_parse(deltaStr)
+        dMax = f_maxAbs(dv)
+        if dMax > 0
+            for i = 0 to array.size(dk) - 1
+                k = array.get(dk, i)
+                v = array.get(dv, i)
+                rel = math.abs(v) / dMax
+                t = math.round(maxAlpha - rel * (maxAlpha - minAlpha))
+                col = v >= 0 ? colDPos : colDNeg
+                if glow
+                    f_band(k, bandPts * 2.2, col, math.min(97, t + 12))
+                f_band(k, bandPts, col, t)
+    // القاما خطوط
+    if showG
+        [gk, gv] = f_parse(gammaStr)
+        gMax = f_maxAbs(gv)
+        if gMax > 0
+            for i = 0 to array.size(gk) - 1
+                k = array.get(gk, i)
+                v = array.get(gv, i)
+                rel = math.abs(v) / gMax
+                w = math.max(1, math.round(rel * 5))
+                col = color.new(v >= 0 ? colGPos : colGNeg, math.round((1 - rel) * 55))
+                txt = showGTxt ? str.tostring(k) + "  " + (v >= 0 ? "+" : "") + str.tostring(v) + "M" : ""
+                f_line(k, col, w, txt, false)
+    if zeroG > 0
+        f_line(zeroG, colZero, 2, "زيرو قاما " + str.tostring(zeroG), true)
+    if callWall > 0
+        f_line(callWall, colGPos, 4, "جدار الكول " + str.tostring(callWall), false)
+    if putWall > 0
+        f_line(putWall, colGNeg, 4, "جدار البوت " + str.tostring(putWall), false)
+
+// ───────── الأوبن رينج والـIB (لكل يوم) ─────────
 inOR = not na(time(timeframe.period, orSess, tz))
 inIB = not na(time(timeframe.period, ibSess, tz))
 newDay = ta.change(time("D", "", tz)) != 0
@@ -96,23 +141,23 @@ if newDay
     brkDone := false
 if inOR
     orH := na(orH) ? high : math.max(orH, high)
-    orL := na(orL) ? low  : math.min(orL, low)
+    orL := na(orL) ? low : math.min(orL, low)
 if inIB
     ibH := na(ibH) ? high : math.max(ibH, high)
-    ibL := na(ibL) ? low  : math.min(ibL, low)
+    ibL := na(ibL) ? low : math.min(ibL, low)
 
 orDone = not inOR and not na(orH)
 ibDone = not inIB and not na(ibH)
 plot(showOR and orDone ? orH : na, "OR High", colOR, 2, plot.style_linebr)
-plot(showOR and orDone ? orL : na, "OR Low",  colOR, 2, plot.style_linebr)
+plot(showOR and orDone ? orL : na, "OR Low", colOR, 2, plot.style_linebr)
 plot(showIB and ibDone ? ibH : na, "IB High", colIB, 1, plot.style_linebr)
-plot(showIB and ibDone ? ibL : na, "IB Low",  colIB, 1, plot.style_linebr)
+plot(showIB and ibDone ? ibL : na, "IB Low", colIB, 1, plot.style_linebr)
 
 brkUp = showBrk and ibDone and not brkDone and close > ibH
 brkDn = showBrk and ibDone and not brkDone and close < ibL
 if brkUp or brkDn
     brkDone := true
-plotshape(brkUp, "IB break up",   shape.triangleup,   location.belowbar, colPos, size=size.small, text="IB↑")
-plotshape(brkDn, "IB break down", shape.triangledown, location.abovebar, colNeg, size=size.small, text="IB↓")
-alertcondition(brkUp, "OL: IB break up",   "كسر الـIB فوق (إغلاق شمعة)")
+plotshape(brkUp, "IB break up", shape.triangleup, location.belowbar, colGNeg, size=size.small, text="IB↑")
+plotshape(brkDn, "IB break down", shape.triangledown, location.abovebar, colGPos, size=size.small, text="IB↓")
+alertcondition(brkUp, "OL: IB break up", "كسر الـIB فوق (إغلاق شمعة)")
 alertcondition(brkDn, "OL: IB break down", "كسر الـIB تحت (إغلاق شمعة)")

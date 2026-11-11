@@ -60,3 +60,5 @@ if "--pine" in sys.argv:
     # strike:GEX in $M, the 8 largest |GEX| strikes within ±3% of spot
     top = sorted(near, key=lambda k: -abs(gex[k]))[:8]
     print("PINE levels:", ",".join(f"{k:g}:{gex[k]/1e6:.0f}" for k in sorted(top, reverse=True)))
+    topd = sorted(near, key=lambda k: -abs(dex[k]))[:10]
+    print("PINE delta:", ",".join(f"{k:g}:{dex[k]/1e6:.0f}" for k in sorted(topd, reverse=True)))
