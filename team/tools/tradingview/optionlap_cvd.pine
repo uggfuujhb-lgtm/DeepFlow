@@ -22,11 +22,11 @@ maxGap  = input.int(40, "أكبر مسافة (شموع)", minval=5, group=grpD)
 onPrice = input.bool(true, "اكتب التباعد على شارت السعر كمان", group=grpD)
 
 grpS = "الشكل"
-style   = input.string("شموع", "شكل CVD", options=["شموع", "خط"], group=grpS)
+style   = input.string("خط", "شكل CVD", options=["خط", "شموع"], group=grpS)
 showBar = input.bool(false, "اعرض دلتا كل شمعة (أعمدة بدل CVD)", group=grpS)
 showTbl = input.bool(true, "اعرض جدول اليوم", group=grpS)
-colUp   = input.color(#2EF2C8, "مشترين", group=grpS)
-colDn   = input.color(#C98A6A, "بائعين", group=grpS)
+colUp   = input.color(color.green, "مشترين", group=grpS)
+colDn   = input.color(color.red, "بائعين", group=grpS)
 colDiv  = input.color(#FFC21A, "التباعد", group=grpS)
 
 // ───────── intrabar data ─────────
@@ -84,7 +84,7 @@ if active
 isCandle = style == "شموع" and not showBar
 cvdCol = cvd >= bo ? colUp : colDn
 plotcandle(active and isCandle ? bo : na, active and isCandle ? bh : na, active and isCandle ? bl : na, active and isCandle ? cvd : na, "CVD", color=cvdCol, wickcolor=cvdCol, bordercolor=cvdCol)
-plot(active and style == "خط" and not showBar ? cvd : na, "CVD خط", color=cvdCol, linewidth=2, style=plot.style_linebr)
+plot(active and style == "خط" and not showBar ? cvd : na, "CVD خط", color=cvd >= 0 ? colUp : colDn, linewidth=2, style=plot.style_linebr)
 plot(active and showBar ? bd : na, "دلتا الشمعة", color=bd >= 0 ? colUp : colDn, style=plot.style_columns)
 hline(0, "صفر", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
 
@@ -106,8 +106,8 @@ if not na(pl) and inToday
     if not na(pLb) and pLb >= sStartBar and pb - pLb >= minGap and pb - pLb <= maxGap and low[lbR] < pLp and cNow > pLc
         bullDiv := true
         if showDiv
-            line.new(pLb, pLc, pb, cNow, color=colDiv, width=2)
-            label.new(bar_index, bl, "تباعد ↑", style=label.style_label_up, color=color.new(colDiv, 20), textcolor=color.black, size=size.tiny)
+            line.new(pLb, pLc, pb, cNow, color=colUp, width=2)
+            label.new(bar_index, cvd, " Bull ", style=label.style_label_up, color=colUp, textcolor=color.white, size=size.small)
             if onPrice
                 label.new(bar_index, low, "CVD ↑", style=label.style_label_up, color=color.new(colDiv, 20), textcolor=color.black, size=size.tiny, force_overlay=true)
     pLb := pb
@@ -118,8 +118,8 @@ if not na(ph) and inToday
     if not na(pHb) and pHb >= sStartBar and pb - pHb >= minGap and pb - pHb <= maxGap and high[lbR] > pHp and cNow < pHc
         bearDiv := true
         if showDiv
-            line.new(pHb, pHc, pb, cNow, color=colDiv, width=2)
-            label.new(bar_index, bh, "تباعد ↓", style=label.style_label_down, color=color.new(colDiv, 20), textcolor=color.black, size=size.tiny)
+            line.new(pHb, pHc, pb, cNow, color=colDn, width=2)
+            label.new(bar_index, cvd, " Bear ", style=label.style_label_down, color=colDn, textcolor=color.white, size=size.small)
             if onPrice
                 label.new(bar_index, high, "CVD ↓", style=label.style_label_down, color=color.new(colDiv, 20), textcolor=color.black, size=size.tiny, force_overlay=true)
     pHb := pb

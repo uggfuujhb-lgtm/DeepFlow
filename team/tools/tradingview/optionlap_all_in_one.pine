@@ -1062,11 +1062,11 @@ cv_maxGap  = input.int(40, "أكبر مسافة (شموع)", minval=5, group=cv_
 cv_onPrice = input.bool(true, "اكتب التباعد على شارت السعر كمان", group=cv_grpD)
 
 cv_grpS = "لوحة CVD: الشكل"
-cv_style   = input.string("شموع", "شكل CVD", options=["شموع", "خط"], group=cv_grpS)
+cv_style   = input.string("خط", "شكل CVD", options=["خط", "شموع"], group=cv_grpS)
 cv_showBar = input.bool(false, "اعرض دلتا كل شمعة (أعمدة بدل CVD)", group=cv_grpS)
 cv_showTbl = input.bool(true, "اعرض جدول اليوم", group=cv_grpS)
-cv_colUp   = input.color(#2EF2C8, "مشترين", group=cv_grpS)
-cv_colDn   = input.color(#C98A6A, "بائعين", group=cv_grpS)
+cv_colUp   = input.color(color.green, "مشترين", group=cv_grpS)
+cv_colDn   = input.color(color.red, "بائعين", group=cv_grpS)
 cv_colDiv  = input.color(#FFC21A, "التباعد", group=cv_grpS)
 
 // ───────── intrabar data ─────────
@@ -1124,7 +1124,7 @@ if cv_active
 cv_isCandle = cv_style == "شموع" and not cv_showBar
 cv_cvdCol = cv_cvd >= cv_bo ? cv_colUp : cv_colDn
 plotcandle(cv_active and cv_isCandle ? cv_bo : na, cv_active and cv_isCandle ? cv_bh : na, cv_active and cv_isCandle ? cv_bl : na, cv_active and cv_isCandle ? cv_cvd : na, "CVD", color=cv_cvdCol, wickcolor=cv_cvdCol, bordercolor=cv_cvdCol)
-plot(cv_active and cv_style == "خط" and not cv_showBar ? cv_cvd : na, "CVD خط", color=cv_cvdCol, linewidth=2, style=plot.style_linebr)
+plot(cv_active and cv_style == "خط" and not cv_showBar ? cv_cvd : na, "CVD خط", color=cv_cvd >= 0 ? cv_colUp : cv_colDn, linewidth=2, style=plot.style_linebr)
 plot(cv_active and cv_showBar ? cv_bd : na, "دلتا الشمعة", color=cv_bd >= 0 ? cv_colUp : cv_colDn, style=plot.style_columns)
 hline(0, "صفر", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
 
@@ -1146,8 +1146,8 @@ if not na(cv_pl) and cv_inToday
     if not na(cv_pLb) and cv_pLb >= cv_sStartBar and cv_pb - cv_pLb >= cv_minGap and cv_pb - cv_pLb <= cv_maxGap and low[cv_lbR] < cv_pLp and cv_cNow > cv_pLc
         cv_bullDiv := true
         if cv_showDiv
-            line.new(cv_pLb, cv_pLc, cv_pb, cv_cNow, color=cv_colDiv, width=2)
-            label.new(bar_index, cv_bl, "تباعد ↑", style=label.style_label_up, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny)
+            line.new(cv_pLb, cv_pLc, cv_pb, cv_cNow, color=cv_colUp, width=2)
+            label.new(bar_index, cv_cvd, " Bull ", style=label.style_label_up, color=cv_colUp, textcolor=color.white, size=size.small)
             if cv_onPrice
                 label.new(bar_index, low, "CVD ↑", style=label.style_label_up, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny, force_overlay=true)
     cv_pLb := cv_pb
@@ -1158,8 +1158,8 @@ if not na(cv_ph) and cv_inToday
     if not na(cv_pHb) and cv_pHb >= cv_sStartBar and cv_pb - cv_pHb >= cv_minGap and cv_pb - cv_pHb <= cv_maxGap and high[cv_lbR] > cv_pHp and cv_cNow < cv_pHc
         cv_bearDiv := true
         if cv_showDiv
-            line.new(cv_pHb, cv_pHc, cv_pb, cv_cNow, color=cv_colDiv, width=2)
-            label.new(bar_index, cv_bh, "تباعد ↓", style=label.style_label_down, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny)
+            line.new(cv_pHb, cv_pHc, cv_pb, cv_cNow, color=cv_colDn, width=2)
+            label.new(bar_index, cv_cvd, " Bear ", style=label.style_label_down, color=cv_colDn, textcolor=color.white, size=size.small)
             if cv_onPrice
                 label.new(bar_index, high, "CVD ↓", style=label.style_label_down, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny, force_overlay=true)
     cv_pHb := cv_pb
