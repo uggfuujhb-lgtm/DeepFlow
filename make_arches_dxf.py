@@ -72,11 +72,11 @@ L(C,(x0,H),"CENTER"); L(C,(x0+S,H),"CENTER"); L((x0,H),(x0+S,H),"CENTER"); L((x0
 ol, orr = P(C,a2,R+D), P(C,a1,R+D)
 b = -math.tan(math.radians(2*th)/4)
 wall(x0, [(0,H,0),(ol.x-x0,ol.y,b),(orr.x-x0,orr.y,0),(S,H,0)], "SEGMENTAL ARCH")
-d = msp.add_linear_dim(base=(x0+S/2+7,H), p1=(x0+S/2,H), p2=(x0+S/2,H+rise), angle=90, dxfattribs={"layer":"DIM"}, override={**dimov,"dimdec":0}); d.render()
+d = msp.add_linear_dim(base=(x0+S/2+7,H), p1=(x0+S/2,H), p2=(x0+S/2,H+rise), angle=90, dxfattribs={"layer":"DIM"}, override=dimov); d.render()
 msp.add_text(f"R={R:.2f}  R={R+D:.2f}", height=2.5, dxfattribs={"layer":"TEXT"}).set_placement((x0+S/2+3,H-12))
 
 # ---- A3 layout at 1:20 ----
-lay = doc.layouts.get("Layout1"); lay.rename("A3")
+lay = doc.layouts.new("A3"); doc.layouts.delete("Layout1")
 lay.page_setup(size=(420,297), margins=(0,0,0,0), units="mm")
 lay.add_lwpolyline([(10,10),(410,10),(410,287),(10,287)], close=True, dxfattribs={"layer":"FRAME","const_width":0.5})
 lay.add_lwpolyline([(10,10),(410,10),(410,35),(10,35)], close=True, dxfattribs={"layer":"FRAME"})
