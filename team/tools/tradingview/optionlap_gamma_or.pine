@@ -879,7 +879,6 @@ absSell = showAbs and inRTH and buyersWin and close <= mid and extraOK and (not 
 
 plotshape(absBuy,  "امتصاص شرائي", shape.diamond, location.belowbar, colAbsB, size=size.normal, text="ABS", textcolor=colAbsB)
 plotshape(absSell, "امتصاص بيعي",  shape.diamond, location.abovebar, colAbsS, size=size.normal, text="ABS", textcolor=colAbsS)
-bgcolor(absBuy ? color.new(colAbsB, 80) : absSell ? color.new(colAbsS, 80) : na, title="شمعة الامتصاص")
 var int   lastAbsT = na
 var float lastAbsP = na
 var int   lastAbsS = 0
