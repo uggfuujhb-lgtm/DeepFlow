@@ -825,7 +825,7 @@ absLen   = input.int(20, "متوسط الفوليوم (شموع)", minval=5, max
 absVolX  = input.float(1.8, "الفوليوم ≥ كم ضعف المتوسط", minval=1.0, step=0.1, group=grpA)
 absDltP  = input.int(25, "الدلتا ≥ كم % من فوليوم الشمعة", minval=5, maxval=90, group=grpA)
 absRngX  = input.float(0.9, "مدى الشمعة ≤ كم ضعف ATR", minval=0.2, step=0.1, group=grpA, tooltip="أصغر = شمعة أضيق = امتصاص أوضح")
-absNear  = input.bool(true, "بس عند مستوى (قاما، دلتا، VAH/VAL/POC أمس، IB، OR)", group=grpA)
+absNear  = input.bool(false, "بس عند مستوى (قاما، دلتا، VAH/VAL/POC أمس، IB، OR)", group=grpA)
 absTolX  = input.float(0.3, "قرب المستوى (كم ضعف ATR)", minval=0.05, step=0.05, group=grpA)
 colAbsB  = input.color(#2EF2C8, "امتصاص شرائي (البيع انمتص)", group=grpA)
 colAbsS  = input.color(#C98A6A, "امتصاص بيعي (الشراء انمتص)", group=grpA)
@@ -1060,7 +1060,9 @@ if planGo
     calc = "\nبـ " + str.tostring(calcN) + " عقد دلتا " + str.tostring(calcDelta) + ": الهدف +" + str.tostring(gainD, "#") + "$ · الوقف −" + str.tostring(lossD, "#") + "$"
     calc += lossD > calcLimit ? "\n⛔ خسارة الوقف أكبر من حدك (" + str.tostring(calcLimit, "#") + "$). الوقف المناسب ≤ " + str.tostring(maxStop, "#.##") + " أو اترك" : ""
     txt = (side0 > 0 ? "خطة شراء (كول)" : "خطة بيع (بوت)") + "\nدخول " + str.tostring(pEnt, format.mintick) + "\nهدف " + str.tostring(pTgtP, format.mintick) + "\nوقف " + str.tostring(pStp, format.mintick) + " (نص الـIB، " + str.tostring(pRisk, "#.##") + ")" + warn + calc
-    label.new(bar_index, side0 > 0 ? low : high, txt, style=side0 > 0 ? label.style_label_up : label.style_label_down, color=color.new(c, 15), textcolor=color.black, size=size.small)
+    // short tag on the chart; the full plan is in the tooltip (hover) and in the alert
+    shortTxt = (side0 > 0 ? "▲ كول" : "▼ بوت") + "  هدف " + str.tostring(pTgtP, format.mintick) + "  وقف " + str.tostring(pStp, format.mintick) + (lossD > calcLimit ? "  ⛔" : "")
+    label.new(bar_index, side0 > 0 ? low : high, shortTxt, style=side0 > 0 ? label.style_label_up : label.style_label_down, color=color.new(c, 15), textcolor=color.black, size=size.tiny, tooltip=txt)
     if barstate.isconfirmed
         alert(syminfo.ticker + " · " + txt + "\nتذكير: بعد خسارتين وقّف اليوم. للتعليم فقط وليست توصية.", alert.freq_once_per_bar_close)
 
