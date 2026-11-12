@@ -416,171 +416,184 @@ f_mq(string s, float refP, array<float> gps, array<float> gvs, array<string> gns
                 f_add(refP, gps, gvs, gns, p, sg * st, lab)
     z
 
-// collects the active company's levels into the arrays; refP = na skips the 30% filter
-f_collect(string act, float refP, array<float> gps, array<float> gvs, array<string> gns, array<float> dps, array<float> dvs, array<string> dns) =>
-    float zLine = 0.0
-    bool isMQ = false
-    if act == "SPX"
+// the chart company's levels, read once from the inputs at global scope (a function may not touch this many inputs)
+var string actG = f_active()
+var array<float>  Lgp = array.new<float>()
+var array<float>  Lgv = array.new<float>()
+var array<string> Lgn = array.new<string>()
+var array<float>  Ldp = array.new<float>()
+var array<float>  Ldv = array.new<float>()
+var array<string> Ldn = array.new<string>()
+var float zG = na
+var bool  mqG = false
+if barstate.isfirst
+    if actG == "SPX"
         if str.length(str.trim(SPX_mq)) > 0
-            zLine := f_mq(SPX_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(SPX_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, SPX_cwP, SPX_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, SPX_pwP, SPX_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, SPX_zgP, SPX_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, SPX_g1P, SPX_g1V, "")
-            f_add(refP, gps, gvs, gns, SPX_g2P, SPX_g2V, "")
-            f_add(refP, gps, gvs, gns, SPX_g3P, SPX_g3V, "")
-            f_add(refP, gps, gvs, gns, SPX_g4P, SPX_g4V, "")
-            zLine := SPX_zgP
-        f_add(refP, dps, dvs, dns, SPX_d1P, SPX_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, SPX_d2P, SPX_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, SPX_d3P, SPX_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, SPX_d4P, SPX_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, SPX_d5P, SPX_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, SPX_d6P, SPX_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, SPX_d7P, SPX_d7V, "Δ")
-    else if act == "AAPL"
+            f_add(na, Lgp, Lgv, Lgn, SPX_cwP, SPX_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, SPX_pwP, SPX_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, SPX_zgP, SPX_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g1P, SPX_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g2P, SPX_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g3P, SPX_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g4P, SPX_g4V, "")
+            zG := SPX_zgP
+        f_add(na, Ldp, Ldv, Ldn, SPX_d1P, SPX_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d2P, SPX_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d3P, SPX_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d4P, SPX_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d5P, SPX_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d6P, SPX_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d7P, SPX_d7V, "Δ")
+    else if actG == "AAPL"
         if str.length(str.trim(AAPL_mq)) > 0
-            zLine := f_mq(AAPL_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(AAPL_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, AAPL_cwP, AAPL_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, AAPL_pwP, AAPL_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, AAPL_zgP, AAPL_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, AAPL_g1P, AAPL_g1V, "")
-            f_add(refP, gps, gvs, gns, AAPL_g2P, AAPL_g2V, "")
-            f_add(refP, gps, gvs, gns, AAPL_g3P, AAPL_g3V, "")
-            f_add(refP, gps, gvs, gns, AAPL_g4P, AAPL_g4V, "")
-            zLine := AAPL_zgP
-        f_add(refP, dps, dvs, dns, AAPL_d1P, AAPL_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, AAPL_d2P, AAPL_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, AAPL_d3P, AAPL_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, AAPL_d4P, AAPL_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, AAPL_d5P, AAPL_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, AAPL_d6P, AAPL_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, AAPL_d7P, AAPL_d7V, "Δ")
-    else if act == "MSFT"
+            f_add(na, Lgp, Lgv, Lgn, AAPL_cwP, AAPL_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_pwP, AAPL_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_zgP, AAPL_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g1P, AAPL_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g2P, AAPL_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g3P, AAPL_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g4P, AAPL_g4V, "")
+            zG := AAPL_zgP
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d1P, AAPL_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d2P, AAPL_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d3P, AAPL_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d4P, AAPL_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d5P, AAPL_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d6P, AAPL_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d7P, AAPL_d7V, "Δ")
+    else if actG == "MSFT"
         if str.length(str.trim(MSFT_mq)) > 0
-            zLine := f_mq(MSFT_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(MSFT_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, MSFT_cwP, MSFT_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, MSFT_pwP, MSFT_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, MSFT_zgP, MSFT_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, MSFT_g1P, MSFT_g1V, "")
-            f_add(refP, gps, gvs, gns, MSFT_g2P, MSFT_g2V, "")
-            f_add(refP, gps, gvs, gns, MSFT_g3P, MSFT_g3V, "")
-            f_add(refP, gps, gvs, gns, MSFT_g4P, MSFT_g4V, "")
-            zLine := MSFT_zgP
-        f_add(refP, dps, dvs, dns, MSFT_d1P, MSFT_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, MSFT_d2P, MSFT_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, MSFT_d3P, MSFT_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, MSFT_d4P, MSFT_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, MSFT_d5P, MSFT_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, MSFT_d6P, MSFT_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, MSFT_d7P, MSFT_d7V, "Δ")
-    else if act == "NVDA"
+            f_add(na, Lgp, Lgv, Lgn, MSFT_cwP, MSFT_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_pwP, MSFT_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_zgP, MSFT_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g1P, MSFT_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g2P, MSFT_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g3P, MSFT_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g4P, MSFT_g4V, "")
+            zG := MSFT_zgP
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d1P, MSFT_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d2P, MSFT_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d3P, MSFT_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d4P, MSFT_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d5P, MSFT_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d6P, MSFT_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d7P, MSFT_d7V, "Δ")
+    else if actG == "NVDA"
         if str.length(str.trim(NVDA_mq)) > 0
-            zLine := f_mq(NVDA_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(NVDA_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, NVDA_cwP, NVDA_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, NVDA_pwP, NVDA_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, NVDA_zgP, NVDA_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, NVDA_g1P, NVDA_g1V, "")
-            f_add(refP, gps, gvs, gns, NVDA_g2P, NVDA_g2V, "")
-            f_add(refP, gps, gvs, gns, NVDA_g3P, NVDA_g3V, "")
-            f_add(refP, gps, gvs, gns, NVDA_g4P, NVDA_g4V, "")
-            zLine := NVDA_zgP
-        f_add(refP, dps, dvs, dns, NVDA_d1P, NVDA_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, NVDA_d2P, NVDA_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, NVDA_d3P, NVDA_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, NVDA_d4P, NVDA_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, NVDA_d5P, NVDA_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, NVDA_d6P, NVDA_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, NVDA_d7P, NVDA_d7V, "Δ")
-    else if act == "AMZN"
+            f_add(na, Lgp, Lgv, Lgn, NVDA_cwP, NVDA_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_pwP, NVDA_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_zgP, NVDA_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g1P, NVDA_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g2P, NVDA_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g3P, NVDA_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g4P, NVDA_g4V, "")
+            zG := NVDA_zgP
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d1P, NVDA_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d2P, NVDA_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d3P, NVDA_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d4P, NVDA_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d5P, NVDA_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d6P, NVDA_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d7P, NVDA_d7V, "Δ")
+    else if actG == "AMZN"
         if str.length(str.trim(AMZN_mq)) > 0
-            zLine := f_mq(AMZN_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(AMZN_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, AMZN_cwP, AMZN_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, AMZN_pwP, AMZN_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, AMZN_zgP, AMZN_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, AMZN_g1P, AMZN_g1V, "")
-            f_add(refP, gps, gvs, gns, AMZN_g2P, AMZN_g2V, "")
-            f_add(refP, gps, gvs, gns, AMZN_g3P, AMZN_g3V, "")
-            f_add(refP, gps, gvs, gns, AMZN_g4P, AMZN_g4V, "")
-            zLine := AMZN_zgP
-        f_add(refP, dps, dvs, dns, AMZN_d1P, AMZN_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, AMZN_d2P, AMZN_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, AMZN_d3P, AMZN_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, AMZN_d4P, AMZN_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, AMZN_d5P, AMZN_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, AMZN_d6P, AMZN_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, AMZN_d7P, AMZN_d7V, "Δ")
-    else if act == "GOOGL"
+            f_add(na, Lgp, Lgv, Lgn, AMZN_cwP, AMZN_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_pwP, AMZN_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_zgP, AMZN_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g1P, AMZN_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g2P, AMZN_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g3P, AMZN_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g4P, AMZN_g4V, "")
+            zG := AMZN_zgP
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d1P, AMZN_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d2P, AMZN_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d3P, AMZN_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d4P, AMZN_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d5P, AMZN_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d6P, AMZN_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d7P, AMZN_d7V, "Δ")
+    else if actG == "GOOGL"
         if str.length(str.trim(GOOGL_mq)) > 0
-            zLine := f_mq(GOOGL_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(GOOGL_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, GOOGL_cwP, GOOGL_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, GOOGL_pwP, GOOGL_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, GOOGL_zgP, GOOGL_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, GOOGL_g1P, GOOGL_g1V, "")
-            f_add(refP, gps, gvs, gns, GOOGL_g2P, GOOGL_g2V, "")
-            f_add(refP, gps, gvs, gns, GOOGL_g3P, GOOGL_g3V, "")
-            f_add(refP, gps, gvs, gns, GOOGL_g4P, GOOGL_g4V, "")
-            zLine := GOOGL_zgP
-        f_add(refP, dps, dvs, dns, GOOGL_d1P, GOOGL_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, GOOGL_d2P, GOOGL_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, GOOGL_d3P, GOOGL_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, GOOGL_d4P, GOOGL_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, GOOGL_d5P, GOOGL_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, GOOGL_d6P, GOOGL_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, GOOGL_d7P, GOOGL_d7V, "Δ")
-    else if act == "META"
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_cwP, GOOGL_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_pwP, GOOGL_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_zgP, GOOGL_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g1P, GOOGL_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g2P, GOOGL_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g3P, GOOGL_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g4P, GOOGL_g4V, "")
+            zG := GOOGL_zgP
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d1P, GOOGL_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d2P, GOOGL_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d3P, GOOGL_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d4P, GOOGL_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d5P, GOOGL_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d6P, GOOGL_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d7P, GOOGL_d7V, "Δ")
+    else if actG == "META"
         if str.length(str.trim(META_mq)) > 0
-            zLine := f_mq(META_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(META_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, META_cwP, META_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, META_pwP, META_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, META_zgP, META_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, META_g1P, META_g1V, "")
-            f_add(refP, gps, gvs, gns, META_g2P, META_g2V, "")
-            f_add(refP, gps, gvs, gns, META_g3P, META_g3V, "")
-            f_add(refP, gps, gvs, gns, META_g4P, META_g4V, "")
-            zLine := META_zgP
-        f_add(refP, dps, dvs, dns, META_d1P, META_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, META_d2P, META_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, META_d3P, META_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, META_d4P, META_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, META_d5P, META_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, META_d6P, META_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, META_d7P, META_d7V, "Δ")
-    else if act == "TSLA"
+            f_add(na, Lgp, Lgv, Lgn, META_cwP, META_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, META_pwP, META_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, META_zgP, META_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, META_g1P, META_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, META_g2P, META_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, META_g3P, META_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, META_g4P, META_g4V, "")
+            zG := META_zgP
+        f_add(na, Ldp, Ldv, Ldn, META_d1P, META_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d2P, META_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d3P, META_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d4P, META_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d5P, META_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d6P, META_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d7P, META_d7V, "Δ")
+    else if actG == "TSLA"
         if str.length(str.trim(TSLA_mq)) > 0
-            zLine := f_mq(TSLA_mq, refP, gps, gvs, gns)
-            isMQ := true
+            zG := f_mq(TSLA_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
         else
-            f_add(refP, gps, gvs, gns, TSLA_cwP, TSLA_cwV, "جدار الكول")
-            f_add(refP, gps, gvs, gns, TSLA_pwP, TSLA_pwV, "جدار البوت")
-            f_add(refP, gps, gvs, gns, TSLA_zgP, TSLA_zgV, "زيرو قاما")
-            f_add(refP, gps, gvs, gns, TSLA_g1P, TSLA_g1V, "")
-            f_add(refP, gps, gvs, gns, TSLA_g2P, TSLA_g2V, "")
-            f_add(refP, gps, gvs, gns, TSLA_g3P, TSLA_g3V, "")
-            f_add(refP, gps, gvs, gns, TSLA_g4P, TSLA_g4V, "")
-            zLine := TSLA_zgP
-        f_add(refP, dps, dvs, dns, TSLA_d1P, TSLA_d1V, "Δ")
-        f_add(refP, dps, dvs, dns, TSLA_d2P, TSLA_d2V, "Δ")
-        f_add(refP, dps, dvs, dns, TSLA_d3P, TSLA_d3V, "Δ")
-        f_add(refP, dps, dvs, dns, TSLA_d4P, TSLA_d4V, "Δ")
-        f_add(refP, dps, dvs, dns, TSLA_d5P, TSLA_d5V, "Δ")
-        f_add(refP, dps, dvs, dns, TSLA_d6P, TSLA_d6V, "Δ")
-        f_add(refP, dps, dvs, dns, TSLA_d7P, TSLA_d7V, "Δ")
-    [zLine, isMQ]
+            f_add(na, Lgp, Lgv, Lgn, TSLA_cwP, TSLA_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_pwP, TSLA_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_zgP, TSLA_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g1P, TSLA_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g2P, TSLA_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g3P, TSLA_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g4P, TSLA_g4V, "")
+            zG := TSLA_zgP
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d1P, TSLA_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d2P, TSLA_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d3P, TSLA_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d4P, TSLA_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d5P, TSLA_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d6P, TSLA_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d7P, TSLA_d7V, "Δ")
+
+// copies levels within 30% of the price (ignores ones typed in another company's section)
+f_near30(array<float> sp, array<float> sv, array<string> sn, array<float> ps, array<float> vs, array<string> ns) =>
+    if array.size(sp) > 0
+        for i = 0 to array.size(sp) - 1
+            f_add(close, ps, vs, ns, array.get(sp, i), array.get(sv, i), array.get(sn, i))
+
 
 if barstate.islast
     f_clearAll()
@@ -592,7 +605,10 @@ if barstate.islast
     gps = array.new<float>()
     gvs = array.new<float>()
     gns = array.new<string>()
-    [zLine, isMQ] = f_collect(act, close, gps, gvs, gns, dps, dvs, dns)
+    f_near30(Lgp, Lgv, Lgn, gps, gvs, gns)
+    f_near30(Ldp, Ldv, Ldn, dps, dvs, dns)
+    float zLine = zG
+    bool isMQ = mqG
     // levels start at today's 9:30 New York (yesterday's before the open)
     int t0 = timestamp(tz, year(time, tz), month(time, tz), dayofmonth(time, tz), 9, 30)
     if t0 > time
@@ -826,15 +842,8 @@ plot(absDelta, "دلتا الشمعة (للتنبيهات)", display=display.dat
 // option levels of the chart's company (no 30% filter here: it is applied when drawing)
 var array<float> absLv = array.new<float>()
 if barstate.isfirst
-    tg = array.new<float>()
-    tgv = array.new<float>()
-    tgn = array.new<string>()
-    td = array.new<float>()
-    tdv = array.new<float>()
-    tdn = array.new<string>()
-    [_zl, _mq] = f_collect(f_active(), na, tg, tgv, tgn, td, tdv, tdn)
-    array.concat(absLv, tg)
-    array.concat(absLv, td)
+    array.concat(absLv, Lgp)
+    array.concat(absLv, Ldp)
 
 atrA = ta.atr(14)
 f_nearLevel(float p, float tol) =>
