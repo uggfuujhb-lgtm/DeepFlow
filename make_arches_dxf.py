@@ -1,6 +1,4 @@
 import math, os, ezdxf
-STUDENT = os.environ.get('STUDENT_NAME','')
-STUDENT_ID = os.environ.get('STUDENT_ID','')
 OUT = os.environ.get('OUT_DIR','/home/user/DeepFlow')
 from ezdxf.math import Vec2
 
@@ -78,18 +76,25 @@ wall(x0, [(0,H,0),(ol.x-x0,ol.y,b),(orr.x-x0,orr.y,0),(S,H,0)], "SEGMENTAL ARCH"
 d = msp.add_linear_dim(base=(x0+S/2+7,H), p1=(x0+S/2,H), p2=(x0+S/2,H+rise), angle=90, dxfattribs={"layer":"DIM"}, override=dimov); d.render()
 msp.add_text(f"R={R:.2f}  R={R+D:.2f}", height=2.5, dxfattribs={"layer":"TEXT"}).set_placement((x0+S/2+3,H-12))
 
-# ---- A3 layout at 1:20 ----
+# ---- A3 sheet: 10 mm border all round, 2 x 10 mm title block at bottom ----
+E = lambda k: os.environ.get(k, "")
 lay = doc.layouts.new("A3"); doc.layouts.delete("Layout1")
 lay.page_setup(size=(420,297), margins=(0,0,0,0), units="mm")
-lay.add_lwpolyline([(10,10),(410,10),(410,287),(10,287)], close=True, dxfattribs={"layer":"FRAME","const_width":0.5})
-lay.add_lwpolyline([(10,10),(410,10),(410,35),(10,35)], close=True, dxfattribs={"layer":"FRAME"})
-lay.add_viewport(center=(210,155), size=(390,230), view_center_point=(162,40), view_height=230)
-lay.add_text("TYPES OF ARCHES ON GEOMETRY", height=6, dxfattribs={"layer":"TEXT"}).set_placement((20,20))
-lay.add_text("UNITS: mm", height=4, dxfattribs={"layer":"TEXT"}).set_placement((300,20))
-if STUDENT:
-    M = ezdxf.enums.TextEntityAlignment.MIDDLE_CENTER
-    msp.add_text(f"NAME: {STUDENT}", height=5, dxfattribs={"layer":"TEXT"}).set_placement((165,-40), align=M)
-    msp.add_text(f"ID: {STUDENT_ID}", height=5, dxfattribs={"layer":"TEXT"}).set_placement((165,-50), align=M)
+F = {"layer":"FRAME"}
+lay.add_lwpolyline([(10,10),(410,10),(410,287),(10,287)], close=True, dxfattribs={**F,"const_width":0.5})
+lay.add_line((10,30),(410,30), dxfattribs=F)
+lay.add_line((10,20),(410,20), dxfattribs=F)
+for x in (41,143,174,274,304):
+    lay.add_line((x,10),(x,30), dxfattribs=F)
+ML = ezdxf.enums.TextEntityAlignment.MIDDLE_LEFT
+xs = [10,41,143,174,274,304]
+rows = [(25, ["Name", E("STUDENT_NAME"), "Subject", E("SUBJECT"), "Date", E("SHEET_DATE")]),
+        (15, ["ID", E("STUDENT_ID"), "Assignment", E("ASSIGNMENT"), "Scale", E("SHEET_SCALE") or "No Scale"])]
+for y, cells in rows:
+    for txt, x in zip(cells, xs):
+        if txt:
+            lay.add_text(txt, height=3.5, dxfattribs={"layer":"TEXT"}).set_placement((x+2.5,y), align=ML)
+lay.add_viewport(center=(210,158.5), size=(396,253), view_center_point=(165,40), view_height=253)
 doc.saveas(OUT+"/arches_small_mm.dxf")
 
 from ezdxf.addons.drawing import matplotlib as dm
