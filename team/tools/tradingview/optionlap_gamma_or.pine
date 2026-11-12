@@ -693,10 +693,10 @@ vpRows  = input.int(120, "عدد الأعمدة لكل يوم", minval=20, maxva
 vpWidth = input.int(35, "عرض البروفايل % من اليوم", minval=5, maxval=100, group=grpV)
 vpDays  = input.int(2, "كم يوم سابق يبقى على الشارت", minval=0, maxval=5, group=grpV, tooltip="كل يوم ياخذ حتى «عدد الأعمدة» من حد الرسم في TradingView (500). مع 120 عمود: يومين سابقة + اليوم.")
 vpVA    = input.int(70, "منطقة القيمة %", minval=50, maxval=90, group=grpV)
-colVPin = input.color(color.new(#7F93B3, 35), "داخل القيمة", group=grpV)
-colVPout= input.color(color.new(#6B6B75, 50), "برّا القيمة", group=grpV)
+colVPin = input.color(color.new(#E07A3C, 25), "داخل القيمة", group=grpV)
+colVPout= input.color(color.new(#E8D36A, 35), "برّا القيمة", group=grpV)
 colPOC  = input.color(#FF2BD6, "POC", group=grpV)
-colVAL  = input.color(color.new(#FFFFFF, 0), "VAH و VAL", group=grpV)
+colVAL  = input.color(color.new(#9B6BFF, 0), "VAH و VAL", group=grpV)
 vpLTF   = input.timeframe("1", "توزيع الفوليوم من فريم", group=grpV, tooltip="البروفايل يتوزّع من شموع هالفريم داخل كل شمعة (أدق). لازم يكون أصغر من فريم الشارت")
 
 N_BINS = 3000
@@ -812,7 +812,7 @@ if showVP
             line.delete(l)
         array.clear(vpLive)
         array.clear(vpLiveL)
-        f_vpDraw(vpLive, vpLiveL, time, vpLiveLv, true, time + 3 * TF_MS)   // today: right of the price
+        f_vpDraw(vpLive, vpLiveL, time, vpLiveLv, true, vStart)   // today: from the session start, like the previous days
 
 // ───────── كاشف الامتصاص (Absorption) ─────────
 // Aggressive orders hit one side hard, but price does not follow: big volume, small range, delta against the close.
