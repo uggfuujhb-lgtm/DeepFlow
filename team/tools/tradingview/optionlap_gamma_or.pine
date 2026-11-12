@@ -872,8 +872,16 @@ tolA    = atrA * absTolX
 absBuy  = showAbs and inRTH and bigVol and tight and strongD and absDelta < 0 and close >= mid and (not absNear or f_nearLevel(low, tolA))
 absSell = showAbs and inRTH and bigVol and tight and strongD and absDelta > 0 and close <= mid and (not absNear or f_nearLevel(high, tolA))
 
-plotshape(absBuy,  "امتصاص شرائي", shape.diamond, location.belowbar, colAbsB, size=size.small, text="ABS")
-plotshape(absSell, "امتصاص بيعي",  shape.diamond, location.abovebar, colAbsS, size=size.small, text="ABS")
+plotshape(absBuy,  "امتصاص شرائي", shape.diamond, location.belowbar, colAbsB, size=size.normal, text="ABS", textcolor=colAbsB)
+plotshape(absSell, "امتصاص بيعي",  shape.diamond, location.abovebar, colAbsS, size=size.normal, text="ABS", textcolor=colAbsS)
+bgcolor(absBuy ? color.new(colAbsB, 80) : absSell ? color.new(colAbsS, 80) : na, title="شمعة الامتصاص")
+var int   lastAbsT = na
+var float lastAbsP = na
+var int   lastAbsS = 0
+if absBuy or absSell
+    lastAbsT := time
+    lastAbsP := close
+    lastAbsS := absBuy ? 1 : -1
 alertcondition(absBuy,  "OL: absorption (buyers)",  "امتصاص شرائي: بيع قوي والسعر ما نزل، عند مستوى")
 alertcondition(absSell, "OL: absorption (sellers)", "امتصاص بيعي: شراء قوي والسعر ما طلع، عند مستوى")
 
@@ -948,7 +956,8 @@ if showAbsT and barstate.islast
     f_row(tb, 3, "ABS الكل", stAll, #FFC21A)
     f_row(tb, 4, "أي شمعة (مقارنة)", stC, #a49fb8)
     since = na(firstDeltaTime) ? "ما فيه بيانات دلتا" : "من " + str.format_time(firstDeltaTime, "yyyy-MM-dd", tz) + " · " + str.tostring(deltaBars) + " شمعة فيها دلتا"
-    table.cell(tb, 0, 5, since + " · للتعليم فقط", text_color=#a49fb8, text_size=size.tiny)
+    lastTxt = na(lastAbsT) ? "ما طلعت ولا إشارة على هالشارت" : "آخر إشارة: " + (lastAbsS > 0 ? "شرائي" : "بيعي") + " " + str.format_time(lastAbsT, "yyyy-MM-dd HH:mm", "Asia/Riyadh") + " (الرياض) عند " + str.tostring(lastAbsP, format.mintick)
+    table.cell(tb, 0, 5, lastTxt + "\n" + since + " · للتعليم فقط", text_color=#FFC21A, text_size=size.small)
     table.merge_cells(tb, 0, 5, 6, 5)
 
 // ───────── تنبيه «خطتك جاهزة»: أول كسر للـIB مع اتجاه اليوم ─────────
