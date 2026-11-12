@@ -1,5 +1,5 @@
 //@version=6
-// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v6.5, + absorption detector and its test table)
+// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v6.6, + absorption detector, its test table, and the IB-break plan alert)
 // Each level = a price box and, right under it, a value box ($M).
 //   Negative value → brown, positive value → fluorescent. Stronger value → brighter band.
 // One section per company (SPX + Mag 7). The section that matches the open chart is drawn automatically,
@@ -812,3 +812,121 @@ if showAbsT and barstate.islast
     since = na(firstDeltaTime) ? "ما فيه بيانات دلتا" : "من " + str.format_time(firstDeltaTime, "yyyy-MM-dd", tz) + " · " + str.tostring(deltaBars) + " شمعة فيها دلتا"
     table.cell(tb, 0, 5, since + " · للتعليم فقط", text_color=#a49fb8, text_size=size.tiny)
     table.merge_cells(tb, 0, 5, 6, 5)
+
+// ───────── تنبيه «خطتك جاهزة»: أول كسر للـIB مع اتجاه اليوم ─────────
+// Tested in rules_test.py (21 days x 9 symbols): the first 5-min close outside the IB, with the day's direction, reached
+// +$2 before an IB-midpoint stop about 61% of the time, stable in both halves, BUT the median stop was $3.24, so the
+// average result per trade was about 0R. This is a plan reminder that enforces the rules, not a winning signal.
+grpP = "تنبيه خطتك جاهزة (كسر الـIB)"
+showPlan  = input.bool(true, "فعّل التنبيه", group=grpP)
+planWin   = input.session("1030-1530", "وقت التنبيه (نيويورك)", group=grpP, tooltip="بعد اكتمال الـIB. 1030 نيويورك = 6:30 م الرياض")
+planTgtS  = input.float(2.0, "الهدف للأسهم ($)", minval=0.1, step=0.5, group=grpP)
+planTgtI  = input.float(10.0, "الهدف لسباكس / ES (نقاط)", minval=0.5, step=0.5, group=grpP)
+planWarnX = input.float(1.5, "حذّرني إذا الوقف أبعد من الهدف بـ (ضعف)", minval=1.0, step=0.1, group=grpP)
+planNear  = input.bool(false, "بس إذا الكسر قريب من مستوى قاما أو VA أمس", group=grpP, tooltip="ما انختبر. لو شغّلته تقل التنبيهات")
+planBars  = input.int(24, "طول خطوط الهدف والوقف (شموع)", minval=5, maxval=100, group=grpP)
+colPlanL  = input.color(#2EF2C8, "شراء (كول)", group=grpP)
+colPlanS  = input.color(#C98A6A, "بيع (بوت)", group=grpP)
+
+var string planSym = f_active()
+planTgt = planSym == "SPX" ? planTgtI : planTgtS
+inPlanWin = not na(time(timeframe.period, planWin, tz))
+
+var float dOpen = na
+var bool  ibOutDone = false
+if rthStart
+    dOpen := open
+    ibOutDone := false
+
+f_nearOpt(float p, float tol) =>
+    bool hit = false
+    for x in absLv
+        if math.abs(p - x) <= tol
+            hit := true
+    for x in vpPrevLv
+        if not na(x) and math.abs(p - x) <= tol
+            hit := true
+    hit
+
+// running plan (one per day) and its scorecard
+var int   pSide = 0
+var float pEnt  = na
+var float pTgtP = na
+var float pStp  = na
+var float pRisk = na
+var int   pBar  = na
+var float pN    = 0.0
+var float pW    = 0.0
+var float pSumR = 0.0
+
+f_planMark(string txt, color c, bool up) =>
+    label.new(bar_index, up ? high : low, txt, style=up ? label.style_label_down : label.style_label_up, color=color.new(c, 20), textcolor=color.black, size=size.tiny)
+
+// 1) resolve an open plan: stop first if both are touched in the same bar; end of session = exit at the last close
+if pSide != 0 and bar_index > pBar
+    if rthStart or not inRTH
+        r = pSide * (close[1] - pEnt) / pRisk
+        pN += 1
+        pSumR += r
+        pW += r > 0 ? 1 : 0
+        f_planMark("نهاية اليوم " + (r >= 0 ? "+" : "") + str.tostring(r, "#.##") + "R", color.gray, pSide < 0)
+        pSide := 0
+    else
+        hitS = pSide > 0 ? low <= pStp : high >= pStp
+        hitT = pSide > 0 ? high >= pTgtP : low <= pTgtP
+        if hitS
+            pN += 1
+            pSumR -= 1
+            f_planMark("✗ وقف", colBrkDn, pSide < 0)
+            pSide := 0
+        else if hitT
+            pN += 1
+            pW += 1
+            pSumR += planTgt / pRisk
+            f_planMark("✓ +" + str.tostring(planTgt), colBrkUp, pSide > 0)
+            pSide := 0
+
+// 2) the first 5-min close outside the IB today
+ibOut = inRTH and ibDone and not ibOutDone and (close > ibH or close < ibL)
+if ibOut
+    ibOutDone := true
+side0 = ibOut ? (close > ibH ? 1 : -1) : 0
+withDay = side0 != 0 and (side0 > 0 ? close > dOpen : close < dOpen)
+nearOK = not planNear or f_nearOpt(close, atrA * absTolX)
+planGo = showPlan and side0 != 0 and withDay and inPlanWin and nearOK and pSide == 0
+planLong  = planGo and side0 > 0
+planShort = planGo and side0 < 0
+
+if planGo
+    ibMid = (ibH + ibL) / 2
+    pSide := side0
+    pEnt  := close
+    pTgtP := close + side0 * planTgt
+    pStp  := ibMid
+    pRisk := math.abs(close - ibMid)
+    pBar  := bar_index
+    c = side0 > 0 ? colPlanL : colPlanS
+    line.new(bar_index, pTgtP, bar_index + planBars, pTgtP, color=c, width=2)
+    line.new(bar_index, pStp, bar_index + planBars, pStp, color=colBrkDn, width=2, style=line.style_dashed)
+    line.new(bar_index, pEnt, bar_index + planBars, pEnt, color=color.new(color.white, 40), width=1, style=line.style_dotted)
+    warn = pRisk > planTgt * planWarnX ? "\n⚠️ الوقف أبعد من الهدف (" + str.tostring(pRisk / planTgt, "#.#") + " ضعف): صغّر الحجم أو اترك" : ""
+    txt = (side0 > 0 ? "خطة شراء (كول)" : "خطة بيع (بوت)") + "\nدخول " + str.tostring(pEnt, format.mintick) + "\nهدف " + str.tostring(pTgtP, format.mintick) + "\nوقف " + str.tostring(pStp, format.mintick) + " (نص الـIB، " + str.tostring(pRisk, "#.##") + ")" + warn
+    label.new(bar_index, side0 > 0 ? low : high, txt, style=side0 > 0 ? label.style_label_up : label.style_label_down, color=color.new(c, 15), textcolor=color.black, size=size.small)
+    if barstate.isconfirmed
+        alert(syminfo.ticker + " · " + txt + "\nتذكير: بعد خسارتين وقّف اليوم. للتعليم فقط وليست توصية.", alert.freq_once_per_bar_close)
+
+alertcondition(planLong,  "OL: plan long (IB break)",  "خطة شراء: أول إغلاق 5 دقايق فوق الـIB مع اتجاه اليوم. الوقف نص الـIB.")
+alertcondition(planShort, "OL: plan short (IB break)", "خطة بيع: أول إغلاق 5 دقايق تحت الـIB مع اتجاه اليوم. الوقف نص الـIB.")
+
+// scorecard on the loaded history
+if showPlan and barstate.islast
+    var table tp = table.new(position.bottom_right, 4, 3, bgcolor=color.new(#17151f, 10), border_color=color.new(#2c2838, 0), border_width=1)
+    hp = array.from("خطة كسر الـIB", "العدد", "وصل الهدف", "متوسط R")
+    for i = 0 to 3
+        table.cell(tp, i, 0, array.get(hp, i), text_color=#a49fb8, text_size=size.small)
+    table.cell(tp, 0, 1, "هدف " + str.tostring(planTgt), text_color=#FFC21A, text_size=size.small)
+    table.cell(tp, 1, 1, str.tostring(pN, "#"), text_color=color.white, text_size=size.small)
+    table.cell(tp, 2, 1, pN > 0 ? str.tostring(pW / pN * 100, "#") + "%" : "-", text_color=color.white, text_size=size.small)
+    table.cell(tp, 3, 1, pN > 0 ? (pSumR >= 0 ? "+" : "") + str.tostring(pSumR / pN, "#.##") + "R" : "-", text_color=color.white, text_size=size.small)
+    table.cell(tp, 0, 2, "متوسط R حوالي صفر = ما فيه أفضلية · للتعليم فقط", text_color=#a49fb8, text_size=size.tiny)
+    table.merge_cells(tp, 0, 2, 3, 2)
