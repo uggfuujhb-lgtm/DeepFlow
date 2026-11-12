@@ -51,3 +51,18 @@ if not a.no_gex:
         print(f"chain -> {cp_} ({n} contracts, spot {spot})")
     except Exception as e:
         print("chain snapshot skipped:", e)
+
+# stock 1-minute bars with real volume (Mag 7 + SPY/QQQ), for order-flow tests such as the absorption detector (abs_test.py)
+for sym in ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "SPY", "QQQ"]:
+    try:
+        req = urllib.request.Request(f"https://cdn.cboe.com/api/global/delayed_quotes/charts/intraday/{sym}.json", headers={"User-Agent": "Mozilla/5.0"})
+        sb = [r for r in json.load(urllib.request.urlopen(req, timeout=60))["data"] if r.get("price") and r["price"].get("open") is not None]
+        sday = sb[0]["datetime"][:10]
+        sp = os.path.join(ROOT, "team/data/intraday_stocks", f"{sday}_{sym}.csv.gz"); os.makedirs(os.path.dirname(sp), exist_ok=True)
+        sbuf = io.StringIO(); sw = csv.writer(sbuf); sw.writerow(["datetime_et", "open", "high", "low", "close", "volume"])
+        for r in sb:
+            p = r["price"]; sw.writerow([r["datetime"], p["open"], p["high"], p["low"], p["close"], (r.get("volume") or {}).get("stock_volume", 0)])
+        with gzip.open(sp, "wt") as f: f.write(sbuf.getvalue())
+        print(f"stock {sym} {sday}: {len(sb)} bars")
+    except Exception as e:
+        print(f"stock {sym} skipped:", e)
