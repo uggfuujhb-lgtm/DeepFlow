@@ -822,9 +822,11 @@ grpA = "كاشف الامتصاص"
 showAbs  = input.bool(true, "اعرض الامتصاص", group=grpA)
 absTF    = input.timeframe("1", "فريم الدلتا الداخلي", group=grpA, tooltip="الشموع الصغيرة اللي تنحسب منها الدلتا. لازم يكون أصغر من فريم الشارت (مثلاً 1 على شارت 5 دقايق).")
 absLen   = input.int(20, "متوسط الفوليوم (شموع)", minval=5, maxval=100, group=grpA)
-absVolX  = input.float(1.8, "الفوليوم ≥ كم ضعف المتوسط", minval=1.0, step=0.1, group=grpA)
-absDltP  = input.int(25, "الدلتا ≥ كم % من فوليوم الشمعة", minval=5, maxval=90, group=grpA)
-absRngX  = input.float(0.9, "مدى الشمعة ≤ كم ضعف ATR", minval=0.2, step=0.1, group=grpA, tooltip="أصغر = شمعة أضيق = امتصاص أوضح")
+absRatio = input.float(3.0, "طرف يتفوّق على الثاني بـ (أضعاف)", minval=1.5, step=0.5, group=grpA, tooltip="مثلاً 3 = فوليوم البائعين 3 أضعاف المشترين (أو العكس) داخل الشمعة، والسعر ما كمّل باتجاههم")
+absVolF  = input.bool(false, "شرط إضافي: فوليوم عالي", group=grpA, inline="absv")
+absVolX  = input.float(1.8, "≥ كم ضعف المتوسط", minval=1.0, step=0.1, group=grpA, inline="absv")
+absRngF  = input.bool(false, "شرط إضافي: شمعة ضيقة", group=grpA, inline="absr")
+absRngX  = input.float(0.9, "مدى ≤ كم ضعف ATR", minval=0.2, step=0.1, group=grpA, inline="absr")
 absNear  = input.bool(false, "بس عند مستوى (قاما، دلتا، VAH/VAL/POC أمس، IB، OR)", group=grpA)
 absTolX  = input.float(0.3, "قرب المستوى (كم ضعف ATR)", minval=0.05, step=0.05, group=grpA)
 colAbsB  = input.color(#2EF2C8, "امتصاص شرائي (البيع انمتص)", group=grpA)
@@ -866,11 +868,14 @@ volAvg  = ta.sma(volume, absLen)
 rngA    = high - low
 bigVol  = nz(volume) >= volAvg * absVolX
 tight   = rngA <= atrA * absRngX
-strongD = not na(absDelta) and nz(volume) > 0 and math.abs(absDelta) >= nz(volume) * absDltP / 100.0
+// one side outweighs the other by absRatio inside the candle, and the close did not follow it (opposite half of the candle)
+sellersWin = not na(dnV) and dnV >= absRatio * math.max(nz(upV), 1.0)
+buyersWin  = not na(upV) and upV >= absRatio * math.max(nz(dnV), 1.0)
+extraOK = (not absVolF or bigVol) and (not absRngF or tight)
 mid     = (high + low) / 2
 tolA    = atrA * absTolX
-absBuy  = showAbs and inRTH and bigVol and tight and strongD and absDelta < 0 and close >= mid and (not absNear or f_nearLevel(low, tolA))
-absSell = showAbs and inRTH and bigVol and tight and strongD and absDelta > 0 and close <= mid and (not absNear or f_nearLevel(high, tolA))
+absBuy  = showAbs and inRTH and sellersWin and close >= mid and extraOK and (not absNear or f_nearLevel(low, tolA))
+absSell = showAbs and inRTH and buyersWin and close <= mid and extraOK and (not absNear or f_nearLevel(high, tolA))
 
 plotshape(absBuy,  "امتصاص شرائي", shape.diamond, location.belowbar, colAbsB, size=size.normal, text="ABS", textcolor=colAbsB)
 plotshape(absSell, "امتصاص بيعي",  shape.diamond, location.abovebar, colAbsS, size=size.normal, text="ABS", textcolor=colAbsS)
