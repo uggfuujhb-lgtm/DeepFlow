@@ -12,7 +12,9 @@ Usage: python3 team/tools/rules_test.py [--k 1.0]   Educational only, not a reco
 import argparse, glob, gzip, csv, os, math, statistics as st
 from collections import defaultdict
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ap = argparse.ArgumentParser(); ap.add_argument('--k', type=float, default=1.0); a = ap.parse_args()
+ap = argparse.ArgumentParser(); ap.add_argument('--k', type=float, default=1.0); ap.add_argument('--pts', type=float, default=0, help='fixed target in $ (e.g. 2) instead of k x risk')
+a = ap.parse_args()
+RISKS = defaultdict(list)
 
 def load(f):
     return [dict(t=r['datetime_et'][11:16], o=float(r['open']), h=float(r['high']), l=float(r['low']), c=float(r['close']), v=float(r['volume']))
@@ -26,14 +28,15 @@ def b5(rows):
         out.append(dict(t=g[-1]['t'], i1=i+4, o=g[0]['o'], h=max(r['h'] for r in g), l=min(r['l'] for r in g), c=g[-1]['c'], v=sum(r['v'] for r in g), d=up-dn))
     return out
 def trade(rows, i1, side, entry, stop, k):
-    risk = abs(entry - stop)
+    risk = abs(entry - stop); RISKS[CUR].append(risk)
     if risk <= 0: return None
-    tgt = entry + side * k * risk
+    win = a.pts / risk if a.pts else k
+    tgt = entry + side * (a.pts if a.pts else k * risk)
     for r in rows[i1+1:]:
         hit_s = r['l'] <= stop if side > 0 else r['h'] >= stop
         hit_t = r['h'] >= tgt if side > 0 else r['l'] <= tgt
         if hit_s: return -1.0
-        if hit_t: return k
+        if hit_t: return win
     return side * (rows[-1]['c'] - entry) / risk
 
 files = defaultdict(list)
@@ -52,15 +55,18 @@ for sym, fl in files.items():
             pc = hist[-1]['c'] if hist else b['o']; tr = max(b['h']-b['l'], abs(b['h']-pc), abs(b['l']-pc)); trs.append(tr)
             atr = st.mean(trs) if len(trs) <= 14 else (atr*13 + tr)/14
             vavg = st.mean(x['v'] for x in hist[-20:]) if len(hist) >= 20 else None; hist.append(b)
+            CUR = 'or_break'
             if i >= 3 and 'or' not in done and (b['c'] > orH or b['c'] < orL):
                 done.add('or'); s = 1 if b['c'] > orH else -1
                 res['or_break'][part].append(trade(rows, b['i1'], s, b['c'], (orH+orL)/2, a.k))
+            CUR = 'ib_break'
             if i >= 12 and 'ib' not in done and (b['c'] > ibH or b['c'] < ibL):
                 done.add('ib'); s = 1 if b['c'] > ibH else -1; r_ = trade(rows, b['i1'], s, b['c'], (ibH+ibL)/2, a.k)
                 res['ib_break'][part].append(r_)
                 if (b['c'] - B[0]['o']) * s > 0:
                     res['ib_trend'][part].append(r_)
                     if vavg and b['v'] >= 1.5 * vavg: res['ib_trend_vol'][part].append(r_)
+            CUR = 'abs_fail'
             # absorption failure -> continuation
             if vavg and i + 2 < len(B):
                 big = b['v'] >= 1.8*vavg; tight = b['h']-b['l'] <= 0.9*atr; strong = b['v'] > 0 and abs(b['d']) >= 0.25*b['v']; mid = (b['h']+b['l'])/2
@@ -71,7 +77,7 @@ for sym, fl in files.items():
                             if (s < 0 and x['c'] < brk) or (s > 0 and x['c'] > brk):
                                 stop = b['h'] if s < 0 else b['l']
                                 res['abs_fail'][part].append(trade(rows, x['i1'], s, x['c'], stop, a.k)); break
-print(f"days {len(days)} ({days[0]}..{days[-1]}), in-sample < {cut} <= out-of-sample, target {a.k}R, 9 symbols")
+print(f"days {len(days)} ({days[0]}..{days[-1]}), in-sample < {cut} <= out-of-sample, target {'$%g fixed' % a.pts if a.pts else '%gR' % a.k}, 9 symbols")
 for name in ('or_break', 'ib_break', 'ib_trend', 'ib_trend_vol', 'abs_fail'):
     line = f"{name:13}"
     for part in ('IS', 'OOS'):
@@ -79,4 +85,5 @@ for name in ('or_break', 'ib_break', 'ib_trend', 'ib_trend_vol', 'abs_fail'):
         if not x: line += f"  {part}: n=0"; continue
         w = sum(r > 0 for r in x) / len(x); m = st.mean(x); se = (st.pstdev(x) or 1e-9) / math.sqrt(len(x))
         line += f"  {part}: n={len(x):3} win {w*100:3.0f}%  avg {m:+.2f}R  t={m/se:+.2f}"
-    print(line)
+    rk = RISKS.get(name if name in RISKS else 'ib_break', [])
+    print(line + (f"   median stop distance ${st.median(rk):.2f}" if rk else ""))
