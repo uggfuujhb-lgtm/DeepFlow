@@ -1,5 +1,5 @@
 //@version=6
-// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v6.3, finer volume profile rows)
+// OptionLap · Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile  (v6.4, + absorption detector)
 // Each level = a price box and, right under it, a value box ($M).
 //   Negative value → brown, positive value → fluorescent. Stronger value → brighter band.
 // One section per company (SPX + Mag 7). The section that matches the open chart is drawn automatically,
@@ -339,9 +339,9 @@ f_draw(array<float> ps, array<float> vs, array<string> names, color cPos, color 
                 nm = array.get(names, i)
                 f_tag(p, col, (str.length(nm) > 0 ? nm + "  " : "") + str.tostring(p) + (v != 0 ? "  " + f_fmtV(v) : ""))
 
-f_add(array<float> ps, array<float> vs, array<string> ns, float p, float v, string n) =>
+f_add(float refP, array<float> ps, array<float> vs, array<string> ns, float p, float v, string n) =>
     // ignore empty boxes and levels more than 30% away from price (e.g. typed in another company's section)
-    if p > 0 and math.abs(p / close - 1) < 0.3
+    if p > 0 and (na(refP) or math.abs(p / refP - 1) < 0.3)
         array.push(ps, p)
         array.push(vs, v)
         array.push(ns, n)
@@ -357,6 +357,139 @@ f_active() =>
         a := t == "GOOG" ? "GOOGL" : t
     a
 
+// collects the active company's levels into the arrays; refP = na skips the 30% filter
+f_collect(string act, float refP, array<float> gps, array<float> gvs, array<string> gns, array<float> dps, array<float> dvs, array<string> dns) =>
+    float zLine = 0.0
+    if act == "SPX"
+        f_add(refP, gps, gvs, gns, SPX_cwP, SPX_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, SPX_pwP, SPX_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, SPX_zgP, SPX_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, SPX_g1P, SPX_g1V, "")
+        f_add(refP, gps, gvs, gns, SPX_g2P, SPX_g2V, "")
+        f_add(refP, gps, gvs, gns, SPX_g3P, SPX_g3V, "")
+        f_add(refP, gps, gvs, gns, SPX_g4P, SPX_g4V, "")
+        f_add(refP, dps, dvs, dns, SPX_d1P, SPX_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, SPX_d2P, SPX_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, SPX_d3P, SPX_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, SPX_d4P, SPX_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, SPX_d5P, SPX_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, SPX_d6P, SPX_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, SPX_d7P, SPX_d7V, "Δ")
+        zLine := SPX_zgP
+    else if act == "AAPL"
+        f_add(refP, gps, gvs, gns, AAPL_cwP, AAPL_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, AAPL_pwP, AAPL_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, AAPL_zgP, AAPL_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, AAPL_g1P, AAPL_g1V, "")
+        f_add(refP, gps, gvs, gns, AAPL_g2P, AAPL_g2V, "")
+        f_add(refP, gps, gvs, gns, AAPL_g3P, AAPL_g3V, "")
+        f_add(refP, gps, gvs, gns, AAPL_g4P, AAPL_g4V, "")
+        f_add(refP, dps, dvs, dns, AAPL_d1P, AAPL_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, AAPL_d2P, AAPL_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, AAPL_d3P, AAPL_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, AAPL_d4P, AAPL_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, AAPL_d5P, AAPL_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, AAPL_d6P, AAPL_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, AAPL_d7P, AAPL_d7V, "Δ")
+        zLine := AAPL_zgP
+    else if act == "MSFT"
+        f_add(refP, gps, gvs, gns, MSFT_cwP, MSFT_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, MSFT_pwP, MSFT_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, MSFT_zgP, MSFT_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, MSFT_g1P, MSFT_g1V, "")
+        f_add(refP, gps, gvs, gns, MSFT_g2P, MSFT_g2V, "")
+        f_add(refP, gps, gvs, gns, MSFT_g3P, MSFT_g3V, "")
+        f_add(refP, gps, gvs, gns, MSFT_g4P, MSFT_g4V, "")
+        f_add(refP, dps, dvs, dns, MSFT_d1P, MSFT_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, MSFT_d2P, MSFT_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, MSFT_d3P, MSFT_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, MSFT_d4P, MSFT_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, MSFT_d5P, MSFT_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, MSFT_d6P, MSFT_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, MSFT_d7P, MSFT_d7V, "Δ")
+        zLine := MSFT_zgP
+    else if act == "NVDA"
+        f_add(refP, gps, gvs, gns, NVDA_cwP, NVDA_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, NVDA_pwP, NVDA_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, NVDA_zgP, NVDA_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, NVDA_g1P, NVDA_g1V, "")
+        f_add(refP, gps, gvs, gns, NVDA_g2P, NVDA_g2V, "")
+        f_add(refP, gps, gvs, gns, NVDA_g3P, NVDA_g3V, "")
+        f_add(refP, gps, gvs, gns, NVDA_g4P, NVDA_g4V, "")
+        f_add(refP, dps, dvs, dns, NVDA_d1P, NVDA_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, NVDA_d2P, NVDA_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, NVDA_d3P, NVDA_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, NVDA_d4P, NVDA_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, NVDA_d5P, NVDA_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, NVDA_d6P, NVDA_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, NVDA_d7P, NVDA_d7V, "Δ")
+        zLine := NVDA_zgP
+    else if act == "AMZN"
+        f_add(refP, gps, gvs, gns, AMZN_cwP, AMZN_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, AMZN_pwP, AMZN_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, AMZN_zgP, AMZN_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, AMZN_g1P, AMZN_g1V, "")
+        f_add(refP, gps, gvs, gns, AMZN_g2P, AMZN_g2V, "")
+        f_add(refP, gps, gvs, gns, AMZN_g3P, AMZN_g3V, "")
+        f_add(refP, gps, gvs, gns, AMZN_g4P, AMZN_g4V, "")
+        f_add(refP, dps, dvs, dns, AMZN_d1P, AMZN_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, AMZN_d2P, AMZN_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, AMZN_d3P, AMZN_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, AMZN_d4P, AMZN_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, AMZN_d5P, AMZN_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, AMZN_d6P, AMZN_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, AMZN_d7P, AMZN_d7V, "Δ")
+        zLine := AMZN_zgP
+    else if act == "GOOGL"
+        f_add(refP, gps, gvs, gns, GOOGL_cwP, GOOGL_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, GOOGL_pwP, GOOGL_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, GOOGL_zgP, GOOGL_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, GOOGL_g1P, GOOGL_g1V, "")
+        f_add(refP, gps, gvs, gns, GOOGL_g2P, GOOGL_g2V, "")
+        f_add(refP, gps, gvs, gns, GOOGL_g3P, GOOGL_g3V, "")
+        f_add(refP, gps, gvs, gns, GOOGL_g4P, GOOGL_g4V, "")
+        f_add(refP, dps, dvs, dns, GOOGL_d1P, GOOGL_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, GOOGL_d2P, GOOGL_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, GOOGL_d3P, GOOGL_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, GOOGL_d4P, GOOGL_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, GOOGL_d5P, GOOGL_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, GOOGL_d6P, GOOGL_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, GOOGL_d7P, GOOGL_d7V, "Δ")
+        zLine := GOOGL_zgP
+    else if act == "META"
+        f_add(refP, gps, gvs, gns, META_cwP, META_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, META_pwP, META_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, META_zgP, META_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, META_g1P, META_g1V, "")
+        f_add(refP, gps, gvs, gns, META_g2P, META_g2V, "")
+        f_add(refP, gps, gvs, gns, META_g3P, META_g3V, "")
+        f_add(refP, gps, gvs, gns, META_g4P, META_g4V, "")
+        f_add(refP, dps, dvs, dns, META_d1P, META_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, META_d2P, META_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, META_d3P, META_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, META_d4P, META_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, META_d5P, META_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, META_d6P, META_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, META_d7P, META_d7V, "Δ")
+        zLine := META_zgP
+    else if act == "TSLA"
+        f_add(refP, gps, gvs, gns, TSLA_cwP, TSLA_cwV, "جدار الكول")
+        f_add(refP, gps, gvs, gns, TSLA_pwP, TSLA_pwV, "جدار البوت")
+        f_add(refP, gps, gvs, gns, TSLA_zgP, TSLA_zgV, "زيرو قاما")
+        f_add(refP, gps, gvs, gns, TSLA_g1P, TSLA_g1V, "")
+        f_add(refP, gps, gvs, gns, TSLA_g2P, TSLA_g2V, "")
+        f_add(refP, gps, gvs, gns, TSLA_g3P, TSLA_g3V, "")
+        f_add(refP, gps, gvs, gns, TSLA_g4P, TSLA_g4V, "")
+        f_add(refP, dps, dvs, dns, TSLA_d1P, TSLA_d1V, "Δ")
+        f_add(refP, dps, dvs, dns, TSLA_d2P, TSLA_d2V, "Δ")
+        f_add(refP, dps, dvs, dns, TSLA_d3P, TSLA_d3V, "Δ")
+        f_add(refP, dps, dvs, dns, TSLA_d4P, TSLA_d4V, "Δ")
+        f_add(refP, dps, dvs, dns, TSLA_d5P, TSLA_d5V, "Δ")
+        f_add(refP, dps, dvs, dns, TSLA_d6P, TSLA_d6V, "Δ")
+        f_add(refP, dps, dvs, dns, TSLA_d7P, TSLA_d7V, "Δ")
+        zLine := TSLA_zgP
+    zLine
+
 if barstate.islast
     f_clearAll()
     half = bandAuto ? close * 0.0004 : bandPts
@@ -367,135 +500,7 @@ if barstate.islast
     gps = array.new<float>()
     gvs = array.new<float>()
     gns = array.new<string>()
-    float zLine = 0.0
-    if act == "SPX"
-        f_add(gps, gvs, gns, SPX_cwP, SPX_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, SPX_pwP, SPX_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, SPX_zgP, SPX_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, SPX_g1P, SPX_g1V, "")
-        f_add(gps, gvs, gns, SPX_g2P, SPX_g2V, "")
-        f_add(gps, gvs, gns, SPX_g3P, SPX_g3V, "")
-        f_add(gps, gvs, gns, SPX_g4P, SPX_g4V, "")
-        f_add(dps, dvs, dns, SPX_d1P, SPX_d1V, "Δ")
-        f_add(dps, dvs, dns, SPX_d2P, SPX_d2V, "Δ")
-        f_add(dps, dvs, dns, SPX_d3P, SPX_d3V, "Δ")
-        f_add(dps, dvs, dns, SPX_d4P, SPX_d4V, "Δ")
-        f_add(dps, dvs, dns, SPX_d5P, SPX_d5V, "Δ")
-        f_add(dps, dvs, dns, SPX_d6P, SPX_d6V, "Δ")
-        f_add(dps, dvs, dns, SPX_d7P, SPX_d7V, "Δ")
-        zLine := SPX_zgP
-    else if act == "AAPL"
-        f_add(gps, gvs, gns, AAPL_cwP, AAPL_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, AAPL_pwP, AAPL_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, AAPL_zgP, AAPL_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, AAPL_g1P, AAPL_g1V, "")
-        f_add(gps, gvs, gns, AAPL_g2P, AAPL_g2V, "")
-        f_add(gps, gvs, gns, AAPL_g3P, AAPL_g3V, "")
-        f_add(gps, gvs, gns, AAPL_g4P, AAPL_g4V, "")
-        f_add(dps, dvs, dns, AAPL_d1P, AAPL_d1V, "Δ")
-        f_add(dps, dvs, dns, AAPL_d2P, AAPL_d2V, "Δ")
-        f_add(dps, dvs, dns, AAPL_d3P, AAPL_d3V, "Δ")
-        f_add(dps, dvs, dns, AAPL_d4P, AAPL_d4V, "Δ")
-        f_add(dps, dvs, dns, AAPL_d5P, AAPL_d5V, "Δ")
-        f_add(dps, dvs, dns, AAPL_d6P, AAPL_d6V, "Δ")
-        f_add(dps, dvs, dns, AAPL_d7P, AAPL_d7V, "Δ")
-        zLine := AAPL_zgP
-    else if act == "MSFT"
-        f_add(gps, gvs, gns, MSFT_cwP, MSFT_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, MSFT_pwP, MSFT_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, MSFT_zgP, MSFT_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, MSFT_g1P, MSFT_g1V, "")
-        f_add(gps, gvs, gns, MSFT_g2P, MSFT_g2V, "")
-        f_add(gps, gvs, gns, MSFT_g3P, MSFT_g3V, "")
-        f_add(gps, gvs, gns, MSFT_g4P, MSFT_g4V, "")
-        f_add(dps, dvs, dns, MSFT_d1P, MSFT_d1V, "Δ")
-        f_add(dps, dvs, dns, MSFT_d2P, MSFT_d2V, "Δ")
-        f_add(dps, dvs, dns, MSFT_d3P, MSFT_d3V, "Δ")
-        f_add(dps, dvs, dns, MSFT_d4P, MSFT_d4V, "Δ")
-        f_add(dps, dvs, dns, MSFT_d5P, MSFT_d5V, "Δ")
-        f_add(dps, dvs, dns, MSFT_d6P, MSFT_d6V, "Δ")
-        f_add(dps, dvs, dns, MSFT_d7P, MSFT_d7V, "Δ")
-        zLine := MSFT_zgP
-    else if act == "NVDA"
-        f_add(gps, gvs, gns, NVDA_cwP, NVDA_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, NVDA_pwP, NVDA_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, NVDA_zgP, NVDA_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, NVDA_g1P, NVDA_g1V, "")
-        f_add(gps, gvs, gns, NVDA_g2P, NVDA_g2V, "")
-        f_add(gps, gvs, gns, NVDA_g3P, NVDA_g3V, "")
-        f_add(gps, gvs, gns, NVDA_g4P, NVDA_g4V, "")
-        f_add(dps, dvs, dns, NVDA_d1P, NVDA_d1V, "Δ")
-        f_add(dps, dvs, dns, NVDA_d2P, NVDA_d2V, "Δ")
-        f_add(dps, dvs, dns, NVDA_d3P, NVDA_d3V, "Δ")
-        f_add(dps, dvs, dns, NVDA_d4P, NVDA_d4V, "Δ")
-        f_add(dps, dvs, dns, NVDA_d5P, NVDA_d5V, "Δ")
-        f_add(dps, dvs, dns, NVDA_d6P, NVDA_d6V, "Δ")
-        f_add(dps, dvs, dns, NVDA_d7P, NVDA_d7V, "Δ")
-        zLine := NVDA_zgP
-    else if act == "AMZN"
-        f_add(gps, gvs, gns, AMZN_cwP, AMZN_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, AMZN_pwP, AMZN_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, AMZN_zgP, AMZN_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, AMZN_g1P, AMZN_g1V, "")
-        f_add(gps, gvs, gns, AMZN_g2P, AMZN_g2V, "")
-        f_add(gps, gvs, gns, AMZN_g3P, AMZN_g3V, "")
-        f_add(gps, gvs, gns, AMZN_g4P, AMZN_g4V, "")
-        f_add(dps, dvs, dns, AMZN_d1P, AMZN_d1V, "Δ")
-        f_add(dps, dvs, dns, AMZN_d2P, AMZN_d2V, "Δ")
-        f_add(dps, dvs, dns, AMZN_d3P, AMZN_d3V, "Δ")
-        f_add(dps, dvs, dns, AMZN_d4P, AMZN_d4V, "Δ")
-        f_add(dps, dvs, dns, AMZN_d5P, AMZN_d5V, "Δ")
-        f_add(dps, dvs, dns, AMZN_d6P, AMZN_d6V, "Δ")
-        f_add(dps, dvs, dns, AMZN_d7P, AMZN_d7V, "Δ")
-        zLine := AMZN_zgP
-    else if act == "GOOGL"
-        f_add(gps, gvs, gns, GOOGL_cwP, GOOGL_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, GOOGL_pwP, GOOGL_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, GOOGL_zgP, GOOGL_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, GOOGL_g1P, GOOGL_g1V, "")
-        f_add(gps, gvs, gns, GOOGL_g2P, GOOGL_g2V, "")
-        f_add(gps, gvs, gns, GOOGL_g3P, GOOGL_g3V, "")
-        f_add(gps, gvs, gns, GOOGL_g4P, GOOGL_g4V, "")
-        f_add(dps, dvs, dns, GOOGL_d1P, GOOGL_d1V, "Δ")
-        f_add(dps, dvs, dns, GOOGL_d2P, GOOGL_d2V, "Δ")
-        f_add(dps, dvs, dns, GOOGL_d3P, GOOGL_d3V, "Δ")
-        f_add(dps, dvs, dns, GOOGL_d4P, GOOGL_d4V, "Δ")
-        f_add(dps, dvs, dns, GOOGL_d5P, GOOGL_d5V, "Δ")
-        f_add(dps, dvs, dns, GOOGL_d6P, GOOGL_d6V, "Δ")
-        f_add(dps, dvs, dns, GOOGL_d7P, GOOGL_d7V, "Δ")
-        zLine := GOOGL_zgP
-    else if act == "META"
-        f_add(gps, gvs, gns, META_cwP, META_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, META_pwP, META_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, META_zgP, META_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, META_g1P, META_g1V, "")
-        f_add(gps, gvs, gns, META_g2P, META_g2V, "")
-        f_add(gps, gvs, gns, META_g3P, META_g3V, "")
-        f_add(gps, gvs, gns, META_g4P, META_g4V, "")
-        f_add(dps, dvs, dns, META_d1P, META_d1V, "Δ")
-        f_add(dps, dvs, dns, META_d2P, META_d2V, "Δ")
-        f_add(dps, dvs, dns, META_d3P, META_d3V, "Δ")
-        f_add(dps, dvs, dns, META_d4P, META_d4V, "Δ")
-        f_add(dps, dvs, dns, META_d5P, META_d5V, "Δ")
-        f_add(dps, dvs, dns, META_d6P, META_d6V, "Δ")
-        f_add(dps, dvs, dns, META_d7P, META_d7V, "Δ")
-        zLine := META_zgP
-    else if act == "TSLA"
-        f_add(gps, gvs, gns, TSLA_cwP, TSLA_cwV, "جدار الكول")
-        f_add(gps, gvs, gns, TSLA_pwP, TSLA_pwV, "جدار البوت")
-        f_add(gps, gvs, gns, TSLA_zgP, TSLA_zgV, "زيرو قاما")
-        f_add(gps, gvs, gns, TSLA_g1P, TSLA_g1V, "")
-        f_add(gps, gvs, gns, TSLA_g2P, TSLA_g2V, "")
-        f_add(gps, gvs, gns, TSLA_g3P, TSLA_g3V, "")
-        f_add(gps, gvs, gns, TSLA_g4P, TSLA_g4V, "")
-        f_add(dps, dvs, dns, TSLA_d1P, TSLA_d1V, "Δ")
-        f_add(dps, dvs, dns, TSLA_d2P, TSLA_d2V, "Δ")
-        f_add(dps, dvs, dns, TSLA_d3P, TSLA_d3V, "Δ")
-        f_add(dps, dvs, dns, TSLA_d4P, TSLA_d4V, "Δ")
-        f_add(dps, dvs, dns, TSLA_d5P, TSLA_d5V, "Δ")
-        f_add(dps, dvs, dns, TSLA_d6P, TSLA_d6V, "Δ")
-        f_add(dps, dvs, dns, TSLA_d7P, TSLA_d7V, "Δ")
-        zLine := TSLA_zgP
+    float zLine = f_collect(act, close, gps, gvs, gns, dps, dvs, dns)
     if showD
         f_draw(dps, dvs, dns, colDPos, colDNeg, half, "هيت ماب")
     if showG
@@ -571,12 +576,14 @@ var array<box>  vpHist  = array.new<box>()
 var array<line> vpHistL = array.new<line>()
 var array<box>  vpLive  = array.new<box>()
 var array<line> vpLiveL = array.new<line>()
+var array<float> vpPrevLv = array.new<float>(3, na)   // yesterday's POC, VAH, VAL
+var array<float> vpLiveLv = array.new<float>(3, na)
 
 inRTH = not na(time(timeframe.period, rthSess, tz))
 rthStart = inRTH and (not inRTH[1] or newDay)
 
 // draws the profile held in vVol (fine bins grouped into at most vpRows rows); x in bar TIME
-f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
+f_vpDraw(array<box> bx, array<line> ln, int xEnd, array<float> outLv, bool draw) =>
     if vMaxI >= vMinI and not na(vStart)
         nFine = vMaxI - vMinI + 1
         g = math.max(1, int(math.ceil(nFine / vpRows)))
@@ -610,7 +617,7 @@ f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
             y0 = vBase + vMinI * vBin
             for r = 0 to nRows - 1
                 v = array.get(rows, r)
-                if v > 0
+                if v > 0 and draw
                     w = math.max(1, math.round(v / maxV * span * vpWidth / 100.0))
                     bot = y0 + r * rowH
                     top = bot + rowH * 0.85
@@ -619,15 +626,19 @@ f_vpDraw(array<box> bx, array<line> ln, int xEnd) =>
             pocP = y0 + (poc + 0.5) * rowH
             vahP = y0 + (hi + 1) * rowH
             valP = y0 + lo * rowH
-            array.push(ln, line.new(vStart, pocP, xEnd, pocP, xloc=xloc.bar_time, color=colPOC, width=2))
-            array.push(ln, line.new(vStart, vahP, xEnd, vahP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
-            array.push(ln, line.new(vStart, valP, xEnd, valP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
+            array.set(outLv, 0, pocP)
+            array.set(outLv, 1, vahP)
+            array.set(outLv, 2, valP)
+            if draw
+                array.push(ln, line.new(vStart, pocP, xEnd, pocP, xloc=xloc.bar_time, color=colPOC, width=2))
+                array.push(ln, line.new(vStart, vahP, xEnd, vahP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
+                array.push(ln, line.new(vStart, valP, xEnd, valP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed))
 
 if showVP
     // a new session: freeze yesterday's profile, then reset
     if rthStart
-        if not na(vStart) and vpDays > 0
-            f_vpDraw(vpHist, vpHistL, vEnd)
+        if not na(vStart)
+            f_vpDraw(vpHist, vpHistL, vEnd, vpPrevLv, vpDays > 0)
             while array.size(vpHistL) > vpDays * 3
                 line.delete(array.shift(vpHistL))
             while array.size(vpHist) > vpDays * vpRows
@@ -656,4 +667,74 @@ if showVP
             line.delete(l)
         array.clear(vpLive)
         array.clear(vpLiveL)
-        f_vpDraw(vpLive, vpLiveL, time)
+        f_vpDraw(vpLive, vpLiveL, time, vpLiveLv, true)
+
+// ───────── كاشف الامتصاص (Absorption) ─────────
+// Aggressive orders hit one side hard, but price does not follow: big volume, small range, delta against the close.
+// Delta = up-volume minus down-volume of the 1-minute bars inside each candle (an approximation, not tick-by-tick).
+// Best on a 5-minute chart. Needs real volume: ES1!, SPY or the stocks (not the SPX index).
+grpA = "كاشف الامتصاص"
+showAbs  = input.bool(true, "اعرض الامتصاص", group=grpA)
+absTF    = input.timeframe("1", "فريم الدلتا الداخلي", group=grpA, tooltip="الشموع الصغيرة اللي تنحسب منها الدلتا. لازم يكون أصغر من فريم الشارت (مثلاً 1 على شارت 5 دقايق).")
+absLen   = input.int(20, "متوسط الفوليوم (شموع)", minval=5, maxval=100, group=grpA)
+absVolX  = input.float(1.8, "الفوليوم ≥ كم ضعف المتوسط", minval=1.0, step=0.1, group=grpA)
+absDltP  = input.int(25, "الدلتا ≥ كم % من فوليوم الشمعة", minval=5, maxval=90, group=grpA)
+absRngX  = input.float(0.9, "مدى الشمعة ≤ كم ضعف ATR", minval=0.2, step=0.1, group=grpA, tooltip="أصغر = شمعة أضيق = امتصاص أوضح")
+absNear  = input.bool(true, "بس عند مستوى (قاما، دلتا، VAH/VAL/POC أمس، IB، OR)", group=grpA)
+absTolX  = input.float(0.3, "قرب المستوى (كم ضعف ATR)", minval=0.05, step=0.05, group=grpA)
+colAbsB  = input.color(#2EF2C8, "امتصاص شرائي (البيع انمتص)", group=grpA)
+colAbsS  = input.color(#C98A6A, "امتصاص بيعي (الشراء انمتص)", group=grpA)
+
+// intrabar up / down volume (doji split in half)
+// if the chart is already at (or below) the inner timeframe, use the chart's own bars
+absTFe = timeframe.in_seconds(absTF) < timeframe.in_seconds() ? absTF : timeframe.period
+[ltfUp, ltfDn] = request.security_lower_tf(syminfo.tickerid, absTFe, [close > open ? volume : close == open ? volume / 2 : 0.0, close < open ? volume : close == open ? volume / 2 : 0.0])
+float upV = array.size(ltfUp) > 0 ? array.sum(ltfUp) : na
+float dnV = array.size(ltfDn) > 0 ? array.sum(ltfDn) : na
+absDelta = upV - dnV
+plot(absDelta, "دلتا الشمعة (للتنبيهات)", display=display.data_window)
+
+// option levels of the chart's company (no 30% filter here: it is applied when drawing)
+var array<float> absLv = array.new<float>()
+if barstate.isfirst
+    tg = array.new<float>()
+    tgv = array.new<float>()
+    tgn = array.new<string>()
+    td = array.new<float>()
+    tdv = array.new<float>()
+    tdn = array.new<string>()
+    f_collect(f_active(), na, tg, tgv, tgn, td, tdv, tdn)
+    array.concat(absLv, tg)
+    array.concat(absLv, td)
+
+atrA = ta.atr(14)
+f_nearLevel(float p, float tol) =>
+    bool hit = false
+    for x in absLv
+        if math.abs(p - x) <= tol
+            hit := true
+    for x in vpPrevLv
+        if not na(x) and math.abs(p - x) <= tol
+            hit := true
+    if ibDone
+        if math.abs(p - ibH) <= tol or math.abs(p - ibL) <= tol
+            hit := true
+    if orDone
+        if math.abs(p - orH) <= tol or math.abs(p - orL) <= tol
+            hit := true
+    hit
+
+volAvg  = ta.sma(volume, absLen)
+rngA    = high - low
+bigVol  = nz(volume) >= volAvg * absVolX
+tight   = rngA <= atrA * absRngX
+strongD = not na(absDelta) and nz(volume) > 0 and math.abs(absDelta) >= nz(volume) * absDltP / 100.0
+mid     = (high + low) / 2
+tolA    = atrA * absTolX
+absBuy  = showAbs and inRTH and bigVol and tight and strongD and absDelta < 0 and close >= mid and (not absNear or f_nearLevel(low, tolA))
+absSell = showAbs and inRTH and bigVol and tight and strongD and absDelta > 0 and close <= mid and (not absNear or f_nearLevel(high, tolA))
+
+plotshape(absBuy,  "امتصاص شرائي", shape.diamond, location.belowbar, colAbsB, size=size.small, text="ABS")
+plotshape(absSell, "امتصاص بيعي",  shape.diamond, location.abovebar, colAbsS, size=size.small, text="ABS")
+alertcondition(absBuy,  "OL: absorption (buyers)",  "امتصاص شرائي: بيع قوي والسعر ما نزل، عند مستوى")
+alertcondition(absSell, "OL: absorption (sellers)", "امتصاص بيعي: شراء قوي والسعر ما طلع، عند مستوى")
