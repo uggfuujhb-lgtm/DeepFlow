@@ -1,4 +1,7 @@
-import math, ezdxf
+import math, os, ezdxf
+STUDENT = os.environ.get('STUDENT_NAME','')
+STUDENT_ID = os.environ.get('STUDENT_ID','')
+OUT = os.environ.get('OUT_DIR','/home/user/DeepFlow')
 from ezdxf.math import Vec2
 
 K = 1/20  # drawing size factor (1/20 -> small drawing, real mm on paper)
@@ -80,11 +83,15 @@ lay = doc.layouts.new("A3"); doc.layouts.delete("Layout1")
 lay.page_setup(size=(420,297), margins=(0,0,0,0), units="mm")
 lay.add_lwpolyline([(10,10),(410,10),(410,287),(10,287)], close=True, dxfattribs={"layer":"FRAME","const_width":0.5})
 lay.add_lwpolyline([(10,10),(410,10),(410,35),(10,35)], close=True, dxfattribs={"layer":"FRAME"})
-lay.add_viewport(center=(210,155), size=(390,230), view_center_point=(162,45), view_height=230)
+lay.add_viewport(center=(210,155), size=(390,230), view_center_point=(162,40), view_height=230)
 lay.add_text("TYPES OF ARCHES ON GEOMETRY", height=6, dxfattribs={"layer":"TEXT"}).set_placement((20,20))
 lay.add_text("UNITS: mm", height=4, dxfattribs={"layer":"TEXT"}).set_placement((300,20))
-doc.saveas("/home/user/DeepFlow/arches_small_mm.dxf")
+if STUDENT:
+    M = ezdxf.enums.TextEntityAlignment.MIDDLE_CENTER
+    msp.add_text(f"NAME: {STUDENT}", height=5, dxfattribs={"layer":"TEXT"}).set_placement((165,-40), align=M)
+    msp.add_text(f"ID: {STUDENT_ID}", height=5, dxfattribs={"layer":"TEXT"}).set_placement((165,-50), align=M)
+doc.saveas(OUT+"/arches_small_mm.dxf")
 
 from ezdxf.addons.drawing import matplotlib as dm
-dm.qsave(lay, "/home/user/DeepFlow/arches_small_mm_preview.png", bg="#FFFFFF", dpi=150)
+dm.qsave(lay, OUT+"/arches_small_mm_preview.png", bg="#FFFFFF", dpi=150)
 print("ok")
