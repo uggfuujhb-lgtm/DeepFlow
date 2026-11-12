@@ -1,0 +1,1184 @@
+//@version=6
+// OptionLap · all-in-one: Gamma + Delta heatmap + Opening Range + IB + daily Volume Profile + absorption (on the price chart),
+// OR/IB scanner for 8 symbols (one alert), and the CVD panel (this indicator's own pane under the chart).
+// Price drawings use force_overlay so they stay on the candles. For education only, not a recommendation.
+indicator("OptionLap · All-in-one", shorttitle="OL All", overlay=false, max_lines_count=400, max_labels_count=300, max_boxes_count=500)
+
+// ───────── الشركة المعروضة ─────────
+grpX = "يعرض لفلات الشركة المفتوحة بالشارت بس"
+spxAlias = input.string("SPX,SPX500,US500,ES1!,MES1!", "رموز سباكس", group=grpX, tooltip="أي شارت من هالرموز يعرض لفلات SPX")
+
+// ───────── سباكس (SPX / ES) ─────────
+grp_SPX = "═════ SPX ═════"
+SPX_cwP = input.float(0.0, "SPX · جدار الكول", group=grp_SPX, inline="SPXcw")
+SPX_cwV = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXcw")
+SPX_pwP = input.float(0.0, "SPX · جدار البوت", group=grp_SPX, inline="SPXpw")
+SPX_pwV = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXpw")
+SPX_zgP = input.float(0.0, "SPX · الزيرو قاما", group=grp_SPX, inline="SPXzg")
+SPX_zgV = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXzg")
+SPX_g1P = input.float(0.0, "SPX · منطقة 1", group=grp_SPX, inline="SPXg1")
+SPX_g1V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXg1")
+SPX_g2P = input.float(0.0, "SPX · منطقة 2", group=grp_SPX, inline="SPXg2")
+SPX_g2V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXg2")
+SPX_g3P = input.float(0.0, "SPX · منطقة 3", group=grp_SPX, inline="SPXg3")
+SPX_g3V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXg3")
+SPX_g4P = input.float(0.0, "SPX · منطقة 4", group=grp_SPX, inline="SPXg4")
+SPX_g4V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXg4")
+SPX_d1P = input.float(0.0, "SPX · دلتا 1", group=grp_SPX, inline="SPXd1")
+SPX_d1V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXd1")
+SPX_d2P = input.float(0.0, "SPX · دلتا 2", group=grp_SPX, inline="SPXd2")
+SPX_d2V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXd2")
+SPX_d3P = input.float(0.0, "SPX · دلتا 3", group=grp_SPX, inline="SPXd3")
+SPX_d3V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXd3")
+SPX_d4P = input.float(0.0, "SPX · دلتا 4", group=grp_SPX, inline="SPXd4")
+SPX_d4V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXd4")
+SPX_d5P = input.float(0.0, "SPX · دلتا 5", group=grp_SPX, inline="SPXd5")
+SPX_d5V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXd5")
+SPX_d6P = input.float(0.0, "SPX · دلتا 6", group=grp_SPX, inline="SPXd6")
+SPX_d6V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXd6")
+SPX_d7P = input.float(0.0, "SPX · دلتا 7", group=grp_SPX, inline="SPXd7")
+SPX_d7V = input.float(0.0, "القيمة", group=grp_SPX, inline="SPXd7")
+SPX_mq  = input.text_area("", "SPX · لصق مستويات MenthorQ", group=grp_SPX, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── Apple ─────────
+grp_AAPL = "═════ AAPL ═════"
+AAPL_cwP = input.float(0.0, "AAPL · جدار الكول", group=grp_AAPL, inline="AAPLcw")
+AAPL_cwV = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLcw")
+AAPL_pwP = input.float(0.0, "AAPL · جدار البوت", group=grp_AAPL, inline="AAPLpw")
+AAPL_pwV = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLpw")
+AAPL_zgP = input.float(0.0, "AAPL · الزيرو قاما", group=grp_AAPL, inline="AAPLzg")
+AAPL_zgV = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLzg")
+AAPL_g1P = input.float(0.0, "AAPL · منطقة 1", group=grp_AAPL, inline="AAPLg1")
+AAPL_g1V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLg1")
+AAPL_g2P = input.float(0.0, "AAPL · منطقة 2", group=grp_AAPL, inline="AAPLg2")
+AAPL_g2V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLg2")
+AAPL_g3P = input.float(0.0, "AAPL · منطقة 3", group=grp_AAPL, inline="AAPLg3")
+AAPL_g3V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLg3")
+AAPL_g4P = input.float(0.0, "AAPL · منطقة 4", group=grp_AAPL, inline="AAPLg4")
+AAPL_g4V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLg4")
+AAPL_d1P = input.float(0.0, "AAPL · دلتا 1", group=grp_AAPL, inline="AAPLd1")
+AAPL_d1V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLd1")
+AAPL_d2P = input.float(0.0, "AAPL · دلتا 2", group=grp_AAPL, inline="AAPLd2")
+AAPL_d2V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLd2")
+AAPL_d3P = input.float(0.0, "AAPL · دلتا 3", group=grp_AAPL, inline="AAPLd3")
+AAPL_d3V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLd3")
+AAPL_d4P = input.float(0.0, "AAPL · دلتا 4", group=grp_AAPL, inline="AAPLd4")
+AAPL_d4V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLd4")
+AAPL_d5P = input.float(0.0, "AAPL · دلتا 5", group=grp_AAPL, inline="AAPLd5")
+AAPL_d5V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLd5")
+AAPL_d6P = input.float(0.0, "AAPL · دلتا 6", group=grp_AAPL, inline="AAPLd6")
+AAPL_d6V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLd6")
+AAPL_d7P = input.float(0.0, "AAPL · دلتا 7", group=grp_AAPL, inline="AAPLd7")
+AAPL_d7V = input.float(0.0, "القيمة", group=grp_AAPL, inline="AAPLd7")
+AAPL_mq  = input.text_area("", "AAPL · لصق مستويات MenthorQ", group=grp_AAPL, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── Microsoft ─────────
+grp_MSFT = "═════ MSFT ═════"
+MSFT_cwP = input.float(0.0, "MSFT · جدار الكول", group=grp_MSFT, inline="MSFTcw")
+MSFT_cwV = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTcw")
+MSFT_pwP = input.float(0.0, "MSFT · جدار البوت", group=grp_MSFT, inline="MSFTpw")
+MSFT_pwV = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTpw")
+MSFT_zgP = input.float(0.0, "MSFT · الزيرو قاما", group=grp_MSFT, inline="MSFTzg")
+MSFT_zgV = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTzg")
+MSFT_g1P = input.float(0.0, "MSFT · منطقة 1", group=grp_MSFT, inline="MSFTg1")
+MSFT_g1V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTg1")
+MSFT_g2P = input.float(0.0, "MSFT · منطقة 2", group=grp_MSFT, inline="MSFTg2")
+MSFT_g2V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTg2")
+MSFT_g3P = input.float(0.0, "MSFT · منطقة 3", group=grp_MSFT, inline="MSFTg3")
+MSFT_g3V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTg3")
+MSFT_g4P = input.float(0.0, "MSFT · منطقة 4", group=grp_MSFT, inline="MSFTg4")
+MSFT_g4V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTg4")
+MSFT_d1P = input.float(0.0, "MSFT · دلتا 1", group=grp_MSFT, inline="MSFTd1")
+MSFT_d1V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTd1")
+MSFT_d2P = input.float(0.0, "MSFT · دلتا 2", group=grp_MSFT, inline="MSFTd2")
+MSFT_d2V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTd2")
+MSFT_d3P = input.float(0.0, "MSFT · دلتا 3", group=grp_MSFT, inline="MSFTd3")
+MSFT_d3V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTd3")
+MSFT_d4P = input.float(0.0, "MSFT · دلتا 4", group=grp_MSFT, inline="MSFTd4")
+MSFT_d4V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTd4")
+MSFT_d5P = input.float(0.0, "MSFT · دلتا 5", group=grp_MSFT, inline="MSFTd5")
+MSFT_d5V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTd5")
+MSFT_d6P = input.float(0.0, "MSFT · دلتا 6", group=grp_MSFT, inline="MSFTd6")
+MSFT_d6V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTd6")
+MSFT_d7P = input.float(0.0, "MSFT · دلتا 7", group=grp_MSFT, inline="MSFTd7")
+MSFT_d7V = input.float(0.0, "القيمة", group=grp_MSFT, inline="MSFTd7")
+MSFT_mq  = input.text_area("", "MSFT · لصق مستويات MenthorQ", group=grp_MSFT, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── Nvidia ─────────
+grp_NVDA = "═════ NVDA ═════"
+NVDA_cwP = input.float(0.0, "NVDA · جدار الكول", group=grp_NVDA, inline="NVDAcw")
+NVDA_cwV = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAcw")
+NVDA_pwP = input.float(0.0, "NVDA · جدار البوت", group=grp_NVDA, inline="NVDApw")
+NVDA_pwV = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDApw")
+NVDA_zgP = input.float(0.0, "NVDA · الزيرو قاما", group=grp_NVDA, inline="NVDAzg")
+NVDA_zgV = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAzg")
+NVDA_g1P = input.float(0.0, "NVDA · منطقة 1", group=grp_NVDA, inline="NVDAg1")
+NVDA_g1V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAg1")
+NVDA_g2P = input.float(0.0, "NVDA · منطقة 2", group=grp_NVDA, inline="NVDAg2")
+NVDA_g2V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAg2")
+NVDA_g3P = input.float(0.0, "NVDA · منطقة 3", group=grp_NVDA, inline="NVDAg3")
+NVDA_g3V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAg3")
+NVDA_g4P = input.float(0.0, "NVDA · منطقة 4", group=grp_NVDA, inline="NVDAg4")
+NVDA_g4V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAg4")
+NVDA_d1P = input.float(0.0, "NVDA · دلتا 1", group=grp_NVDA, inline="NVDAd1")
+NVDA_d1V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAd1")
+NVDA_d2P = input.float(0.0, "NVDA · دلتا 2", group=grp_NVDA, inline="NVDAd2")
+NVDA_d2V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAd2")
+NVDA_d3P = input.float(0.0, "NVDA · دلتا 3", group=grp_NVDA, inline="NVDAd3")
+NVDA_d3V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAd3")
+NVDA_d4P = input.float(0.0, "NVDA · دلتا 4", group=grp_NVDA, inline="NVDAd4")
+NVDA_d4V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAd4")
+NVDA_d5P = input.float(0.0, "NVDA · دلتا 5", group=grp_NVDA, inline="NVDAd5")
+NVDA_d5V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAd5")
+NVDA_d6P = input.float(0.0, "NVDA · دلتا 6", group=grp_NVDA, inline="NVDAd6")
+NVDA_d6V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAd6")
+NVDA_d7P = input.float(0.0, "NVDA · دلتا 7", group=grp_NVDA, inline="NVDAd7")
+NVDA_d7V = input.float(0.0, "القيمة", group=grp_NVDA, inline="NVDAd7")
+NVDA_mq  = input.text_area("", "NVDA · لصق مستويات MenthorQ", group=grp_NVDA, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── Amazon ─────────
+grp_AMZN = "═════ AMZN ═════"
+AMZN_cwP = input.float(0.0, "AMZN · جدار الكول", group=grp_AMZN, inline="AMZNcw")
+AMZN_cwV = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNcw")
+AMZN_pwP = input.float(0.0, "AMZN · جدار البوت", group=grp_AMZN, inline="AMZNpw")
+AMZN_pwV = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNpw")
+AMZN_zgP = input.float(0.0, "AMZN · الزيرو قاما", group=grp_AMZN, inline="AMZNzg")
+AMZN_zgV = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNzg")
+AMZN_g1P = input.float(0.0, "AMZN · منطقة 1", group=grp_AMZN, inline="AMZNg1")
+AMZN_g1V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNg1")
+AMZN_g2P = input.float(0.0, "AMZN · منطقة 2", group=grp_AMZN, inline="AMZNg2")
+AMZN_g2V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNg2")
+AMZN_g3P = input.float(0.0, "AMZN · منطقة 3", group=grp_AMZN, inline="AMZNg3")
+AMZN_g3V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNg3")
+AMZN_g4P = input.float(0.0, "AMZN · منطقة 4", group=grp_AMZN, inline="AMZNg4")
+AMZN_g4V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNg4")
+AMZN_d1P = input.float(0.0, "AMZN · دلتا 1", group=grp_AMZN, inline="AMZNd1")
+AMZN_d1V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNd1")
+AMZN_d2P = input.float(0.0, "AMZN · دلتا 2", group=grp_AMZN, inline="AMZNd2")
+AMZN_d2V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNd2")
+AMZN_d3P = input.float(0.0, "AMZN · دلتا 3", group=grp_AMZN, inline="AMZNd3")
+AMZN_d3V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNd3")
+AMZN_d4P = input.float(0.0, "AMZN · دلتا 4", group=grp_AMZN, inline="AMZNd4")
+AMZN_d4V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNd4")
+AMZN_d5P = input.float(0.0, "AMZN · دلتا 5", group=grp_AMZN, inline="AMZNd5")
+AMZN_d5V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNd5")
+AMZN_d6P = input.float(0.0, "AMZN · دلتا 6", group=grp_AMZN, inline="AMZNd6")
+AMZN_d6V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNd6")
+AMZN_d7P = input.float(0.0, "AMZN · دلتا 7", group=grp_AMZN, inline="AMZNd7")
+AMZN_d7V = input.float(0.0, "القيمة", group=grp_AMZN, inline="AMZNd7")
+AMZN_mq  = input.text_area("", "AMZN · لصق مستويات MenthorQ", group=grp_AMZN, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── Alphabet ─────────
+grp_GOOGL = "═════ GOOGL ═════"
+GOOGL_cwP = input.float(0.0, "GOOGL · جدار الكول", group=grp_GOOGL, inline="GOOGLcw")
+GOOGL_cwV = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLcw")
+GOOGL_pwP = input.float(0.0, "GOOGL · جدار البوت", group=grp_GOOGL, inline="GOOGLpw")
+GOOGL_pwV = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLpw")
+GOOGL_zgP = input.float(0.0, "GOOGL · الزيرو قاما", group=grp_GOOGL, inline="GOOGLzg")
+GOOGL_zgV = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLzg")
+GOOGL_g1P = input.float(0.0, "GOOGL · منطقة 1", group=grp_GOOGL, inline="GOOGLg1")
+GOOGL_g1V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLg1")
+GOOGL_g2P = input.float(0.0, "GOOGL · منطقة 2", group=grp_GOOGL, inline="GOOGLg2")
+GOOGL_g2V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLg2")
+GOOGL_g3P = input.float(0.0, "GOOGL · منطقة 3", group=grp_GOOGL, inline="GOOGLg3")
+GOOGL_g3V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLg3")
+GOOGL_g4P = input.float(0.0, "GOOGL · منطقة 4", group=grp_GOOGL, inline="GOOGLg4")
+GOOGL_g4V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLg4")
+GOOGL_d1P = input.float(0.0, "GOOGL · دلتا 1", group=grp_GOOGL, inline="GOOGLd1")
+GOOGL_d1V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLd1")
+GOOGL_d2P = input.float(0.0, "GOOGL · دلتا 2", group=grp_GOOGL, inline="GOOGLd2")
+GOOGL_d2V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLd2")
+GOOGL_d3P = input.float(0.0, "GOOGL · دلتا 3", group=grp_GOOGL, inline="GOOGLd3")
+GOOGL_d3V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLd3")
+GOOGL_d4P = input.float(0.0, "GOOGL · دلتا 4", group=grp_GOOGL, inline="GOOGLd4")
+GOOGL_d4V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLd4")
+GOOGL_d5P = input.float(0.0, "GOOGL · دلتا 5", group=grp_GOOGL, inline="GOOGLd5")
+GOOGL_d5V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLd5")
+GOOGL_d6P = input.float(0.0, "GOOGL · دلتا 6", group=grp_GOOGL, inline="GOOGLd6")
+GOOGL_d6V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLd6")
+GOOGL_d7P = input.float(0.0, "GOOGL · دلتا 7", group=grp_GOOGL, inline="GOOGLd7")
+GOOGL_d7V = input.float(0.0, "القيمة", group=grp_GOOGL, inline="GOOGLd7")
+GOOGL_mq  = input.text_area("", "GOOGL · لصق مستويات MenthorQ", group=grp_GOOGL, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── Meta ─────────
+grp_META = "═════ META ═════"
+META_cwP = input.float(0.0, "META · جدار الكول", group=grp_META, inline="METAcw")
+META_cwV = input.float(0.0, "القيمة", group=grp_META, inline="METAcw")
+META_pwP = input.float(0.0, "META · جدار البوت", group=grp_META, inline="METApw")
+META_pwV = input.float(0.0, "القيمة", group=grp_META, inline="METApw")
+META_zgP = input.float(0.0, "META · الزيرو قاما", group=grp_META, inline="METAzg")
+META_zgV = input.float(0.0, "القيمة", group=grp_META, inline="METAzg")
+META_g1P = input.float(0.0, "META · منطقة 1", group=grp_META, inline="METAg1")
+META_g1V = input.float(0.0, "القيمة", group=grp_META, inline="METAg1")
+META_g2P = input.float(0.0, "META · منطقة 2", group=grp_META, inline="METAg2")
+META_g2V = input.float(0.0, "القيمة", group=grp_META, inline="METAg2")
+META_g3P = input.float(0.0, "META · منطقة 3", group=grp_META, inline="METAg3")
+META_g3V = input.float(0.0, "القيمة", group=grp_META, inline="METAg3")
+META_g4P = input.float(0.0, "META · منطقة 4", group=grp_META, inline="METAg4")
+META_g4V = input.float(0.0, "القيمة", group=grp_META, inline="METAg4")
+META_d1P = input.float(0.0, "META · دلتا 1", group=grp_META, inline="METAd1")
+META_d1V = input.float(0.0, "القيمة", group=grp_META, inline="METAd1")
+META_d2P = input.float(0.0, "META · دلتا 2", group=grp_META, inline="METAd2")
+META_d2V = input.float(0.0, "القيمة", group=grp_META, inline="METAd2")
+META_d3P = input.float(0.0, "META · دلتا 3", group=grp_META, inline="METAd3")
+META_d3V = input.float(0.0, "القيمة", group=grp_META, inline="METAd3")
+META_d4P = input.float(0.0, "META · دلتا 4", group=grp_META, inline="METAd4")
+META_d4V = input.float(0.0, "القيمة", group=grp_META, inline="METAd4")
+META_d5P = input.float(0.0, "META · دلتا 5", group=grp_META, inline="METAd5")
+META_d5V = input.float(0.0, "القيمة", group=grp_META, inline="METAd5")
+META_d6P = input.float(0.0, "META · دلتا 6", group=grp_META, inline="METAd6")
+META_d6V = input.float(0.0, "القيمة", group=grp_META, inline="METAd6")
+META_d7P = input.float(0.0, "META · دلتا 7", group=grp_META, inline="METAd7")
+META_d7V = input.float(0.0, "القيمة", group=grp_META, inline="METAd7")
+META_mq  = input.text_area("", "META · لصق مستويات MenthorQ", group=grp_META, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── Tesla ─────────
+grp_TSLA = "═════ TSLA ═════"
+TSLA_cwP = input.float(0.0, "TSLA · جدار الكول", group=grp_TSLA, inline="TSLAcw")
+TSLA_cwV = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAcw")
+TSLA_pwP = input.float(0.0, "TSLA · جدار البوت", group=grp_TSLA, inline="TSLApw")
+TSLA_pwV = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLApw")
+TSLA_zgP = input.float(0.0, "TSLA · الزيرو قاما", group=grp_TSLA, inline="TSLAzg")
+TSLA_zgV = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAzg")
+TSLA_g1P = input.float(0.0, "TSLA · منطقة 1", group=grp_TSLA, inline="TSLAg1")
+TSLA_g1V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAg1")
+TSLA_g2P = input.float(0.0, "TSLA · منطقة 2", group=grp_TSLA, inline="TSLAg2")
+TSLA_g2V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAg2")
+TSLA_g3P = input.float(0.0, "TSLA · منطقة 3", group=grp_TSLA, inline="TSLAg3")
+TSLA_g3V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAg3")
+TSLA_g4P = input.float(0.0, "TSLA · منطقة 4", group=grp_TSLA, inline="TSLAg4")
+TSLA_g4V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAg4")
+TSLA_d1P = input.float(0.0, "TSLA · دلتا 1", group=grp_TSLA, inline="TSLAd1")
+TSLA_d1V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAd1")
+TSLA_d2P = input.float(0.0, "TSLA · دلتا 2", group=grp_TSLA, inline="TSLAd2")
+TSLA_d2V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAd2")
+TSLA_d3P = input.float(0.0, "TSLA · دلتا 3", group=grp_TSLA, inline="TSLAd3")
+TSLA_d3V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAd3")
+TSLA_d4P = input.float(0.0, "TSLA · دلتا 4", group=grp_TSLA, inline="TSLAd4")
+TSLA_d4V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAd4")
+TSLA_d5P = input.float(0.0, "TSLA · دلتا 5", group=grp_TSLA, inline="TSLAd5")
+TSLA_d5V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAd5")
+TSLA_d6P = input.float(0.0, "TSLA · دلتا 6", group=grp_TSLA, inline="TSLAd6")
+TSLA_d6V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAd6")
+TSLA_d7P = input.float(0.0, "TSLA · دلتا 7", group=grp_TSLA, inline="TSLAd7")
+TSLA_d7V = input.float(0.0, "القيمة", group=grp_TSLA, inline="TSLAd7")
+TSLA_mq  = input.text_area("", "TSLA · لصق مستويات MenthorQ", group=grp_TSLA, tooltip="الصق نص مستويات MenthorQ (مثل: Call Resistance, 7700, Put Support, 7500, HVL, 7600, GEX 1, 7650). إذا فيه نص هنا يستبدل خانات القاما. القوة من الترتيب، واللون فوق أو تحت HVL.")
+
+// ───────── الشكل والألوان ─────────
+grpC = "الشكل والألوان"
+gStyle   = input.string("هيت ماب", "شكل القاما", options=["هيت ماب", "خطوط", "الاثنين"], group=grpC)
+showG    = input.bool(true, "اعرض القاما", group=grpC)
+showD    = input.bool(true, "اعرض الدلتا", group=grpC)
+showTxt  = input.bool(true, "اكتب الاسم والقيمة جنب المستوى", group=grpC)
+colGPos  = input.color(#2EF2C8, "قاما موجبة", group=grpC)
+colGNeg  = input.color(#C98A6A, "قاما سالبة", group=grpC)
+colDPos  = input.color(#2EF2C8, "دلتا موجبة", group=grpC)
+colDNeg  = input.color(#C98A6A, "دلتا سالبة", group=grpC)
+colZero  = input.color(#FFC21A, "خط الزيرو قاما", group=grpC)
+colBrkUp = input.color(#00E58A, "سهم كسر الـIB فوق", group=grpC)
+colBrkDn = input.color(#FF3B47, "سهم كسر الـIB تحت", group=grpC)
+bandAuto = input.bool(true, "سماكة تلقائية (0.04% من السعر)", group=grpC)
+bandPts  = input.float(2.5, "سماكة يدوية (نقاط فوق وتحت)", minval=0.01, step=0.25, group=grpC)
+glow     = input.bool(true, "توهّج حول الشريط", group=grpC)
+minAlpha = input.int(15, "أقوى مستوى: شفافية %", minval=0, maxval=90, group=grpC)
+maxAlpha = input.int(85, "أضعف مستوى: شفافية %", minval=10, maxval=98, group=grpC)
+
+// ───────── الأوبن رينج والـIB ─────────
+grpS = "الأوبن رينج والـIB (توقيت نيويورك)"
+tz      = input.string("America/New_York", "المنطقة الزمنية", group=grpS)
+orSess  = input.session("0930-0945", "الأوبن رينج", group=grpS, tooltip="0930-0935 = 5 دقايق، 0930-0945 = 15، 0930-1000 = 30")
+ibSess  = input.session("0930-1030", "الـIB (أول ساعة)", group=grpS)
+showOR  = input.bool(true, "اعرض الأوبن رينج", group=grpS)
+showIB  = input.bool(true, "اعرض الـIB", group=grpS)
+showBrk = input.bool(true, "علّم أول كسر للـIB (إغلاق برّا)", group=grpS)
+colOR   = input.color(#9B6BFF, "لون الأوبن رينج", group=grpS)
+colIB   = input.color(#8E99A6, "لون الـIB", group=grpS)
+brkPct  = input.float(0.10, "الكسر لازم يغلق أبعد من المستوى بـ %", minval=0.0, step=0.05, group=grpS, tooltip="قاعدتك: إغلاق واضح. 0.10% = حوالي 0.5$ على سهم 500$")
+wickMax = input.int(30, "أقصى ذيل باتجاه الكسر (% من الشمعة)", minval=0, maxval=100, group=grpS, tooltip="قاعدتك: ذيل صغير")
+showORB = input.bool(true, "علّم كسر الأوبن رينج (إغلاق نظيف)", group=grpS)
+showIBbg = input.bool(true, "خلفية رمادية لين يكتمل الـIB", group=grpS)
+
+// ───────── أدوات الرسم ─────────
+var array<line>  gLines  = array.new<line>()
+var array<label> gLabels = array.new<label>()
+var array<box>   gBoxes  = array.new<box>()
+
+f_clearAll() =>
+    for l in gLines
+        line.delete(l)
+    for b in gLabels
+        label.delete(b)
+    for x in gBoxes
+        box.delete(x)
+    array.clear(gLines)
+    array.clear(gLabels)
+    array.clear(gBoxes)
+
+f_line(int t0, float price, color col, int w, bool dashed) =>
+    array.push(gLines, line.new(t0, price, time, price, xloc=xloc.bar_time, extend=extend.right, color=col, width=w, style=dashed ? line.style_dashed : line.style_solid, force_overlay=true))
+
+f_tag(float price, color col, string txt) =>
+    array.push(gLabels, label.new(bar_index + 3, price, txt, style=label.style_label_left, color=color.new(col, 85), textcolor=col, size=size.small, force_overlay=true))
+
+f_band(int t0, float price, float half, color col, int transp) =>
+    array.push(gBoxes, box.new(t0, price + half, time, price - half, xloc=xloc.bar_time, border_color=color.new(col, 100), bgcolor=color.new(col, transp), extend=extend.right, force_overlay=true))
+
+f_fmtV(float v) =>
+    (v >= 0 ? "+" : "") + str.tostring(v) + "M"
+
+// draws one set of levels: band (and/or line) per level, colour by sign, brightness by |value|
+f_draw(int t0, array<float> ps, array<float> vs, array<string> names, color cPos, color cNeg, float half, string style, bool showVal) =>
+    float m = 0.0
+    for v in vs
+        m := math.max(m, math.abs(v))
+    if array.size(ps) > 0
+        for i = 0 to array.size(ps) - 1
+            p = array.get(ps, i)
+            v = array.get(vs, i)
+            rel = m > 0 ? math.sqrt(math.abs(v) / m) : 0.5
+            col = v < 0 ? cNeg : cPos
+            t = math.round(maxAlpha - rel * (maxAlpha - minAlpha))
+            if style != "خطوط"
+                if glow
+                    f_band(t0, p, half * 2.2, col, math.min(97, t + 12))
+                f_band(t0, p, half, col, t)
+            if style != "هيت ماب"
+                f_line(t0, p, color.new(col, math.round((1 - rel) * 55)), math.max(1, math.round(rel * 5)), false)
+            if showTxt
+                nm = array.get(names, i)
+                f_tag(p, col, (str.length(nm) > 0 ? nm + "  " : "") + str.tostring(p) + (showVal and v != 0 ? "\n" + f_fmtV(v) : ""))
+
+f_add(float refP, array<float> ps, array<float> vs, array<string> ns, float p, float v, string n) =>
+    // ignore empty boxes and levels more than 30% away from price (e.g. typed in another company's section)
+    if p > 0 and (na(refP) or math.abs(p / refP - 1) < 0.3)
+        array.push(ps, p)
+        array.push(vs, v)
+        array.push(ns, n)
+
+// which company is on the chart?
+f_active() =>
+    t = str.upper(syminfo.ticker)
+    string a = ""
+    for x in str.split(str.upper(str.replace_all(spxAlias, " ", "")), ",")
+        if x == t
+            a := "SPX"
+    if a == ""
+        a := t == "GOOG" ? "GOOGL" : t
+    a
+
+// parses MenthorQ level text: "Name, price, Name, price, ..." (commas, colons, new lines or semicolons)
+// strength: walls 12, GEX n -> 11 - n, others 3; sign: above HVL (0DTE HVL first) = positive, below = negative
+f_mq(string s, float refP, array<float> gps, array<float> gvs, array<string> gns) =>
+    t = str.replace_all(str.replace_all(str.replace_all(s, "\n", ","), ":", ","), ";", ",")
+    names = array.new<string>()
+    prices = array.new<float>()
+    string nm = ""
+    for part in str.split(t, ",")
+        q = str.trim(part)
+        x = str.tonumber(q)
+        if na(x)
+            if str.length(q) > 0
+                nm := q
+        else if str.length(nm) > 0
+            array.push(names, nm)
+            array.push(prices, x)
+            nm := ""
+    float hvl = na
+    float hvl0 = na
+    n = array.size(names)
+    if n > 0
+        for i = 0 to n - 1
+            u = str.upper(array.get(names, i))
+            if str.contains(u, "HVL")
+                if str.contains(u, "0DTE")
+                    hvl0 := array.get(prices, i)
+                else
+                    hvl := array.get(prices, i)
+    float z = na(hvl0) ? hvl : hvl0
+    if n > 0
+        for i = 0 to n - 1
+            u = str.upper(array.get(names, i))
+            p = array.get(prices, i)
+            if not str.contains(u, "HVL")
+                bool wall = str.contains(u, "CALL RESISTANCE") or str.contains(u, "PUT SUPPORT") or str.contains(u, "GAMMA WALL")
+                float st = 3.0
+                if wall
+                    st := 12.0
+                else if str.contains(u, "GEX")
+                    rk = str.tonumber(str.trim(str.replace_all(str.replace_all(u, "GEX", ""), "0DTE", "")))
+                    st := na(rk) ? 3.0 : math.max(1.0, 11.0 - rk)
+                sg = na(z) ? 1.0 : (p >= z ? 1.0 : -1.0)
+                lab = str.contains(u, "CALL RESISTANCE") ? "جدار الكول" : str.contains(u, "PUT SUPPORT") ? "جدار البوت" : array.get(names, i)
+                lab := str.contains(u, "0DTE") and not str.contains(lab, "0DTE") ? lab + " 0DTE" : lab
+                f_add(refP, gps, gvs, gns, p, sg * st, lab)
+    z
+
+// the chart company's levels, read once from the inputs at global scope (a function may not touch this many inputs)
+var string actG = f_active()
+var array<float>  Lgp = array.new<float>()
+var array<float>  Lgv = array.new<float>()
+var array<string> Lgn = array.new<string>()
+var array<float>  Ldp = array.new<float>()
+var array<float>  Ldv = array.new<float>()
+var array<string> Ldn = array.new<string>()
+var float zG = na
+var bool  mqG = false
+if barstate.isfirst
+    if actG == "SPX"
+        if str.length(str.trim(SPX_mq)) > 0
+            zG := f_mq(SPX_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, SPX_cwP, SPX_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, SPX_pwP, SPX_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, SPX_zgP, SPX_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g1P, SPX_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g2P, SPX_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g3P, SPX_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, SPX_g4P, SPX_g4V, "")
+            zG := SPX_zgP
+        f_add(na, Ldp, Ldv, Ldn, SPX_d1P, SPX_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d2P, SPX_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d3P, SPX_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d4P, SPX_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d5P, SPX_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d6P, SPX_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, SPX_d7P, SPX_d7V, "Δ")
+    else if actG == "AAPL"
+        if str.length(str.trim(AAPL_mq)) > 0
+            zG := f_mq(AAPL_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, AAPL_cwP, AAPL_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_pwP, AAPL_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_zgP, AAPL_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g1P, AAPL_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g2P, AAPL_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g3P, AAPL_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, AAPL_g4P, AAPL_g4V, "")
+            zG := AAPL_zgP
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d1P, AAPL_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d2P, AAPL_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d3P, AAPL_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d4P, AAPL_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d5P, AAPL_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d6P, AAPL_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AAPL_d7P, AAPL_d7V, "Δ")
+    else if actG == "MSFT"
+        if str.length(str.trim(MSFT_mq)) > 0
+            zG := f_mq(MSFT_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, MSFT_cwP, MSFT_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_pwP, MSFT_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_zgP, MSFT_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g1P, MSFT_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g2P, MSFT_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g3P, MSFT_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, MSFT_g4P, MSFT_g4V, "")
+            zG := MSFT_zgP
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d1P, MSFT_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d2P, MSFT_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d3P, MSFT_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d4P, MSFT_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d5P, MSFT_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d6P, MSFT_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, MSFT_d7P, MSFT_d7V, "Δ")
+    else if actG == "NVDA"
+        if str.length(str.trim(NVDA_mq)) > 0
+            zG := f_mq(NVDA_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, NVDA_cwP, NVDA_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_pwP, NVDA_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_zgP, NVDA_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g1P, NVDA_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g2P, NVDA_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g3P, NVDA_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, NVDA_g4P, NVDA_g4V, "")
+            zG := NVDA_zgP
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d1P, NVDA_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d2P, NVDA_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d3P, NVDA_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d4P, NVDA_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d5P, NVDA_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d6P, NVDA_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, NVDA_d7P, NVDA_d7V, "Δ")
+    else if actG == "AMZN"
+        if str.length(str.trim(AMZN_mq)) > 0
+            zG := f_mq(AMZN_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, AMZN_cwP, AMZN_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_pwP, AMZN_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_zgP, AMZN_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g1P, AMZN_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g2P, AMZN_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g3P, AMZN_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, AMZN_g4P, AMZN_g4V, "")
+            zG := AMZN_zgP
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d1P, AMZN_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d2P, AMZN_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d3P, AMZN_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d4P, AMZN_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d5P, AMZN_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d6P, AMZN_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, AMZN_d7P, AMZN_d7V, "Δ")
+    else if actG == "GOOGL"
+        if str.length(str.trim(GOOGL_mq)) > 0
+            zG := f_mq(GOOGL_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_cwP, GOOGL_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_pwP, GOOGL_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_zgP, GOOGL_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g1P, GOOGL_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g2P, GOOGL_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g3P, GOOGL_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, GOOGL_g4P, GOOGL_g4V, "")
+            zG := GOOGL_zgP
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d1P, GOOGL_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d2P, GOOGL_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d3P, GOOGL_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d4P, GOOGL_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d5P, GOOGL_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d6P, GOOGL_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, GOOGL_d7P, GOOGL_d7V, "Δ")
+    else if actG == "META"
+        if str.length(str.trim(META_mq)) > 0
+            zG := f_mq(META_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, META_cwP, META_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, META_pwP, META_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, META_zgP, META_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, META_g1P, META_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, META_g2P, META_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, META_g3P, META_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, META_g4P, META_g4V, "")
+            zG := META_zgP
+        f_add(na, Ldp, Ldv, Ldn, META_d1P, META_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d2P, META_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d3P, META_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d4P, META_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d5P, META_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d6P, META_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, META_d7P, META_d7V, "Δ")
+    else if actG == "TSLA"
+        if str.length(str.trim(TSLA_mq)) > 0
+            zG := f_mq(TSLA_mq, na, Lgp, Lgv, Lgn)
+            mqG := true
+        else
+            f_add(na, Lgp, Lgv, Lgn, TSLA_cwP, TSLA_cwV, "جدار الكول")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_pwP, TSLA_pwV, "جدار البوت")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_zgP, TSLA_zgV, "زيرو قاما")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g1P, TSLA_g1V, "")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g2P, TSLA_g2V, "")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g3P, TSLA_g3V, "")
+            f_add(na, Lgp, Lgv, Lgn, TSLA_g4P, TSLA_g4V, "")
+            zG := TSLA_zgP
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d1P, TSLA_d1V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d2P, TSLA_d2V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d3P, TSLA_d3V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d4P, TSLA_d4V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d5P, TSLA_d5V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d6P, TSLA_d6V, "Δ")
+        f_add(na, Ldp, Ldv, Ldn, TSLA_d7P, TSLA_d7V, "Δ")
+
+// copies levels within 30% of the price (ignores ones typed in another company's section)
+f_near30(array<float> sp, array<float> sv, array<string> sn, array<float> ps, array<float> vs, array<string> ns) =>
+    if array.size(sp) > 0
+        for i = 0 to array.size(sp) - 1
+            f_add(close, ps, vs, ns, array.get(sp, i), array.get(sv, i), array.get(sn, i))
+
+
+if barstate.islast
+    f_clearAll()
+    half = bandAuto ? close * 0.0004 : bandPts
+    act = f_active()
+    dps = array.new<float>()
+    dvs = array.new<float>()
+    dns = array.new<string>()
+    gps = array.new<float>()
+    gvs = array.new<float>()
+    gns = array.new<string>()
+    f_near30(Lgp, Lgv, Lgn, gps, gvs, gns)
+    f_near30(Ldp, Ldv, Ldn, dps, dvs, dns)
+    float zLine = zG
+    bool isMQ = mqG
+    // levels start at today's 9:30 New York (yesterday's before the open)
+    int t0 = timestamp(tz, year(time, tz), month(time, tz), dayofmonth(time, tz), 9, 30)
+    if t0 > time
+        t0 -= 86400000
+    if showD
+        f_draw(t0, dps, dvs, dns, colDPos, colDNeg, half, "هيت ماب", true)
+    if showG
+        f_draw(t0, gps, gvs, gns, colGPos, colGNeg, half * 0.7, gStyle, not isMQ)
+        if zLine > 0
+            f_line(t0, zLine, colZero, 2, true)
+    if array.size(gps) == 0 and array.size(dps) == 0 and showTxt
+        f_tag(close, color.gray, "ما فيه لفلات لـ " + act + " (عبّها من الإعدادات)")
+
+// ───────── الأوبن رينج والـIB (لكل يوم) ─────────
+inOR = not na(time(timeframe.period, orSess, tz))
+inIB = not na(time(timeframe.period, ibSess, tz))
+newDay = ta.change(time("D", "", tz)) != 0
+
+var float orH = na
+var float orL = na
+var float ibH = na
+var float ibL = na
+var bool  brkDone = false
+if newDay
+    orH := na
+    orL := na
+    ibH := na
+    ibL := na
+    brkDone := false
+if inOR
+    orH := na(orH) ? high : math.max(orH, high)
+    orL := na(orL) ? low : math.min(orL, low)
+if inIB
+    ibH := na(ibH) ? high : math.max(ibH, high)
+    ibL := na(ibL) ? low : math.min(ibL, low)
+
+orDone = not inOR and not na(orH)
+ibDone = not inIB and not na(ibH)
+plot(showOR and orDone ? orH : na, "OR High", colOR, 2, plot.style_linebr, force_overlay=true)
+plot(showOR and orDone ? orL : na, "OR Low", colOR, 2, plot.style_linebr, force_overlay=true)
+plot(showIB and ibDone ? ibH : na, "IB High", colIB, 1, plot.style_linebr, force_overlay=true)
+plot(showIB and ibDone ? ibL : na, "IB Low", colIB, 1, plot.style_linebr, force_overlay=true)
+
+rngB = math.max(high - low, syminfo.mintick)
+f_cleanUp(float lvl) =>
+    close > lvl * (1 + brkPct / 100) and (high - math.max(open, close)) / rngB * 100 <= wickMax
+f_cleanDn(float lvl) =>
+    close < lvl * (1 - brkPct / 100) and (math.min(open, close) - low) / rngB * 100 <= wickMax
+bgcolor(showIBbg and inIB ? color.new(colIB, 92) : na, title="IB قيد التكوين", force_overlay=true)
+
+brkUp = showBrk and ibDone and not brkDone and f_cleanUp(ibH)
+brkDn = showBrk and ibDone and not brkDone and f_cleanDn(ibL)
+if brkUp or brkDn
+    brkDone := true
+plotshape(brkUp, "IB break up", shape.triangleup, location.belowbar, colBrkUp, size=size.small, text="IB↑", force_overlay=true)
+plotshape(brkDn, "IB break down", shape.triangledown, location.abovebar, colBrkDn, size=size.small, text="IB↓", force_overlay=true)
+alertcondition(brkUp, "OL: IB break up", "كسر الـIB فوق (إغلاق شمعة)")
+alertcondition(brkDn, "OL: IB break down", "كسر الـIB تحت (إغلاق شمعة)")
+
+var bool orUpDone = false
+var bool orDnDone = false
+if newDay
+    orUpDone := false
+    orDnDone := false
+orBrkUp = showORB and orDone and not orUpDone and f_cleanUp(orH)
+orBrkDn = showORB and orDone and not orDnDone and f_cleanDn(orL)
+if orBrkUp
+    orUpDone := true
+if orBrkDn
+    orDnDone := true
+plotshape(orBrkUp, "OR break up", shape.arrowup, location.belowbar, colOR, size=size.tiny, text="OR↑", force_overlay=true)
+plotshape(orBrkDn, "OR break down", shape.arrowdown, location.abovebar, colOR, size=size.tiny, text="OR↓", force_overlay=true)
+alertcondition(orBrkUp, "OL: OR break up", "كسر الأوبن رينج فوق (إغلاق نظيف). قبل 6:30 م راقب بس")
+alertcondition(orBrkDn, "OL: OR break down", "كسر الأوبن رينج تحت (إغلاق نظيف). قبل 6:30 م راقب بس")
+
+// ───────── فوليوم بروفايل يومي (لكل جلسة لحالها) ─────────
+grpV = "الفوليوم بروفايل اليومي"
+showVP  = input.bool(true, "اعرض بروفايل كل يوم", group=grpV, tooltip="مؤشر SPX ما له حجم في TradingView. استخدم ES1! أو SPY، والأسهم عادي.")
+rthSess = input.session("0930-1600", "الجلسة", group=grpV)
+vpTicks = input.int(1, "دقة السعر (تيك لكل خانة)", minval=1, maxval=100, group=grpV, tooltip="1 = أدق شي (ES: 0.25 نقطة، الأسهم: 0.01$). المؤشر يجمع الخانات لين يوصل لعدد الأعمدة اللي تحت.")
+vpRows  = input.int(120, "عدد الأعمدة لكل يوم", minval=20, maxval=250, group=grpV, tooltip="مثل ديب شارت: 100 لين 150. أكثر = أدق، بس يقل عدد الأيام اللي تنعرض.")
+vpWidth = input.int(35, "عرض البروفايل % من اليوم", minval=5, maxval=100, group=grpV)
+vpDays  = input.int(2, "كم يوم سابق يبقى على الشارت", minval=0, maxval=5, group=grpV, tooltip="كل يوم ياخذ حتى «عدد الأعمدة» من حد الرسم في TradingView (500). مع 120 عمود: يومين سابقة + اليوم.")
+vpVA    = input.int(70, "منطقة القيمة %", minval=50, maxval=90, group=grpV)
+colVPin = input.color(color.new(#E07A3C, 25), "داخل القيمة", group=grpV)
+colVPout= input.color(color.new(#E8D36A, 35), "برّا القيمة", group=grpV)
+colPOC  = input.color(#FF2BD6, "POC", group=grpV)
+colVAL  = input.color(color.new(#9B6BFF, 0), "VAH و VAL", group=grpV)
+vpLTF   = input.timeframe("1", "توزيع الفوليوم من فريم", group=grpV, tooltip="البروفايل يتوزّع من شموع هالفريم داخل كل شمعة (أدق). لازم يكون أصغر من فريم الشارت")
+
+N_BINS = 3000
+var array<float> vVol   = array.new<float>(N_BINS, 0.0)
+var float vBase = na
+var float vBin  = na
+var int   vStart = na
+var int   vEnd   = na
+TF_MS = timeframe.in_seconds() * 1000
+var int   vMinI  = N_BINS
+var int   vMaxI  = -1
+var array<box>  vpHist  = array.new<box>()
+var array<line> vpHistL = array.new<line>()
+var array<box>  vpLive  = array.new<box>()
+var array<line> vpLiveL = array.new<line>()
+var array<float> vpPrevLv = array.new<float>(3, na)   // yesterday's POC, VAH, VAL
+var array<float> vpLiveLv = array.new<float>(3, na)
+
+inRTH = not na(time(timeframe.period, rthSess, tz))
+vpTFe = timeframe.in_seconds(vpLTF) < timeframe.in_seconds() ? vpLTF : timeframe.period
+[vpLH, vpLL, vpLV] = request.security_lower_tf(syminfo.tickerid, vpTFe, [high, low, volume])
+effDays = math.min(vpDays, math.max(0, int(math.floor(450 / vpRows)) - 1))   // stays under TradingView's 500 boxes
+rthStart = inRTH and (not inRTH[1] or newDay)
+
+// draws the profile held in vVol (fine bins grouped into at most vpRows rows); x in bar TIME
+f_vpDraw(array<box> bx, array<line> ln, int xEnd, array<float> outLv, bool draw, int x0) =>
+    if vMaxI >= vMinI and not na(vStart)
+        nFine = vMaxI - vMinI + 1
+        g = math.max(1, int(math.ceil(nFine / vpRows)))
+        nRows = int(math.ceil(nFine / g))
+        rows = array.new<float>(nRows, 0.0)
+        for i = vMinI to vMaxI
+            r = int((i - vMinI) / g)
+            array.set(rows, r, array.get(rows, r) + array.get(vVol, i))
+        float tot = 0.0
+        int poc = 0
+        for r = 0 to nRows - 1
+            tot += array.get(rows, r)
+            if array.get(rows, r) > array.get(rows, poc)
+                poc := r
+        if tot > 0
+            int lo = poc
+            int hi = poc
+            float acc = array.get(rows, poc)
+            while acc < tot * vpVA / 100.0 and (lo > 0 or hi < nRows - 1)
+                float up = hi < nRows - 1 ? array.get(rows, hi + 1) : -1.0
+                float dn = lo > 0 ? array.get(rows, lo - 1) : -1.0
+                if up >= dn
+                    hi += 1
+                    acc += up
+                else
+                    lo -= 1
+                    acc += dn
+            maxV = array.get(rows, poc)
+            span = math.max(1, (xEnd - vStart) / TF_MS)
+            rowH = vBin * g
+            y0 = vBase + vMinI * vBin
+            for r = 0 to nRows - 1
+                v = array.get(rows, r)
+                if v > 0 and draw
+                    w = math.max(1, math.round(v / maxV * span * vpWidth / 100.0))
+                    bot = y0 + r * rowH
+                    top = bot + rowH * 0.85
+                    c = r >= lo and r <= hi ? colVPin : colVPout
+                    array.push(bx, box.new(x0, top, x0 + w * TF_MS, bot, xloc=xloc.bar_time, border_color=color.new(c, 100), bgcolor=c, force_overlay=true))
+            pocP = y0 + (poc + 0.5) * rowH
+            vahP = y0 + (hi + 1) * rowH
+            valP = y0 + lo * rowH
+            array.set(outLv, 0, pocP)
+            array.set(outLv, 1, vahP)
+            array.set(outLv, 2, valP)
+            xE = math.max(xEnd, x0 + math.round(span * vpWidth / 100.0) * TF_MS)
+            if draw
+                array.push(ln, line.new(vStart, pocP, xE, pocP, xloc=xloc.bar_time, color=colPOC, width=2, force_overlay=true))
+                array.push(ln, line.new(vStart, vahP, xE, vahP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed, force_overlay=true))
+                array.push(ln, line.new(vStart, valP, xE, valP, xloc=xloc.bar_time, color=colVAL, width=1, style=line.style_dashed, force_overlay=true))
+
+if showVP
+    // a new session: freeze yesterday's profile, then reset
+    if rthStart
+        if not na(vStart)
+            recent = last_bar_time - time < (effDays + 4) * 86400000
+            f_vpDraw(vpHist, vpHistL, vEnd, vpPrevLv, effDays > 0 and recent, vStart)
+            while array.size(vpHistL) > effDays * 3
+                line.delete(array.shift(vpHistL))
+            while array.size(vpHist) > effDays * vpRows
+                box.delete(array.shift(vpHist))
+        array.fill(vVol, 0.0)
+        vBin := math.max(syminfo.mintick * vpTicks, open * 0.16 / N_BINS)   // covers ±8% of the open
+        vBase := open - (N_BINS / 2) * vBin
+        vStart := time
+        vMinI := N_BINS
+        vMaxI := -1
+    if inRTH and not na(vBase)
+        vEnd := time
+        nSub = array.size(vpLV)
+        for k = 0 to math.max(nSub, 1) - 1
+            float sh = nSub > 0 ? array.get(vpLH, k) : high
+            float sl = nSub > 0 ? array.get(vpLL, k) : low
+            float sv = nSub > 0 ? nz(array.get(vpLV, k)) : nz(volume)
+            iLo = math.max(0, math.min(N_BINS - 1, int(math.floor((sl - vBase) / vBin))))
+            iHi = math.max(0, math.min(N_BINS - 1, int(math.floor((sh - vBase) / vBin))))
+            n = iHi - iLo + 1
+            for i = iLo to iHi
+                array.set(vVol, i, array.get(vVol, i) + sv / n)
+            vMinI := math.min(vMinI, iLo)
+            vMaxI := math.max(vMaxI, iHi)
+    // today's profile, redrawn live on the last bar
+    if barstate.islast
+        for b in vpLive
+            box.delete(b)
+        for l in vpLiveL
+            line.delete(l)
+        array.clear(vpLive)
+        array.clear(vpLiveL)
+        f_vpDraw(vpLive, vpLiveL, time, vpLiveLv, true, vStart)   // today: from the session start, like the previous days
+
+// ───────── كاشف الامتصاص (Absorption) ─────────
+// Aggressive orders hit one side hard, but price does not follow: big volume, small range, delta against the close.
+// Delta = up-volume minus down-volume of the 1-minute bars inside each candle (an approximation, not tick-by-tick).
+// Best on a 5-minute chart. Needs real volume: ES1!, SPY or the stocks (not the SPX index).
+grpA = "كاشف الامتصاص"
+showAbs  = input.bool(true, "اعرض الامتصاص", group=grpA)
+absTF    = input.timeframe("1", "فريم الدلتا الداخلي", group=grpA, tooltip="الشموع الصغيرة اللي تنحسب منها الدلتا. لازم يكون أصغر من فريم الشارت (مثلاً 1 على شارت 5 دقايق).")
+absLen   = input.int(20, "متوسط الفوليوم (شموع)", minval=5, maxval=100, group=grpA)
+absRatio = input.float(3.0, "طرف يتفوّق على الثاني بـ (أضعاف)", minval=1.5, step=0.5, group=grpA, tooltip="مثلاً 3 = فوليوم البائعين 3 أضعاف المشترين (أو العكس) داخل الشمعة، والسعر ما كمّل باتجاههم")
+absVolF  = input.bool(false, "شرط إضافي: فوليوم عالي", group=grpA, inline="absv")
+absVolX  = input.float(1.8, "≥ كم ضعف المتوسط", minval=1.0, step=0.1, group=grpA, inline="absv")
+absRngF  = input.bool(false, "شرط إضافي: شمعة ضيقة", group=grpA, inline="absr")
+absRngX  = input.float(0.9, "مدى ≤ كم ضعف ATR", minval=0.2, step=0.1, group=grpA, inline="absr")
+absNear  = input.bool(false, "بس عند مستوى (قاما، دلتا، VAH/VAL/POC أمس، IB، OR)", group=grpA)
+absTolX  = input.float(0.3, "قرب المستوى (كم ضعف ATR)", minval=0.05, step=0.05, group=grpA)
+colAbsB  = input.color(#2EF2C8, "امتصاص شرائي (البيع انمتص)", group=grpA)
+colAbsS  = input.color(#C98A6A, "امتصاص بيعي (الشراء انمتص)", group=grpA)
+
+// intrabar up / down volume (doji split in half)
+// if the chart is already at (or below) the inner timeframe, use the chart's own bars
+absTFe = timeframe.in_seconds(absTF) < timeframe.in_seconds() ? absTF : timeframe.period
+[ltfUp, ltfDn] = request.security_lower_tf(syminfo.tickerid, absTFe, [close > open ? volume : close == open ? volume / 2 : 0.0, close < open ? volume : close == open ? volume / 2 : 0.0])
+float upV = array.size(ltfUp) > 0 ? array.sum(ltfUp) : na
+float dnV = array.size(ltfDn) > 0 ? array.sum(ltfDn) : na
+absDelta = upV - dnV
+plot(absDelta, "دلتا الشمعة (للتنبيهات)", display=display.data_window, force_overlay=true)
+
+// option levels of the chart's company (no 30% filter here: it is applied when drawing)
+var array<float> absLv = array.new<float>()
+if barstate.isfirst
+    array.concat(absLv, Lgp)
+    array.concat(absLv, Ldp)
+
+atrA = ta.atr(14)
+f_nearLevel(float p, float tol) =>
+    bool hit = false
+    for x in absLv
+        if math.abs(p - x) <= tol
+            hit := true
+    for x in vpPrevLv
+        if not na(x) and math.abs(p - x) <= tol
+            hit := true
+    if ibDone
+        if math.abs(p - ibH) <= tol or math.abs(p - ibL) <= tol
+            hit := true
+    if orDone
+        if math.abs(p - orH) <= tol or math.abs(p - orL) <= tol
+            hit := true
+    hit
+
+volAvg  = ta.sma(volume, absLen)
+rngA    = high - low
+bigVol  = nz(volume) >= volAvg * absVolX
+tight   = rngA <= atrA * absRngX
+// one side outweighs the other by absRatio inside the candle, and the close did not follow it (opposite half of the candle)
+sellersWin = not na(dnV) and dnV >= absRatio * math.max(nz(upV), 1.0)
+buyersWin  = not na(upV) and upV >= absRatio * math.max(nz(dnV), 1.0)
+extraOK = (not absVolF or bigVol) and (not absRngF or tight)
+mid     = (high + low) / 2
+tolA    = atrA * absTolX
+absBuy  = showAbs and inRTH and sellersWin and close >= mid and extraOK and (not absNear or f_nearLevel(low, tolA))
+absSell = showAbs and inRTH and buyersWin and close <= mid and extraOK and (not absNear or f_nearLevel(high, tolA))
+
+plotshape(absBuy,  "امتصاص شرائي", shape.diamond, location.belowbar, colAbsB, size=size.normal, text="ABS", textcolor=colAbsB, force_overlay=true)
+plotshape(absSell, "امتصاص بيعي",  shape.diamond, location.abovebar, colAbsS, size=size.normal, text="ABS", textcolor=colAbsS, force_overlay=true)
+var int   lastAbsT = na
+var float lastAbsP = na
+var int   lastAbsS = 0
+if absBuy or absSell
+    lastAbsT := time
+    lastAbsP := close
+    lastAbsS := absBuy ? 1 : -1
+alertcondition(absBuy,  "OL: absorption (buyers)",  "امتصاص شرائي: بيع قوي والسعر ما نزل، عند مستوى")
+alertcondition(absSell, "OL: absorption (sellers)", "امتصاص بيعي: شراء قوي والسعر ما طلع، عند مستوى")
+
+// ───────── جدول اختبار الامتصاص (على كل التاريخ المحمّل في الشارت) ─────────
+// For each ABS signal: signed return after 3 and 6 bars (15 / 30 min on a 5-min chart) and whether the signal's
+// low (buy) / high (sell) held for the next 6 bars. Control row = every bar of the session, long and short.
+showAbsT = input.bool(true, "اعرض جدول اختبار الامتصاص", group=grpA)
+absTPos  = input.string("أعلى يمين", "مكان الجدول", options=["أعلى يمين", "أعلى يسار", "أسفل يمين", "أسفل يسار"], group=grpA)
+
+barsIn = ta.barssince(rthStart)
+ok3 = inRTH and barsIn >= 3
+ok6 = inRTH and barsIn >= 6
+r3  = close / close[3] - 1
+r6  = close / close[6] - 1
+heldB6 = ta.lowest(low, 6) > low[6]
+heldS6 = ta.highest(high, 6) < high[6]
+
+// [count, sum r3, wins r3, sum r6, wins r6, held]
+var array<float> stB = array.from(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+var array<float> stS = array.from(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+var array<float> stC = array.from(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+var int deltaBars = 0
+var int firstDeltaTime = na
+if not na(absDelta) and inRTH
+    deltaBars += 1
+    if na(firstDeltaTime)
+        firstDeltaTime := time
+
+f_acc(array<float> s, float a3, float a6, bool hld) =>
+    array.set(s, 0, array.get(s, 0) + 1)
+    array.set(s, 1, array.get(s, 1) + a3)
+    array.set(s, 2, array.get(s, 2) + (a3 > 0 ? 1 : 0))
+    array.set(s, 3, array.get(s, 3) + a6)
+    array.set(s, 4, array.get(s, 4) + (a6 > 0 ? 1 : 0))
+    array.set(s, 5, array.get(s, 5) + (hld ? 1 : 0))
+
+// score a signal once its 6 bars are done (same session only)
+if ok6 and barstate.isconfirmed
+    if absBuy[6]
+        f_acc(stB, r3[3], r6, heldB6)
+    if absSell[6]
+        f_acc(stS, -r3[3], -r6, heldS6)
+    f_acc(stC, r3[3], r6, heldB6)
+    f_acc(stC, -r3[3], -r6, heldS6)
+
+f_pct(float x, int d) =>
+    str.tostring(x * 100, d == 3 ? "#.###" : "#") + "%"
+
+f_row(table t, int r, string name, array<float> s, color c) =>
+    n = array.get(s, 0)
+    table.cell(t, 0, r, name, text_color=c, text_size=size.small)
+    table.cell(t, 1, r, str.tostring(n, "#"), text_color=color.white, text_size=size.small)
+    if n > 0
+        table.cell(t, 2, r, (array.get(s, 1) >= 0 ? "+" : "") + f_pct(array.get(s, 1) / n, 3), text_color=color.white, text_size=size.small)
+        table.cell(t, 3, r, f_pct(array.get(s, 2) / n, 0), text_color=color.white, text_size=size.small)
+        table.cell(t, 4, r, (array.get(s, 3) >= 0 ? "+" : "") + f_pct(array.get(s, 3) / n, 3), text_color=color.white, text_size=size.small)
+        table.cell(t, 5, r, f_pct(array.get(s, 4) / n, 0), text_color=color.white, text_size=size.small)
+        table.cell(t, 6, r, f_pct(array.get(s, 5) / n, 0), text_color=color.white, text_size=size.small)
+
+if showAbsT and barstate.islast
+    pos = absTPos == "أعلى يمين" ? position.top_right : absTPos == "أعلى يسار" ? position.top_left : absTPos == "أسفل يمين" ? position.bottom_right : position.bottom_left
+    var table tb = table.new(position.top_right, 7, 6, bgcolor=color.new(#17151f, 10), border_color=color.new(#2c2838, 0), border_width=1, force_overlay=true)
+    table.set_position(tb, pos)
+    hdr = array.from("اختبار الامتصاص", "العدد", "بعد 3 شموع", "نجاح", "بعد 6 شموع", "نجاح", "ثبت الطرف")
+    for i = 0 to 6
+        table.cell(tb, i, 0, array.get(hdr, i), text_color=#a49fb8, text_size=size.small)
+    stAll = array.new<float>(6, 0.0)
+    for i = 0 to 5
+        array.set(stAll, i, array.get(stB, i) + array.get(stS, i))
+    f_row(tb, 1, "ABS شرائي", stB, colAbsB)
+    f_row(tb, 2, "ABS بيعي", stS, colAbsS)
+    f_row(tb, 3, "ABS الكل", stAll, #FFC21A)
+    f_row(tb, 4, "أي شمعة (مقارنة)", stC, #a49fb8)
+    since = na(firstDeltaTime) ? "ما فيه بيانات دلتا" : "من " + str.format_time(firstDeltaTime, "yyyy-MM-dd", tz) + " · " + str.tostring(deltaBars) + " شمعة فيها دلتا"
+    lastTxt = na(lastAbsT) ? "ما طلعت ولا إشارة على هالشارت" : "آخر إشارة: " + (lastAbsS > 0 ? "شرائي" : "بيعي") + " " + str.format_time(lastAbsT, "yyyy-MM-dd HH:mm", "Asia/Riyadh") + " (الرياض) عند " + str.tostring(lastAbsP, format.mintick)
+    table.cell(tb, 0, 5, lastTxt + "\n" + since + " · للتعليم فقط", text_color=#FFC21A, text_size=size.small)
+    table.merge_cells(tb, 0, 5, 6, 5)
+
+// ═════════ سكانر 8 رموز ═════════
+
+sc_grp = "سكانر 8 رموز (تنبيه واحد)"
+sc_s1 = input.symbol("SP:SPX", "1", group=sc_grp)
+sc_s2 = input.symbol("NASDAQ:AAPL", "2", group=sc_grp)
+sc_s3 = input.symbol("NASDAQ:MSFT", "3", group=sc_grp)
+sc_s4 = input.symbol("NASDAQ:NVDA", "4", group=sc_grp)
+sc_s5 = input.symbol("NASDAQ:AMZN", "5", group=sc_grp)
+sc_s6 = input.symbol("NASDAQ:GOOGL", "6", group=sc_grp)
+sc_s7 = input.symbol("NASDAQ:META", "7", group=sc_grp)
+sc_s8 = input.symbol("NASDAQ:TSLA", "8", group=sc_grp)
+sc_on   = input.bool(true, "فعّل السكانر (تنبيه Any alert())", group=sc_grp)
+sc_doIB    = input.bool(true, "نبّه على كسر الـIB كمان", group=sc_grp)
+
+// runs inside each symbol's 5-minute series: returns which clean breaks happened on this bar
+// code: 0 none, 1 OR up, -1 OR down, 2 IB up, -2 IB down (OR checked first)
+f_scan() =>
+    inOR = not na(time("5", "0930-0945", tz))
+    inIB = not na(time("5", "0930-1030", tz))
+    inRTH = not na(time("5", "0930-1600", tz))
+    newDay = ta.change(time("D", "", tz)) != 0
+    var float orH = na
+    var float orL = na
+    var float ibH = na
+    var float ibL = na
+    var bool oU = false
+    var bool oD = false
+    var bool iU = false
+    var bool iD = false
+    if newDay
+        orH := na
+        orL := na
+        ibH := na
+        ibL := na
+        oU := false
+        oD := false
+        iU := false
+        iD := false
+    if inOR
+        orH := na(orH) ? high : math.max(orH, high)
+        orL := na(orL) ? low : math.min(orL, low)
+    if inIB
+        ibH := na(ibH) ? high : math.max(ibH, high)
+        ibL := na(ibL) ? low : math.min(ibL, low)
+    rng = math.max(high - low, syminfo.mintick)
+    upOK = (high - math.max(open, close)) / rng * 100 <= wickMax
+    dnOK = (math.min(open, close) - low) / rng * 100 <= wickMax
+    int code = 0
+    if inRTH and not inOR and not na(orH)
+        if not oU and close > orH * (1 + brkPct / 100) and upOK
+            oU := true
+            code := 1
+        else if not oD and close < orL * (1 - brkPct / 100) and dnOK
+            oD := true
+            code := -1
+    if code == 0 and inRTH and not inIB and not na(ibH)
+        if not iU and close > ibH * (1 + brkPct / 100) and upOK
+            iU := true
+            code := 2
+        else if not iD and close < ibL * (1 - brkPct / 100) and dnOK
+            iD := true
+            code := -2
+    afterIB = not inIB and inRTH
+    [code, close, afterIB]
+
+[sc_c1, sc_p1, sc_a1] = request.security(sc_s1, "5", f_scan(), lookahead=barmerge.lookahead_off)
+[sc_c2, sc_p2, sc_a2] = request.security(sc_s2, "5", f_scan(), lookahead=barmerge.lookahead_off)
+[sc_c3, sc_p3, sc_a3] = request.security(sc_s3, "5", f_scan(), lookahead=barmerge.lookahead_off)
+[sc_c4, sc_p4, sc_a4] = request.security(sc_s4, "5", f_scan(), lookahead=barmerge.lookahead_off)
+[sc_c5, sc_p5, sc_a5] = request.security(sc_s5, "5", f_scan(), lookahead=barmerge.lookahead_off)
+[sc_c6, sc_p6, sc_a6] = request.security(sc_s6, "5", f_scan(), lookahead=barmerge.lookahead_off)
+[sc_c7, sc_p7, sc_a7] = request.security(sc_s7, "5", f_scan(), lookahead=barmerge.lookahead_off)
+[sc_c8, sc_p8, sc_a8] = request.security(sc_s8, "5", f_scan(), lookahead=barmerge.lookahead_off)
+
+f_msg(string sym, int code, float px, bool after) =>
+    string m = ""
+    if code != 0 and (sc_doIB or math.abs(code) == 1)
+        what = math.abs(code) == 1 ? "الأوبن رينج" : "الـIB"
+        dir = code > 0 ? "↑ فوق" : "↓ تحت"
+        m := str.replace_all(sym, "NASDAQ:", "") + " · كسر " + what + " " + dir + " عند " + str.tostring(px, "#.##") + (after ? "" : " · قبل 6:30 م: راقب بس") + "\n"
+    m
+
+sc_msg = f_msg(sc_s1, sc_c1, sc_p1, sc_a1) + f_msg(sc_s2, sc_c2, sc_p2, sc_a2) + f_msg(sc_s3, sc_c3, sc_p3, sc_a3) + f_msg(sc_s4, sc_c4, sc_p4, sc_a4) + f_msg(sc_s5, sc_c5, sc_p5, sc_a5) + f_msg(sc_s6, sc_c6, sc_p6, sc_a6) + f_msg(sc_s7, sc_c7, sc_p7, sc_a7) + f_msg(sc_s8, sc_c8, sc_p8, sc_a8)
+if sc_on and str.length(sc_msg) > 0 and barstate.isconfirmed
+    alert(sc_msg + "مع الاتجاه بس، وبعد خسارتين وقّف. للتعليم فقط وليست توصية.", alert.freq_once_per_bar_close)
+
+// ═════════ لوحة CVD (تحت الشارت) ═════════
+cv_grp = "لوحة CVD: الحساب"
+cv_ltf     = input.timeframe("1", "فريم الحساب الداخلي", group=cv_grp, tooltip="أصغر = أدق. 1 دقيقة متاح للكل. لو اشتراكك يسمح بالثواني جرّب 5S أو 1S. لازم يكون أصغر من فريم الشارت")
+cv_sess    = input.session("0930-1600", "الجلسة (CVD يبدأ من صفر كل يوم)", group=cv_grp)
+cv_rthOnly = input.bool(true, "احسب داخل الجلسة بس", group=cv_grp)
+
+cv_grpD = "لوحة CVD: التباعد"
+cv_showDiv = input.bool(true, "علّم التباعد", group=cv_grpD)
+cv_lbL     = input.int(5, "قاع/قمة: شموع يسار", minval=1, maxval=20, group=cv_grpD)
+cv_lbR     = input.int(2, "قاع/قمة: شموع يمين (التأكيد)", minval=1, maxval=10, group=cv_grpD, tooltip="التباعد يطلع بعد هالعدد من الشموع، في وقته الحقيقي")
+cv_minGap  = input.int(3, "أقل مسافة بين القاعين (شموع)", minval=1, group=cv_grpD)
+cv_maxGap  = input.int(40, "أكبر مسافة (شموع)", minval=5, group=cv_grpD)
+cv_onPrice = input.bool(true, "اكتب التباعد على شارت السعر كمان", group=cv_grpD)
+
+cv_grpS = "لوحة CVD: الشكل"
+cv_style   = input.string("شموع", "شكل CVD", options=["شموع", "خط"], group=cv_grpS)
+cv_showBar = input.bool(false, "اعرض دلتا كل شمعة (أعمدة بدل CVD)", group=cv_grpS)
+cv_showTbl = input.bool(true, "اعرض جدول اليوم", group=cv_grpS)
+cv_colUp   = input.color(#2EF2C8, "مشترين", group=cv_grpS)
+cv_colDn   = input.color(#C98A6A, "بائعين", group=cv_grpS)
+cv_colDiv  = input.color(#FFC21A, "التباعد", group=cv_grpS)
+
+// ───────── intrabar data ─────────
+cv_ltfE = timeframe.in_seconds(cv_ltf) < timeframe.in_seconds() ? cv_ltf : timeframe.period
+[cv_sc, cv_so, cv_sv] = request.security_lower_tf(syminfo.tickerid, cv_ltfE, [close, open, volume])
+
+cv_inS    = not na(time(timeframe.period, cv_sess, tz))
+cv_newDay = ta.change(time("D", "", tz)) != 0
+cv_sStart = cv_inS and (not cv_inS[1] or cv_newDay)
+cv_active = not cv_rthOnly or cv_inS
+
+var float cv_cvd = 0.0
+var float cv_lastSub = na
+var int   cv_dir = 1
+var float cv_buyV = 0.0
+var float cv_sellV = 0.0
+var int   cv_sStartBar = na
+if cv_sStart or (not cv_rthOnly and cv_newDay)
+    cv_cvd := 0.0
+    cv_buyV := 0.0
+    cv_sellV := 0.0
+    cv_sStartBar := bar_index
+
+float cv_bo = cv_cvd
+float cv_bh = cv_cvd
+float cv_bl = cv_cvd
+float cv_bd = 0.0
+int cv_n = array.size(cv_sv)
+if cv_active
+    if cv_n > 0
+        for i = 0 to cv_n - 1
+            cv_c = array.get(cv_sc, i)
+            cv_o = array.get(cv_so, i)
+            cv_v = nz(array.get(cv_sv, i))
+            int cv_d = na(cv_lastSub) or cv_c == cv_lastSub ? (cv_c > cv_o ? 1 : cv_c < cv_o ? -1 : cv_dir) : (cv_c > cv_lastSub ? 1 : -1)
+            cv_dir := cv_d
+            cv_bd += cv_d * cv_v
+            cv_cvd += cv_d * cv_v
+            cv_buyV += cv_d > 0 ? cv_v : 0
+            cv_sellV += cv_d < 0 ? cv_v : 0
+            cv_bh := math.max(cv_bh, cv_cvd)
+            cv_bl := math.min(cv_bl, cv_cvd)
+            cv_lastSub := cv_c
+    else
+        int cv_d = close > close[1] ? 1 : close < close[1] ? -1 : cv_dir
+        cv_dir := cv_d
+        cv_bd := cv_d * nz(volume)
+        cv_cvd += cv_bd
+        cv_buyV += cv_d > 0 ? nz(volume) : 0
+        cv_sellV += cv_d < 0 ? nz(volume) : 0
+        cv_bh := math.max(cv_bo, cv_cvd)
+        cv_bl := math.min(cv_bo, cv_cvd)
+        cv_lastSub := close
+
+cv_isCandle = cv_style == "شموع" and not cv_showBar
+cv_cvdCol = cv_cvd >= cv_bo ? cv_colUp : cv_colDn
+plotcandle(cv_active and cv_isCandle ? cv_bo : na, cv_active and cv_isCandle ? cv_bh : na, cv_active and cv_isCandle ? cv_bl : na, cv_active and cv_isCandle ? cv_cvd : na, "CVD", color=cv_cvdCol, wickcolor=cv_cvdCol, bordercolor=cv_cvdCol)
+plot(cv_active and cv_style == "خط" and not cv_showBar ? cv_cvd : na, "CVD خط", color=cv_cvdCol, linewidth=2, style=plot.style_linebr)
+plot(cv_active and cv_showBar ? cv_bd : na, "دلتا الشمعة", color=cv_bd >= 0 ? cv_colUp : cv_colDn, style=plot.style_columns)
+hline(0, "صفر", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+
+// ───────── divergences, marked at confirmation ─────────
+cv_pl = ta.pivotlow(low, cv_lbL, cv_lbR)
+cv_ph = ta.pivothigh(high, cv_lbL, cv_lbR)
+var int   cv_pLb = na
+var float cv_pLp = na
+var float cv_pLc = na
+var int   cv_pHb = na
+var float cv_pHp = na
+var float cv_pHc = na
+cv_pb = bar_index - cv_lbR
+cv_inToday = not na(cv_sStartBar) and cv_pb >= cv_sStartBar and cv_active[cv_lbR]
+cv_bullDiv = false
+cv_bearDiv = false
+if not na(cv_pl) and cv_inToday
+    cv_cNow = cv_cvd[cv_lbR]
+    if not na(cv_pLb) and cv_pLb >= cv_sStartBar and cv_pb - cv_pLb >= cv_minGap and cv_pb - cv_pLb <= cv_maxGap and low[cv_lbR] < cv_pLp and cv_cNow > cv_pLc
+        cv_bullDiv := true
+        if cv_showDiv
+            line.new(cv_pLb, cv_pLc, cv_pb, cv_cNow, color=cv_colDiv, width=2)
+            label.new(bar_index, cv_bl, "تباعد ↑", style=label.style_label_up, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny)
+            if cv_onPrice
+                label.new(bar_index, low, "CVD ↑", style=label.style_label_up, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny, force_overlay=true)
+    cv_pLb := cv_pb
+    cv_pLp := low[cv_lbR]
+    cv_pLc := cv_cNow
+if not na(cv_ph) and cv_inToday
+    cv_cNow = cv_cvd[cv_lbR]
+    if not na(cv_pHb) and cv_pHb >= cv_sStartBar and cv_pb - cv_pHb >= cv_minGap and cv_pb - cv_pHb <= cv_maxGap and high[cv_lbR] > cv_pHp and cv_cNow < cv_pHc
+        cv_bearDiv := true
+        if cv_showDiv
+            line.new(cv_pHb, cv_pHc, cv_pb, cv_cNow, color=cv_colDiv, width=2)
+            label.new(bar_index, cv_bh, "تباعد ↓", style=label.style_label_down, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny)
+            if cv_onPrice
+                label.new(bar_index, high, "CVD ↓", style=label.style_label_down, color=color.new(cv_colDiv, 20), textcolor=color.black, size=size.tiny, force_overlay=true)
+    cv_pHb := cv_pb
+    cv_pHp := high[cv_lbR]
+    cv_pHc := cv_cNow
+alertcondition(cv_bullDiv, "OL CVD: bullish divergence", "تباعد CVD صاعد (تأكد الحين). للعرض بس، ما أثبت أفضلية")
+alertcondition(cv_bearDiv, "OL CVD: bearish divergence", "تباعد CVD نازل (تأكد الحين). للعرض بس، ما أثبت أفضلية")
+
+// ───────── today's table ─────────
+if cv_showTbl and barstate.islast
+    var table cv_t = table.new(position.top_right, 2, 5, bgcolor=color.new(#17151f, 10), border_color=color.new(#2c2838, 0), border_width=1)
+    cv_tot = cv_buyV + cv_sellV
+    table.cell(cv_t, 0, 0, "CVD اليوم", text_color=#a49fb8, text_size=size.small)
+    table.cell(cv_t, 1, 0, str.tostring(cv_cvd, format.volume), text_color=cv_cvd >= 0 ? cv_colUp : cv_colDn, text_size=size.small)
+    table.cell(cv_t, 0, 1, "دلتا آخر شمعة", text_color=#a49fb8, text_size=size.small)
+    table.cell(cv_t, 1, 1, str.tostring(cv_bd, format.volume), text_color=cv_bd >= 0 ? cv_colUp : cv_colDn, text_size=size.small)
+    table.cell(cv_t, 0, 2, "مشترين / بائعين اليوم", text_color=#a49fb8, text_size=size.small)
+    table.cell(cv_t, 1, 2, cv_tot > 0 ? str.tostring(cv_buyV / cv_tot * 100, "#") + "% / " + str.tostring(cv_sellV / cv_tot * 100, "#") + "%" : "-", text_color=color.white, text_size=size.small)
+    table.cell(cv_t, 0, 3, "الحساب من", text_color=#a49fb8, text_size=size.small)
+    table.cell(cv_t, 1, 3, cv_n > 0 ? cv_ltfE + " (" + str.tostring(cv_n) + " داخل الشمعة)" : "الشمعة نفسها (تقريبي)", text_color=cv_n > 0 ? color.white : #FF3B47, text_size=size.small)
+    table.cell(cv_t, 0, 4, "للعرض بس · ما أثبت أفضلية · للتعليم فقط", text_color=#a49fb8, text_size=size.tiny)
+    table.merge_cells(cv_t, 0, 4, 1, 4)
