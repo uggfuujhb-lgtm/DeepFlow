@@ -1,0 +1,60 @@
+{
+ "title": "أهم أخبار اليوم",
+ "date": "الاثنين 16 نوفمبر 2026 · قبل الافتتاح",
+ "items": [
+  {
+   "tag": "NVDA",
+   "tone": "down",
+   "head": "إنفيديا تحت الضغط قبل نتائج الثلاثاء",
+   "body": "أغلقت الجمعة 158.27 (−2.8%). وتقرير يقول إن هوانغ وداعمينه ممكن يضغطون عشان يرجع للإدارة",
+   "impact": "NVDA ثقيلة في المؤشرين، فأي حركة كبيرة فيها تسحب المؤشرين معها. وقبل النتائج التذبذب غالباً يكون أعلى"
+  },
+  {
+   "tag": "الفيوتشر",
+   "tone": "neutral",
+   "head": "الفيوتشر متذبذب قبل الافتتاح",
+   "body": "بدأ الصبح نازل، وبعدها رجع قريب من التعادل. والأرقام تختلف بين المصادر",
+   "impact": "افتتاح قريب من إغلاق الجمعة غالباً. والاتجاه ممكن يتحدد بعد الافتتاح مو قبله"
+  },
+  {
+   "tag": "الفيدرالي",
+   "tone": "event",
+   "head": "رئيس الفيدرالي يتكلم 8:00 م بتوقيت الرياض",
+   "body": "والسوق مسعّر رفع الفايدة في ديسمبر بعد التضخم الحار. وجون ويليامز يتكلم 5:05 م",
+   "impact": "أي كلام يأكد الرفع ممكن يرفع العوائد ويضغط على التقنية. وأي تهدئة ممكن تريّح السوق"
+  },
+  {
+   "tag": "بيانات",
+   "tone": "event",
+   "head": "مؤشر نيويورك الصناعي 4:30 م بتوقيت الرياض",
+   "body": "المتوقع حوالي 18 لين 19 (السابق 25.5). وموعد مبيعات التجزئة ما تأكد: الاثنين أو الثلاثاء",
+   "impact": "رقم أقوى من المتوقع ممكن يزيد مخاوف التضخم والفايدة. وأضعف ممكن يخفف الضغط"
+  },
+  {
+   "tag": "هالأسبوع",
+   "tone": "event",
+   "head": "أسبوع مزدحم: إنفيديا، وطرح Anthropic، ونتائج التجزئة",
+   "body": "طرح Anthropic المتوقع الخميس، ونتائج Home Depot وTarget وWalmart خلال الأسبوع",
+   "impact": "أسبوع فيه أحداث كثيرة، فممكن السوق يتحرك بحذر قبلها، ويتسارع بعدها"
+  },
+  {
+   "tag": "SPX",
+   "tone": "neutral",
+   "head": "خريطة القاما اليوم: سالبة، والسعر على الزيرو",
+   "body": "زيرو عقود اليوم 7560 تقريباً · جدار الكول 7610 · قاما سالبة 7500 و7450 (حسابنا من CBOE)",
+   "impact": "القاما السالبة تخلي الكسر أسرع. فوق 7560 الهدف 7600 لين 7610، وتحت 7512 ممكن يتسارع لين 7500"
+  }
+ ],
+ "sources": [
+  "https://www.cnbc.com/2026/11/15/stock-market-today-live-updates.html",
+  "https://investing.com/news/economy-news/sp-500-nasdaq-futures-slide-as-nvidia-earnings-anthropic-debut-loom-5028900",
+  "https://sg.finance.yahoo.com/news/live/stock-market-today-monday-november-16-dow-sp-500-nasdaq-nvidia-oil-091631084.html",
+  "https://coincentral.com/stock-market-today-huang-comeback-talk-weighs-on-nvidia-before-tuesday-earnings-report",
+  "https://www.investing.com/news/stock-market-news/empire-state-manufacturing-index-and-fed-speeches-due-monday-93CH-5026348",
+  "https://www.tipranks.com/news/november-u-s-factory-report-tests-inflation-pressure-monday-as-markets-price-in-december-rate-hike",
+  "https://www.kiplinger.com/investing/economy/this-weeks-economic-calendar",
+  "https://www.fxempire.com/forecasts/article/the-week-ahead-nvidia-earnings-anthropic-ipo-test-ai-trade-1644719",
+  "CBOE delayed quotes (NVDA)",
+  "team/out/market/2026-11-16.md"
+ ]
+}
