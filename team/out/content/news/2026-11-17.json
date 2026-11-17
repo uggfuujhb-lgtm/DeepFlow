@@ -1,0 +1,51 @@
+{
+ "title": "أهم أخبار اليوم",
+ "date": "الثلاثاء 17 نوفمبر 2026 · قبل الافتتاح",
+ "items": [
+  {
+   "tag": "مبيعات التجزئة",
+   "tone": "event",
+   "head": "مبيعات التجزئة لأكتوبر 4:30 م بتوقيت الرياض",
+   "body": "المتوقع +0.2%. وأكبر خبر قبل الافتتاح",
+   "impact": "أقوى من المتوقع ممكن يزيد مخاوف رفع الفايدة ويضغط الأسهم. وأضعف ممكن يخفف الفايدة، بس يزيد قلق تباطؤ الاقتصاد. وممكن يفتح بفجوة"
+  },
+  {
+   "tag": "NVDA",
+   "tone": "event",
+   "head": "نتائج إنفيديا الليلة 12:20 ص بتوقيت الرياض",
+   "body": "المتوقع إيرادات حوالي 109 مليار$. وأول نتائج بعد خروج جنسن هوانغ. والأوبشن تتوقع حركة حوالي ±7.8%",
+   "impact": "اليوم غالباً حذر قبل النتائج، والحركة الكبيرة ممكن تجي بعد الإغلاق وافتتاح بكرة"
+  },
+  {
+   "tag": "HD",
+   "tone": "neutral",
+   "head": "Home Depot: نتائج أحسن من المتوقع شوي",
+   "body": "المبيعات 43.4 مليار$ (+4.9%)، والربح 3.86$ للسهم مقابل 3.84$ المتوقع. ومدير مالي جديد يصير الرئيس التنفيذي",
+   "impact": "تأثيره على المؤشر محدود. ويعطي إشارة عن صرف الناس على البيوت"
+  },
+  {
+   "tag": "الفيوتشر",
+   "tone": "neutral",
+   "head": "الفيوتشر متذبذب بعد نزول أمس",
+   "body": "أمس S&P 500 −1.97%. والصبح الفيوتشر قريب من التعادل، وNasdaq أحسن شوي",
+   "impact": "السوق ينتظر الأخبار. والاتجاه ممكن يتحدد بعد مبيعات التجزئة والساعة الأولى"
+  },
+  {
+   "tag": "SPX",
+   "tone": "neutral",
+   "head": "خريطة القاما اليوم: سالبة، والسعر تحت الزيرو",
+   "body": "زيرو عقود اليوم 7461 تقريباً · جدار الكول 7490 · قاما سالبة 7400 و7350 (حسابنا من CBOE)",
+   "impact": "القاما السالبة تخلي الكسر أسرع. تحت 7400 ممكن يتسارع لين 7350، وفوق 7461 ينقلب السلوك"
+  }
+ ],
+ "sources": [
+  "https://www.tokenpost.com/news/investing/58940",
+  "https://www.heygotrade.com/en/news/nvidia-first-report-without-huang-tonight/",
+  "https://nvidianews.nvidia.com/news/nvidia-sets-conference-call-for-third-quarter-financial-results-6928873",
+  "https://www.stocktitan.net/news/HD/the-home-depot-announces-third-quarter-fiscal-2026-results-updates-uurye65ijenr.html",
+  "https://www.tipranks.com/news/home-depot-stock-hd-falls-despite-q3-beat-amid-u-s-housing-pressure-names-new-ceo",
+  "https://finance.yahoo.com/markets/live/stock-market-today-tuesday-november-17-dow-sp-500-nasdaq-nvidia-earnings-091546152.html",
+  "https://www.cnbc.com/2026/11/16/stock-market-today-live-updates.html",
+  "team/out/market/2026-11-17.md"
+ ]
+}
