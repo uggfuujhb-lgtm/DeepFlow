@@ -1,0 +1,4 @@
+{"date":"2026-11-16","source":"team/out/market/2026-11-16.md (0DTE)","levels":[
+{"price":7650,"kind":"delta","name":"أكبر دلتا سالبة"},{"price":7625,"kind":"gex+","name":"قاما موجبة"},{"price":7610,"kind":"wall","name":"جدار الكول"},
+{"price":7600,"kind":"delta","name":"دلتا سالبة"},{"price":7560,"kind":"zero","name":"زيرو قاما (تقريبي)"},{"price":7500,"kind":"gex-","name":"قاما سالبة"},
+{"price":7475,"kind":"gex-","name":"قاما سالبة"},{"price":7450,"kind":"gex-","name":"أكبر قاما سالبة"},{"price":7400,"kind":"oi","name":"أكبر بوت مفتوح"}]}
