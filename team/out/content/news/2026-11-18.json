@@ -1,0 +1,20 @@
+{
+ "title": "أهم أخبار اليوم",
+ "date": "الأربعاء 18 نوفمبر 2026 · قبل الافتتاح",
+ "items": [
+  {"tag":"NVDA","tone":"up","head":"إنفيديا تطلع قبل الافتتاح بعد نتائج قوية","body":"الإيرادات 115.8 مليار$ (المتوقع حوالي 109)، وتوقعات الربع الجاي 130 مليار$ (المتوقع حوالي 125). والسهم حوالي +2.5 لين +3.7% قبل الافتتاح","impact":"ثقيلة في المؤشرين، فممكن ترفع الافتتاح. بس ممكن يصير «بيع الخبر» بعد أول ساعة"},
+  {"tag":"الفيوتشر","tone":"up","head":"الفيوتشر أخضر بعد 4 أيام نزول","body":"فيوتشر إس آند بي حوالي +0.6%، وناسداك حوالي +0.8 لين +1.2% (الصبح الباكر)","impact":"افتتاح بفجوة صاعدة غالباً. والسؤال: هل الفجوة تثبت ولا تتعبّى؟"},
+  {"tag":"Anthropic","tone":"event","head":"تسعير طرح Anthropic متوقع اليوم","body":"والطرح للتداول متوقع الخميس","impact":"ممكن يزيد الاهتمام بأسهم الذكاء الاصطناعي، أو يسحب سيولة منها"},
+  {"tag":"LOW","tone":"down","head":"Lowe's تنزل قبل الافتتاح بعد نتائجها","body":"من أبرز الأسهم النازلة الصبح","impact":"تأثيرها على المؤشر محدود، بس تعطي صورة عن صرف الناس على البيوت"},
+  {"tag":"SPX","tone":"neutral","head":"خريطة القاما اليوم: سالبة، والموجبة فوق ضعيفة","body":"أكبر قاما سالبة 7350 · جدار الكول 7410 (ضعيف) · قاما سالبة 7300 (حسابنا من CBOE)","impact":"القاما السالبة تخلي الحركة أسرع بالاتجاهين. فوق 7350 المقاومة 7410، وتحتها ممكن يرجع لين 7300"}
+ ],
+ "sources": [
+  "https://finance.yahoo.com/markets/live/stock-market-today-wednesday-november-18-dow-sp-500-nasdaq-nvidia-anthropic-ipo-090613569.html",
+  "https://www.tipranks.com/news/stock-market-today-nov-18-nvidias-strong-results-lift-market-sentiment",
+  "https://www.bloomberg.com/news/articles/2026-11-18/us-stock-futures-rally-as-nvidia-results-ease-ai-trade-worries",
+  "https://finance.yahoo.com/markets/stocks/articles/nasdaq-futures-jump-nvidia-forecast-103531610.html",
+  "https://ca.investing.com/news/stock-market-news/premarket-movers-nvidia-jumps-on-strong-ai-outlook-lowes-falls-4966660",
+  "https://www.marketscreener.com/news/nasdaq-futures-jump-as-nvidia-forecast-lifts-ai-trade-ahead-of-anthropic-pricing-ce785eddd98ff627",
+  "team/out/market/2026-11-18.md"
+ ]
+}
