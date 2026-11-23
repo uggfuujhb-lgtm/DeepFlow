@@ -215,7 +215,7 @@ svg{{position:absolute;top:0;left:0}}
 <svg width="{W}" height="{H}"><defs><filter id="glow" filterUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{H}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>{''.join(svg)}</svg>
 {''.join(chip_html)}
 <div class="axis">الوقت بتوقيت الرياض، مساءً</div>
-<div class="foot"><span>المصدر: CBOE · المستويات تقريبية من بيانات الأوبشن</span><span>للتعليم فقط وليست توصية</span></div>
+<div class="foot"><span>{html.escape(args.source)}</span><span>للتعليم فقط وليست توصية</span></div>
 </body></html>"""
 
 
@@ -238,6 +238,7 @@ def main():
     ap.add_argument("--title", default="سباكس بين الجدارين"); ap.add_argument("--note", default=""); ap.add_argument("--price-label", default="📍 السعر")
     ap.add_argument("--theme", default="violet", choices=["night", *THEMES])
     ap.add_argument("--level", action="append", default=[]); ap.add_argument("--zone", action="append", default=[])
+    ap.add_argument("--source", default="المصدر: CBOE · المستويات تقريبية من بيانات الأوبشن", help="footer source line")
     ap.add_argument("--out", required=True); ap.add_argument("--html", help="also keep the HTML here")
     a = ap.parse_args()
     if a.theme != "night": C.update(THEMES[a.theme]); GLOW["on"] = True
