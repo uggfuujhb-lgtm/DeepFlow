@@ -1,0 +1,30 @@
+{
+ "title": "أهم أخبار اليوم",
+ "date": "الثلاثاء 24 نوفمبر 2026 · قبل الافتتاح",
+ "items": [
+  {"tag": "الفيوتشر", "tone": "down", "head": "الفيوتشر يرجّع جزء من ارتداد أمس",
+   "body": "فيوتشر إس آند بي حوالي −1.2% (حوالي 7,164 مقابل إغلاق أمس 7,254)، وناسداك أكثر نزول",
+   "impact": "ممكن يفتح بفجوة نازلة، والسؤال: هل يرجع يختبر قاع أمس، ولا يثبت فوقه؟"},
+  {"tag": "إيران", "tone": "event", "head": "عقوبات أمريكية جديدة على إيران وتحذيرات عن هرمز",
+   "body": "حسب تغطية الصبح، والتفاصيل ما تأكدت من مصدر ثاني",
+   "impact": "ممكن يرفع النفط ويزيد الحذر في السوق، خصوصاً مع خوف مرتفع (VIX فوق 26)"},
+  {"tag": "NVDA", "tone": "up", "head": "إنفيديا ارتدت حوالي 31% أمس",
+   "body": "بعد نزول حوالي 14% الجمعة (آخر شمعة أمس حوالي 165.2$)",
+   "impact": "حركة بهالحجم معناها تذبذب عالي جداً، فممكن تحرّك ناسداك بقوة بالاتجاهين اليوم"},
+  {"tag": "SPX", "tone": "up", "head": "أمس ثاني أكبر صعود بالنقاط في تاريخ إس آند بي",
+   "body": "أغلق 7,237 (+4.73%)، وناسداك المركب +6.51%، وداو +3.01%",
+   "impact": "بعد يوم بهالحجم، جني الأرباح وارد، والارتداد ما يعني إن النزول خلص"},
+  {"tag": "SPX", "tone": "neutral", "head": "مستويات اليوم: سعرية بس",
+   "body": "بيانات القاما متوقفة عندنا. قيمة أمس من 7,225 لين 7,267.5، وقاع أمس 7,153، وقاع الخميس 7,174",
+   "impact": "لو فتح تحت 7,153 وثبت تحته، الارتداد ممكن يتعبّى. ولو رجع فوق 7,225، الضغط يخف"}
+ ],
+ "sources": [
+  "https://www.benzinga.com/markets/equities/26/11/63569914/stock-market-today-dow-sp-500-futures-fall-after-scott-bessent-unveils-fresh-iran-sanctions-hormuz-warnings-hpe-smtc-dell-in-focus",
+  "https://investrade.com/morning-preview-november-24-2026/",
+  "https://247wallst.com/investing/2026/11/24/the-sp-500-just-had-the-second-biggest-point-gain-in-its-history/",
+  "https://journalarta.com/en/2026/11/24/stock-market-today-sp-500-closes-4-73-higher-nasdaq-jumps-6-51-as-vix-plunges/",
+  "Yahoo ES=F quote 2026-11-24 13:20 UTC (7164.25, prev 7254.5)",
+  "team/data/intraday_stocks/2026-11-23_NVDA.csv.gz (Yahoo)",
+  "team/out/market/2026-11-24.md"
+ ]
+}
