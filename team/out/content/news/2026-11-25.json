@@ -1,0 +1,30 @@
+{
+ "title": "أهم أخبار اليوم",
+ "date": "الأربعاء 25 نوفمبر 2026 · قبل الافتتاح",
+ "items": [
+  {"tag": "الفيوتشر", "tone": "down", "head": "الفيوتشر نازل بقوة قبل العطلة",
+   "body": "فيوتشر إس آند بي حوالي −1.9% (حوالي 7,081 مقابل إغلاق أمس 7,217)، وناسداك حوالي −2.8%",
+   "impact": "ممكن يفتح بفجوة نازلة تحت قاع أمس وقاع الاثنين، يعني الارتداد من 6,910 ممكن يتعبّى أكثر"},
+  {"tag": "PCE", "tone": "event", "head": "تضخم PCE لشهر أكتوبر",
+   "body": "الساعة 4:30 م بتوقيت الرياض، قبل الافتتاح بساعة",
+   "impact": "رقم أعلى من المتوقع ممكن يزيد الضغط، وأقل منه ممكن يخفف النزول. والحركة ممكن تكون حادة وقت صدوره"},
+  {"tag": "الرقائق", "tone": "down", "head": "بيع أسهم الرقائق والذكاء الاصطناعي يكمّل",
+   "body": "إنفيديا نزلت حوالي −5.9% أمس، وناسداك المركب −1.48%",
+   "impact": "التقنية ثقيلة في ناسداك وإس آند بي، فاستمرار البيع فيها غالباً يسحب المؤشرات معه"},
+  {"tag": "الرسوم", "tone": "event", "head": "قلق من رسوم جمركية جديدة",
+   "body": "حسب تغطية الصبح، والتفاصيل ما تأكدت من مصدر ثاني",
+   "impact": "أخبار الرسوم ممكن تزيد التذبذب، خصوصاً مع خوف مرتفع (VIX فوق 26)"},
+  {"tag": "SPX", "tone": "neutral", "head": "مستويات اليوم: سعرية بس",
+   "body": "بيانات القاما متوقفة عندنا. قاع أمس 7,139، وقاع الاثنين 7,153، وقيمة أمس من 7,162.5 لين 7,212.5",
+   "impact": "لو فتح تحت 7,139 وثبت تحته، الضغط مستمر وما فيه مستوى قريب من بياناتنا. ولو رجع فوقه، ممكن يرتد"}
+ ],
+ "sources": [
+  "https://finance.yahoo.com/markets/live/stock-market-today-wednesday-november-25-dow-sp-500-nasdaq-pce-inflation-data-091428237.html",
+  "https://www.tipranks.com/news/stock-market-today-nov-25-wall-street-braces-for-inflation-data-after-tech-led-selloff",
+  "https://investrade.com/morning-preview-november-25-2026/",
+  "https://journalarta.com/en/2026/11/25/stock-market-today-nasdaq-sp-500-and-dow-futures-slide-as-ai-chip-selloff-deepens/",
+  "Yahoo ES=F 7081.25 / NQ=F 25535 at 2026-11-25 13:15 UTC",
+  "team/data/intraday_stocks/2026-11-24_NVDA.csv.gz (Yahoo)",
+  "team/out/market/2026-11-25.md"
+ ]
+}
