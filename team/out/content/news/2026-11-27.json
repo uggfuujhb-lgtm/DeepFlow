@@ -1,0 +1,60 @@
+{
+ "title": "أهم أخبار اليوم",
+ "date": "الجمعة 27 نوفمبر 2026 · قبل الافتتاح",
+ "items": [
+  {
+   "tag": "الفيوتشر",
+   "tone": "up",
+   "head": "الفيوتشر طالع بقوة بعد العطلة",
+   "body": "إس آند بي حوالي +1.7% (7,317)، وناسداك حوالي +2.4%، وداو حوالي +1.4%، مقارنة بإغلاق الأربعاء",
+   "impact": "ممكن يفتح بفجوة صاعدة فوق قمة الثلاثاء 7,237، والتاريخ يقول الفجوات الكبيرة غالباً ما تنسد بنفس اليوم"
+  },
+  {
+   "tag": "الجلسة",
+   "tone": "event",
+   "head": "جلسة قصيرة: الإغلاق 9:00 م",
+   "body": "الأسهم تقفل 9:00 م بتوقيت الرياض، والسندات 10:00 م",
+   "impact": "السيولة غالباً خفيفة، والكسر الكاذب ممكن يكثر، والحركة ممكن تكون مفاجئة قرب الإغلاق"
+  },
+  {
+   "tag": "الرقائق",
+   "tone": "up",
+   "head": "ارتداد التقنية والرقائق",
+   "body": "قلق أرباح الذكاء الاصطناعي هدأ شوي، وإنفيديا طالعة قبل الافتتاح بعد ما نزلت حوالي 10% في يومين وأغلقت الأربعاء 149.3",
+   "impact": "إنفيديا والرقائق ممكن تقود الصعود، بس بعد نزول حاد الارتداد ممكن يكون متذبذب"
+  },
+  {
+   "tag": "النفط والفايدة",
+   "tone": "down",
+   "head": "النفط طالع وقلق رفع الفايدة باقي",
+   "body": "نفط WTI حوالي 85 دولار (+1.6%)، وعائد السندات 10 سنين أغلق الأربعاء 4.85%",
+   "impact": "نفط أعلى وقلق رفع الفايدة ممكن يحدّون الصعود، خصوصاً لو العوائد رجعت تطلع"
+  },
+  {
+   "tag": "بلاك فرايدي",
+   "tone": "event",
+   "head": "توقعات قياسية للتسوق أونلاين",
+   "body": "أدوبي تتوقع مبيعات بلاك فرايدي أونلاين 12.9 مليار دولار (+9.2%)، وأسبوع التسوق كامل 47.5 مليار",
+   "impact": "أسهم التجزئة وأمازون ممكن تتحرك على أي أرقام أولية تطلع اليوم وبكرة"
+  },
+  {
+   "tag": "خريطة اليوم",
+   "tone": "neutral",
+   "head": "بيانات القاما متوقفة، والمحور سعري",
+   "body": "المحور قمة الثلاثاء 7,237، وفوقه 7,296 (قمة الاثنين)، وتحته 7,199 ثم إغلاق الأربعاء 7,183",
+   "impact": "ثبات فوق 7,237 بعد أول ساعة ممكن يكمّل لين 7,296، ورجوع تحته ممكن يسد الفجوة بسرعة"
+  }
+ ],
+ "sources": [
+  "https://finance.yahoo.com/markets/live/stock-market-today-firday-november-27-dow-sp-500-nasdaq-black-friday-holiday-091152065.html",
+  "https://www.tipranks.com/news/stock-market-today-nov-27-markets-reopen-for-shortened-black-friday-trading",
+  "https://www.fxleaders.com/news/2026/11/27/dow-futures-surge-past-50400-on-black-friday-amid-tech-rebound/",
+  "https://conservativedailynews.com/2026/11/stock-futures-jump-before-black-fridays-1-p-m-close-but-rate-hike-worries-linger/",
+  "https://news.ssbcrack.com/us-stock-futures-rally-as-tech-shares-rebound-ahead-of-early-black-friday-close/",
+  "https://news.adobe.com/news/2026/09/adobe-us-holiday-shopping-season-to-hit-record",
+  "https://www.quantvps.com/market-hours/holidays",
+  "Yahoo ES=F 7317.25 / NQ=F 26731.5 / YM=F 50924 / CL=F 85.05 at 2026-11-27 13:05 UTC vs Wed closes 7195.75 / 26100.25 / 50228 / 83.68",
+  "Yahoo ^TNX 4.848 (Wed close), NVDA daily closes 165.05 / 155.38 / 149.30",
+  "team/out/market/2026-11-27.md"
+ ]
+}
